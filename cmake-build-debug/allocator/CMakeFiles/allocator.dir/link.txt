@@ -1,0 +1,2 @@
+/Library/Developer/CommandLineTools/usr/bin/ar qc liballocator.a  CMakeFiles/allocator.dir/allocator.c.o
+/Library/Developer/CommandLineTools/usr/bin/ranlib liballocator.a

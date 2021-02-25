@@ -1,0 +1,18 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/Users/wangke/CLionProjects/nvmkv/util/rng.c
+rng.h
+/Users/wangke/CLionProjects/nvmkv/util/rng.h
+
+/Users/wangke/CLionProjects/nvmkv/util/rng.h
+stdio.h
+-
+stdint.h
+-
+

@@ -1,0 +1,2 @@
+/Library/Developer/CommandLineTools/usr/bin/ar qc libnvmkv-blink.a  CMakeFiles/nvmkv-blink.dir/blink_tree.cpp.o CMakeFiles/nvmkv-blink.dir/mapping_array.cpp.o CMakeFiles/nvmkv-blink.dir/blink_node.cpp.o
+/Library/Developer/CommandLineTools/usr/bin/ranlib libnvmkv-blink.a

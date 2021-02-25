@@ -1,0 +1,16 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/Users/wangke/CLionProjects/nvmkv/rng/rng.cpp
+rng.h
+/Users/wangke/CLionProjects/nvmkv/rng/rng.h
+
+/Users/wangke/CLionProjects/nvmkv/rng/rng.h
+stdint.h
+-
+

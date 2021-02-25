@@ -1,0 +1,32 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/Users/wangke/CLionProjects/nvmkv/allocator/allocator.c
+stdlib.h
+-
+stdio.h
+-
+assert.h
+-
+string.h
+-
+sys/mman.h
+-
+pthread.h
+-
+fcntl.h
+-
+errno.h
+-
+unistd.h
+-
+allocator.h
+/Users/wangke/CLionProjects/nvmkv/allocator/allocator.h
+
+/Users/wangke/CLionProjects/nvmkv/allocator/allocator.h
+

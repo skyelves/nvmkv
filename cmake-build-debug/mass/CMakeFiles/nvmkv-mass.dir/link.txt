@@ -1,0 +1,2 @@
+/Library/Developer/CommandLineTools/usr/bin/ar qc libnvmkv-mass.a  CMakeFiles/nvmkv-mass.dir/mass_tree.cpp.o CMakeFiles/nvmkv-mass.dir/mass_node.cpp.o
+/Library/Developer/CommandLineTools/usr/bin/ranlib libnvmkv-mass.a

@@ -1,0 +1,2 @@
+/Library/Developer/CommandLineTools/usr/bin/ar qc libblinkLib.a  CMakeFiles/blinkLib.dir/blink_tree.c.o CMakeFiles/blinkLib.dir/mapping_array.c.o CMakeFiles/blinkLib.dir/node.c.o
+/Library/Developer/CommandLineTools/usr/bin/ranlib libblinkLib.a

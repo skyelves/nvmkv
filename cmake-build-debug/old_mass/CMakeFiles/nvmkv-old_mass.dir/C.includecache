@@ -1,0 +1,36 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/Users/wangke/CLionProjects/nvmkv/allocator/allocator.h
+
+/Users/wangke/CLionProjects/nvmkv/old_mass/mass_node.h
+stdint.h
+-
+libkern/OSByteOrder.h
+-
+endian.h
+-
+
+/Users/wangke/CLionProjects/nvmkv/old_mass/mass_tree.c
+stdlib.h
+-
+assert.h
+-
+string.h
+-
+stdio.h
+-
+../allocator/allocator.h
+/Users/wangke/CLionProjects/nvmkv/allocator/allocator.h
+mass_tree.h
+/Users/wangke/CLionProjects/nvmkv/old_mass/mass_tree.h
+
+/Users/wangke/CLionProjects/nvmkv/old_mass/mass_tree.h
+mass_node.h
+/Users/wangke/CLionProjects/nvmkv/old_mass/mass_node.h
+
