@@ -19,3 +19,6 @@
 /Users/wangke/CLionProjects/nvmkv/cmake-build-debug/rng/CMakeFiles/rebuild_cache.dir
 /Users/wangke/CLionProjects/nvmkv/cmake-build-debug/rng/CMakeFiles/edit_cache.dir
 /Users/wangke/CLionProjects/nvmkv/cmake-build-debug/rng/CMakeFiles/nvmkv-rng.dir
+/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/hashtree/CMakeFiles/rebuild_cache.dir
+/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/hashtree/CMakeFiles/edit_cache.dir
+/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/hashtree/CMakeFiles/nvmkv-ht.dir

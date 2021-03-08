@@ -7,6 +7,9 @@ CMakeFiles/nvmkv.dir/main.cpp.o
  /Users/wangke/CLionProjects/nvmkv/blink/blink_tree.h
  /Users/wangke/CLionProjects/nvmkv/blink/latch.h
  /Users/wangke/CLionProjects/nvmkv/blink/mapping_array.h
+ /Users/wangke/CLionProjects/nvmkv/hashtree/bobhash32.h
+ /Users/wangke/CLionProjects/nvmkv/hashtree/hashtree.h
+ /Users/wangke/CLionProjects/nvmkv/hashtree/hashtree_node.h
  /Users/wangke/CLionProjects/nvmkv/main.cpp
  /Users/wangke/CLionProjects/nvmkv/mass/mass_node.h
  /Users/wangke/CLionProjects/nvmkv/mass/mass_tree.h

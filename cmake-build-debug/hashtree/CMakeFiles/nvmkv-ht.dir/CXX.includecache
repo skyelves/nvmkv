@@ -1,0 +1,36 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/Users/wangke/CLionProjects/nvmkv/hashtree/bobhash32.h
+stdio.h
+-
+
+/Users/wangke/CLionProjects/nvmkv/hashtree/hashtree.cpp
+stdio.h
+-
+string.h
+-
+vector
+-
+stdlib.h
+-
+hashtree.h
+/Users/wangke/CLionProjects/nvmkv/hashtree/hashtree.h
+
+/Users/wangke/CLionProjects/nvmkv/hashtree/hashtree.h
+hashtree_node.h
+/Users/wangke/CLionProjects/nvmkv/hashtree/hashtree_node.h
+bobhash32.h
+/Users/wangke/CLionProjects/nvmkv/hashtree/bobhash32.h
+
+/Users/wangke/CLionProjects/nvmkv/hashtree/hashtree_node.h
+cstdint
+-
+bobhash32.h
+/Users/wangke/CLionProjects/nvmkv/hashtree/bobhash32.h
+

@@ -5,7 +5,7 @@
 		<Option title="nvmkv"/>
 		<Option makefile_is_custom="1"/>
 		<Option compiler="gcc"/>
-		<Option virtualFolders="CMake Files\;CMake Files\node\;CMake Files\allocator\;CMake Files\blink\;CMake Files\art\;CMake Files\mass\;CMake Files\rng\;"/>
+		<Option virtualFolders="CMake Files\;CMake Files\node\;CMake Files\allocator\;CMake Files\blink\;CMake Files\art\;CMake Files\mass\;CMake Files\rng\;CMake Files\hashtree\;"/>
 		<Build>
 			<Target title="all">
 				<Option working_dir="/Users/wangke/CLionProjects/nvmkv/cmake-build-debug"/>
@@ -331,6 +331,48 @@
 					<DistClean command="/usr/bin/make -j16 -f &quot;/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/rng/Makefile&quot;  VERBOSE=1 clean"/>
 				</MakeCommands>
 			</Target>
+			<Target title="nvmkv-ht">
+				<Option output="/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/hashtree/libnvmkv-ht.a" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/hashtree"/>
+				<Option object_output="./"/>
+				<Option type="2"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/Library/Developer/CommandLineTools/usr/bin/../include/c++/v1"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/lib/clang/12.0.0/include"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/include"/>
+					<Add directory="/System/Library/Frameworks"/>
+					<Add directory="/Library/Frameworks"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j16 -f &quot;/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/hashtree/Makefile&quot;  VERBOSE=1 nvmkv-ht"/>
+					<CompileFile command="/usr/bin/make -j16 -f &quot;/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/hashtree/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j16 -f &quot;/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/hashtree/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j16 -f &quot;/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/hashtree/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="nvmkv-ht/fast">
+				<Option output="/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/hashtree/libnvmkv-ht.a" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/hashtree"/>
+				<Option object_output="./"/>
+				<Option type="2"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/Library/Developer/CommandLineTools/usr/bin/../include/c++/v1"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/lib/clang/12.0.0/include"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/include"/>
+					<Add directory="/System/Library/Frameworks"/>
+					<Add directory="/Library/Frameworks"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j16 -f &quot;/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/hashtree/Makefile&quot;  VERBOSE=1 nvmkv-ht/fast"/>
+					<CompileFile command="/usr/bin/make -j16 -f &quot;/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/hashtree/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j16 -f &quot;/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/hashtree/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j16 -f &quot;/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/hashtree/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
 		</Build>
 		<Unit filename="/Users/wangke/CLionProjects/nvmkv/allocator/allocator.cpp">
 			<Option target="nvmkv-allocator"/>
@@ -370,6 +412,24 @@
 		</Unit>
 		<Unit filename="/Users/wangke/CLionProjects/nvmkv/blink/mapping_array.h">
 			<Option target="nvmkv-blink"/>
+		</Unit>
+		<Unit filename="/Users/wangke/CLionProjects/nvmkv/hashtree/bobhash32.cpp">
+			<Option target="nvmkv-ht"/>
+		</Unit>
+		<Unit filename="/Users/wangke/CLionProjects/nvmkv/hashtree/bobhash32.h">
+			<Option target="nvmkv-ht"/>
+		</Unit>
+		<Unit filename="/Users/wangke/CLionProjects/nvmkv/hashtree/hashtree.cpp">
+			<Option target="nvmkv-ht"/>
+		</Unit>
+		<Unit filename="/Users/wangke/CLionProjects/nvmkv/hashtree/hashtree.h">
+			<Option target="nvmkv-ht"/>
+		</Unit>
+		<Unit filename="/Users/wangke/CLionProjects/nvmkv/hashtree/hashtree_node.cpp">
+			<Option target="nvmkv-ht"/>
+		</Unit>
+		<Unit filename="/Users/wangke/CLionProjects/nvmkv/hashtree/hashtree_node.h">
+			<Option target="nvmkv-ht"/>
 		</Unit>
 		<Unit filename="/Users/wangke/CLionProjects/nvmkv/main.cpp">
 			<Option target="nvmkv"/>
@@ -418,6 +478,9 @@
 		</Unit>
 		<Unit filename="/Users/wangke/CLionProjects/nvmkv/rng/CMakeLists.txt">
 			<Option virtualFolder="CMake Files\rng\"/>
+		</Unit>
+		<Unit filename="/Users/wangke/CLionProjects/nvmkv/hashtree/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\hashtree\"/>
 		</Unit>
 	</Project>
 </CodeBlocks_project_file>

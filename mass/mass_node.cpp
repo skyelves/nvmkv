@@ -95,7 +95,7 @@ static int mass_node_get_count(mass_node *n);
 
 static interior_mass_node *new_interior_mass_node() {
 #ifdef Allocator
-    interior_mass_node *in = (interior_mass_node *) allocator_alloc(sizeof(interior_mass_node), true);
+    interior_mass_node *in = (interior_mass_node *) allocator_alloc(sizeof(interior_mass_node), false);
 #else
     interior_mass_node *in = new interior_mass_node;
 #endif // Allocator
@@ -135,7 +135,7 @@ static void free_border_mass_node(border_mass_node *bn) {
 
 static border_mass_node *new_border_mass_node() {
 #ifdef Allocator
-    border_mass_node *bn = (border_mass_node *) allocator_alloc(sizeof(border_mass_node), true);
+    border_mass_node *bn = (border_mass_node *) allocator_alloc(sizeof(border_mass_node), false);
 #else
     border_mass_node *bn = new border_mass_node;
 #endif // Allocator
@@ -644,7 +644,7 @@ void *border_mass_node_insert(mass_node *n, const void *key, uint32_t key_len, u
         bn->keylen[index] = keylen;
         bn->suffix[index] = (void *) key;
         //newly added
-        bn->value[index] = allocator_alloc(val_len + 8, true);
+        bn->value[index] = allocator_alloc(val_len + 8, false);
         int *val_len_ptr = static_cast<int *>(bn->value[index]);
         *val_len_ptr = val_len;
         char *val_ptr = (char *)(val_len_ptr + 1);

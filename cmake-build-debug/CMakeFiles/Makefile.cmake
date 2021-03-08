@@ -46,6 +46,7 @@ set(CMAKE_MAKEFILE_DEPENDS
   "CMakeFiles/3.14.3/CMakeCCompiler.cmake"
   "CMakeFiles/3.14.3/CMakeCXXCompiler.cmake"
   "CMakeFiles/3.14.3/CMakeSystem.cmake"
+  "../hashtree/CMakeLists.txt"
   "../mass/CMakeLists.txt"
   "../node/CMakeLists.txt"
   "../rng/CMakeLists.txt"
@@ -66,6 +67,7 @@ set(CMAKE_MAKEFILE_PRODUCTS
   "art/CMakeFiles/CMakeDirectoryInformation.cmake"
   "mass/CMakeFiles/CMakeDirectoryInformation.cmake"
   "rng/CMakeFiles/CMakeDirectoryInformation.cmake"
+  "hashtree/CMakeFiles/CMakeDirectoryInformation.cmake"
   )
 
 # Dependency information for all targets:
@@ -77,4 +79,5 @@ set(CMAKE_DEPEND_INFO_FILES
   "art/CMakeFiles/nvmkv-art.dir/DependInfo.cmake"
   "mass/CMakeFiles/nvmkv-mass.dir/DependInfo.cmake"
   "rng/CMakeFiles/nvmkv-rng.dir/DependInfo.cmake"
+  "hashtree/CMakeFiles/nvmkv-ht.dir/DependInfo.cmake"
   )

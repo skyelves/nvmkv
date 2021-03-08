@@ -83,6 +83,7 @@ nvmkv: blink/libnvmkv-blink.a
 nvmkv: art/libnvmkv-art.a
 nvmkv: mass/libnvmkv-mass.a
 nvmkv: rng/libnvmkv-rng.a
+nvmkv: hashtree/libnvmkv-ht.a
 nvmkv: allocator/libnvmkv-allocator.a
 nvmkv: node/libnvmkv-node.a
 nvmkv: CMakeFiles/nvmkv.dir/link.txt

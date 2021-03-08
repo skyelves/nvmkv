@@ -32,21 +32,3 @@ libkern/OSByteOrder.h
 endian.h
 -
 
-/Users/wangke/CLionProjects/nvmkv/mass/mass_tree.cpp
-stdlib.h
--
-assert.h
--
-string.h
--
-stdio.h
--
-../allocator/allocator.h
-/Users/wangke/CLionProjects/nvmkv/allocator/allocator.h
-mass_tree.h
-/Users/wangke/CLionProjects/nvmkv/mass/mass_tree.h
-
-/Users/wangke/CLionProjects/nvmkv/mass/mass_tree.h
-mass_node.h
-/Users/wangke/CLionProjects/nvmkv/mass/mass_node.h
-

@@ -310,8 +310,8 @@ void *allocator_alloc(size_t size, bool _on_nvm) {
                 meta->next = a->meta_curr_nvm;
                 a->meta_curr_nvm = meta;
                 _new_block = new_block(a, _on_nvm);
-                if (_new_block == 0)
-                    printf("%d, %d\n", a->block_nvm_file_num, a->meta_num_nvm);
+//                if (_new_block == 0)
+//                    printf("%d, %d\n", a->block_nvm_file_num, a->meta_num_nvm);
                 assert(_new_block);
             }
             _new_block->next = a->curr_nvm;

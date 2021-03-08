@@ -201,6 +201,19 @@ nvmkv-rng/fast:
 	$(MAKE) -f rng/CMakeFiles/nvmkv-rng.dir/build.make rng/CMakeFiles/nvmkv-rng.dir/build
 .PHONY : nvmkv-rng/fast
 
+#=============================================================================
+# Target rules for targets named nvmkv-ht
+
+# Build rule for target.
+nvmkv-ht: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 nvmkv-ht
+.PHONY : nvmkv-ht
+
+# fast build rule for target.
+nvmkv-ht/fast:
+	$(MAKE) -f hashtree/CMakeFiles/nvmkv-ht.dir/build.make hashtree/CMakeFiles/nvmkv-ht.dir/build
+.PHONY : nvmkv-ht/fast
+
 main.o: main.cpp.o
 
 .PHONY : main.o
@@ -243,6 +256,7 @@ help:
 	@echo "... nvmkv-art"
 	@echo "... nvmkv-mass"
 	@echo "... nvmkv-rng"
+	@echo "... nvmkv-ht"
 	@echo "... main.o"
 	@echo "... main.i"
 	@echo "... main.s"

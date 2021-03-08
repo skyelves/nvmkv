@@ -6,6 +6,9 @@ CMakeFiles/nvmkv.dir/main.cpp.o: ../blink/blink_node.h
 CMakeFiles/nvmkv.dir/main.cpp.o: ../blink/blink_tree.h
 CMakeFiles/nvmkv.dir/main.cpp.o: ../blink/latch.h
 CMakeFiles/nvmkv.dir/main.cpp.o: ../blink/mapping_array.h
+CMakeFiles/nvmkv.dir/main.cpp.o: ../hashtree/bobhash32.h
+CMakeFiles/nvmkv.dir/main.cpp.o: ../hashtree/hashtree.h
+CMakeFiles/nvmkv.dir/main.cpp.o: ../hashtree/hashtree_node.h
 CMakeFiles/nvmkv.dir/main.cpp.o: ../main.cpp
 CMakeFiles/nvmkv.dir/main.cpp.o: ../mass/mass_node.h
 CMakeFiles/nvmkv.dir/main.cpp.o: ../mass/mass_tree.h
