@@ -30,24 +30,6 @@ art_node.h
 stddef.h
 -
 
-/Users/wangke/CLionProjects/nvmkv/art/art_node.cpp
-stdlib.h
--
-stdint.h
--
-string.h
--
-assert.h
--
-emmintrin.h
--
-stdio.h
--
-../allocator/allocator.h
-/Users/wangke/CLionProjects/nvmkv/allocator/allocator.h
-art_node.h
-/Users/wangke/CLionProjects/nvmkv/art/art_node.h
-
 /Users/wangke/CLionProjects/nvmkv/art/art_node.h
 stddef.h
 -

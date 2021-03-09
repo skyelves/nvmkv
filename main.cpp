@@ -21,7 +21,7 @@
 
 using namespace std;
 
-#define VALUE_LEN 64
+#define VALUE_LEN 8
 
 int testNum = 1000000;
 
@@ -51,13 +51,13 @@ void *putFunc(void *arg) {
 #endif
     rng_init(&r, tid, tid + numThread);
     for (int i = 0; i < testNum / numThread; ++i) {
-//        char *key = new char[9];
-//        key[0] = 8;
-//        *(uint64_t *)(key + 1)= rand();
-//        adaptive_radix_tree_put(mytree.art, (const void *)(key + 1), 8);
+        char *key = new char[9];
+        key[0] = 8;
+        *(uint64_t *) (key + 1) = rand();
+        adaptive_radix_tree_put(mytree.art, (const void *) (key + 1), 8, value, VALUE_LEN);
 //        uint64_t x = rng_next(&r) % testNum;
-        uint64_t x = i;
-        mytree.ht->put(x, x);
+//        uint64_t x = i;
+//        mytree.ht->put(x, x);
 //        blink_tree_write(mytree, &x, sizeof(int), &x);
 //        mass_tree_put(mytree.mt, &x, 8, value, strlen(value));
 //        int *res = static_cast<int *>(mass_tree_get(mytree.mt, &x, 8));
@@ -95,9 +95,9 @@ void speedTest() {
 int main(int argc, char *argv[]) {
     sscanf(argv[1], "%d", &numThread);
     sscanf(argv[2], "%d", &testNum);
-    mytree.ht = new hashtree;
+//    mytree.ht = new hashtree;
 //    mytree.mt = new_mass_tree();
-//    mytree.art = new_adaptive_radix_tree();
+    mytree.art = new_adaptive_radix_tree();
 //    mytree.bt = new_blink_tree(numThread);
 //    cout << testPut() << endl;
 //    cout << testUpdate() << endl;

@@ -78,7 +78,9 @@ static int adaptive_radix_tree_replace_leaf(art_node *parent, art_node **ptr, ar
 // return  0 on success,
 // return +1 on existed,
 // return -1 for retry
-static int _adaptive_radix_tree_put(art_node *parent, art_node **ptr, const void *key, size_t len, size_t off) {
+static int
+_adaptive_radix_tree_put(art_node *parent, art_node **ptr, const void *key, size_t len, size_t off, const void *value,
+                         size_t value_len) {
     art_node *an;
     int first = 1;
 
@@ -153,7 +155,7 @@ static int _adaptive_radix_tree_put(art_node *parent, art_node **ptr, const void
     }
 
     if (next)
-        return _adaptive_radix_tree_put(an, next, key, len, off + 1);
+        return _adaptive_radix_tree_put(an, next, key, len, off + 1, value, value_len);
 
     if (unlikely(art_node_lock(an))) {
         off -= p;
@@ -176,14 +178,15 @@ static int _adaptive_radix_tree_put(art_node *parent, art_node **ptr, const void
 
     // another thread might inserted same byte before we acquire lock
     if (unlikely(next))
-        return _adaptive_radix_tree_put(an, next, key, len, off + 1);
+        return _adaptive_radix_tree_put(an, next, key, len, off + 1, value, value_len);
 
     return 0;
 }
 
 // return 0 on success
 // return 1 on duplication
-int adaptive_radix_tree_put(adaptive_radix_tree *art, const void *key, size_t len) {
+int
+adaptive_radix_tree_put(adaptive_radix_tree *art, const void *key, size_t len, const void *value, size_t value_len) {
     //print_key(key, len);
 
     art_node *root = art->root;
@@ -195,7 +198,9 @@ int adaptive_radix_tree_put(adaptive_radix_tree *art, const void *key, size_t le
     }
     int ret;
     // retry should be rare
-    while (unlikely((ret = _adaptive_radix_tree_put(NULL /* parent */, &art->root, key, len, 0 /* off */)) == -1));
+    while (unlikely(
+            (ret = _adaptive_radix_tree_put(NULL /* parent */, &art->root, key, len, 0 /* off */, value, value_len)) ==
+            -1));
     return ret;
 }
 
