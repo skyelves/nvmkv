@@ -163,17 +163,17 @@ nvmkv-blink/fast:
 .PHONY : nvmkv-blink/fast
 
 #=============================================================================
-# Target rules for targets named nvmkv-art
+# Target rules for targets named nvmkv-cart
 
 # Build rule for target.
-nvmkv-art: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 nvmkv-art
-.PHONY : nvmkv-art
+nvmkv-cart: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 nvmkv-cart
+.PHONY : nvmkv-cart
 
 # fast build rule for target.
-nvmkv-art/fast:
-	$(MAKE) -f art/CMakeFiles/nvmkv-art.dir/build.make art/CMakeFiles/nvmkv-art.dir/build
-.PHONY : nvmkv-art/fast
+nvmkv-cart/fast:
+	$(MAKE) -f cart/CMakeFiles/nvmkv-cart.dir/build.make cart/CMakeFiles/nvmkv-cart.dir/build
+.PHONY : nvmkv-cart/fast
 
 #=============================================================================
 # Target rules for targets named nvmkv-mass
@@ -253,7 +253,7 @@ help:
 	@echo "... nvmkv-node"
 	@echo "... nvmkv-allocator"
 	@echo "... nvmkv-blink"
-	@echo "... nvmkv-art"
+	@echo "... nvmkv-cart"
 	@echo "... nvmkv-mass"
 	@echo "... nvmkv-rng"
 	@echo "... nvmkv-ht"

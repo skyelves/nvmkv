@@ -71,7 +71,7 @@ CMAKE_BINARY_DIR = /Users/wangke/CLionProjects/nvmkv/cmake-build-debug
 CMakeFiles/nvmkv.dir/all: node/CMakeFiles/nvmkv-node.dir/all
 CMakeFiles/nvmkv.dir/all: allocator/CMakeFiles/nvmkv-allocator.dir/all
 CMakeFiles/nvmkv.dir/all: blink/CMakeFiles/nvmkv-blink.dir/all
-CMakeFiles/nvmkv.dir/all: art/CMakeFiles/nvmkv-art.dir/all
+CMakeFiles/nvmkv.dir/all: cart/CMakeFiles/nvmkv-cart.dir/all
 CMakeFiles/nvmkv.dir/all: mass/CMakeFiles/nvmkv-mass.dir/all
 CMakeFiles/nvmkv.dir/all: rng/CMakeFiles/nvmkv-rng.dir/all
 CMakeFiles/nvmkv.dir/all: hashtree/CMakeFiles/nvmkv-ht.dir/all
@@ -243,7 +243,7 @@ blink/CMakeFiles/nvmkv-blink.dir/all: node/CMakeFiles/nvmkv-node.dir/all
 blink/CMakeFiles/nvmkv-blink.dir/all: allocator/CMakeFiles/nvmkv-allocator.dir/all
 	$(MAKE) -f blink/CMakeFiles/nvmkv-blink.dir/build.make blink/CMakeFiles/nvmkv-blink.dir/depend
 	$(MAKE) -f blink/CMakeFiles/nvmkv-blink.dir/build.make blink/CMakeFiles/nvmkv-blink.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/CMakeFiles --progress-num=8,9,10,11 "Built target nvmkv-blink"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/CMakeFiles --progress-num=5,6,7,8 "Built target nvmkv-blink"
 .PHONY : blink/CMakeFiles/nvmkv-blink.dir/all
 
 # Include target in all.
@@ -274,58 +274,58 @@ clean: blink/CMakeFiles/nvmkv-blink.dir/clean
 .PHONY : clean
 
 #=============================================================================
-# Directory level rules for directory art
+# Directory level rules for directory cart
 
 # Convenience name for "all" pass in the directory.
-art/all: art/CMakeFiles/nvmkv-art.dir/all
+cart/all: cart/CMakeFiles/nvmkv-cart.dir/all
 
-.PHONY : art/all
+.PHONY : cart/all
 
 # Convenience name for "clean" pass in the directory.
-art/clean: art/CMakeFiles/nvmkv-art.dir/clean
+cart/clean: cart/CMakeFiles/nvmkv-cart.dir/clean
 
-.PHONY : art/clean
+.PHONY : cart/clean
 
 # Convenience name for "preinstall" pass in the directory.
-art/preinstall:
+cart/preinstall:
 
-.PHONY : art/preinstall
+.PHONY : cart/preinstall
 
 #=============================================================================
-# Target rules for target art/CMakeFiles/nvmkv-art.dir
+# Target rules for target cart/CMakeFiles/nvmkv-cart.dir
 
 # All Build rule for target.
-art/CMakeFiles/nvmkv-art.dir/all: node/CMakeFiles/nvmkv-node.dir/all
-art/CMakeFiles/nvmkv-art.dir/all: allocator/CMakeFiles/nvmkv-allocator.dir/all
-	$(MAKE) -f art/CMakeFiles/nvmkv-art.dir/build.make art/CMakeFiles/nvmkv-art.dir/depend
-	$(MAKE) -f art/CMakeFiles/nvmkv-art.dir/build.make art/CMakeFiles/nvmkv-art.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/CMakeFiles --progress-num=5,6,7 "Built target nvmkv-art"
-.PHONY : art/CMakeFiles/nvmkv-art.dir/all
+cart/CMakeFiles/nvmkv-cart.dir/all: node/CMakeFiles/nvmkv-node.dir/all
+cart/CMakeFiles/nvmkv-cart.dir/all: allocator/CMakeFiles/nvmkv-allocator.dir/all
+	$(MAKE) -f cart/CMakeFiles/nvmkv-cart.dir/build.make cart/CMakeFiles/nvmkv-cart.dir/depend
+	$(MAKE) -f cart/CMakeFiles/nvmkv-cart.dir/build.make cart/CMakeFiles/nvmkv-cart.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/CMakeFiles --progress-num=9,10,11 "Built target nvmkv-cart"
+.PHONY : cart/CMakeFiles/nvmkv-cart.dir/all
 
 # Include target in all.
-all: art/CMakeFiles/nvmkv-art.dir/all
+all: cart/CMakeFiles/nvmkv-cart.dir/all
 
 .PHONY : all
 
 # Build rule for subdir invocation for target.
-art/CMakeFiles/nvmkv-art.dir/rule: cmake_check_build_system
+cart/CMakeFiles/nvmkv-cart.dir/rule: cmake_check_build_system
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/wangke/CLionProjects/nvmkv/cmake-build-debug/CMakeFiles 7
-	$(MAKE) -f CMakeFiles/Makefile2 art/CMakeFiles/nvmkv-art.dir/all
+	$(MAKE) -f CMakeFiles/Makefile2 cart/CMakeFiles/nvmkv-cart.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/wangke/CLionProjects/nvmkv/cmake-build-debug/CMakeFiles 0
-.PHONY : art/CMakeFiles/nvmkv-art.dir/rule
+.PHONY : cart/CMakeFiles/nvmkv-cart.dir/rule
 
 # Convenience name for target.
-nvmkv-art: art/CMakeFiles/nvmkv-art.dir/rule
+nvmkv-cart: cart/CMakeFiles/nvmkv-cart.dir/rule
 
-.PHONY : nvmkv-art
-
-# clean rule for target.
-art/CMakeFiles/nvmkv-art.dir/clean:
-	$(MAKE) -f art/CMakeFiles/nvmkv-art.dir/build.make art/CMakeFiles/nvmkv-art.dir/clean
-.PHONY : art/CMakeFiles/nvmkv-art.dir/clean
+.PHONY : nvmkv-cart
 
 # clean rule for target.
-clean: art/CMakeFiles/nvmkv-art.dir/clean
+cart/CMakeFiles/nvmkv-cart.dir/clean:
+	$(MAKE) -f cart/CMakeFiles/nvmkv-cart.dir/build.make cart/CMakeFiles/nvmkv-cart.dir/clean
+.PHONY : cart/CMakeFiles/nvmkv-cart.dir/clean
+
+# clean rule for target.
+clean: cart/CMakeFiles/nvmkv-cart.dir/clean
 
 .PHONY : clean
 

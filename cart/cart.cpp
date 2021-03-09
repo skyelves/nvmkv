@@ -14,11 +14,11 @@
 #endif
 
 #include "../allocator/allocator.h"
-#include "art.h"
-#include "art_node.h"
+#include "cart.h"
+#include "cart_node.h"
 
 struct adaptive_radix_tree {
-    art_node *root;
+    cart_node *root;
 };
 
 adaptive_radix_tree *new_adaptive_radix_tree() {
@@ -39,9 +39,9 @@ void free_adaptive_radix_tree(adaptive_radix_tree *art) {
 // return  0 on success,
 // return +1 on existed,
 // return -1 on retry
-static int adaptive_radix_tree_replace_leaf(art_node *parent, art_node **ptr, art_node *an,
+static int adaptive_radix_tree_replace_leaf(cart_node *parent, cart_node **ptr, cart_node *an,
                                             const void *key, size_t len, size_t off) {
-    art_node *new_node = art_node_replace_leaf_child(an, key, len, off);
+    cart_node *new_node = art_node_replace_leaf_child(an, key, len, off);
     if (likely(new_node)) {
         if (likely(parent)) {
             if (unlikely(art_node_lock(parent))) {
@@ -49,7 +49,7 @@ static int adaptive_radix_tree_replace_leaf(art_node *parent, art_node **ptr, ar
                 free_art_node(new_node);
                 return -1;
             } else {
-                art_node *now;
+                cart_node *now;
                 __atomic_load(ptr, &now, __ATOMIC_ACQUIRE);
                 if (unlikely(now != an)) {
                     // leaf has been replaced by another thread
@@ -79,9 +79,9 @@ static int adaptive_radix_tree_replace_leaf(art_node *parent, art_node **ptr, ar
 // return +1 on existed,
 // return -1 for retry
 static int
-_adaptive_radix_tree_put(art_node *parent, art_node **ptr, const void *key, size_t len, size_t off, const void *value,
+_adaptive_radix_tree_put(cart_node *parent, cart_node **ptr, const void *key, size_t len, size_t off, const void *value,
                          size_t value_len) {
-    art_node *an;
+    cart_node *an;
     int first = 1;
 
     begin:
@@ -127,7 +127,7 @@ _adaptive_radix_tree_put(art_node *parent, art_node **ptr, const void *key, size
             goto begin;
         }
         debug_assert(art_node_version_is_old(art_node_get_version_unsafe(an)) == 0);
-        art_node *new_node = art_node_expand_and_insert(an, key, len, off, p);
+        cart_node *new_node = art_node_expand_and_insert(an, key, len, off, p);
         parent = art_node_get_locked_parent(an);
         art_node_set_parent_unsafe(an, new_node);
         if (likely(parent)) {
@@ -145,7 +145,7 @@ _adaptive_radix_tree_put(art_node *parent, art_node **ptr, const void *key, size
     debug_assert(off < len);
 
     // prefix is matched, we can descend
-    art_node **next = art_node_find_child(an, v, ((unsigned char *) key)[off]);
+    cart_node **next = art_node_find_child(an, v, ((unsigned char *) key)[off]);
 
     v = art_node_get_version(an);
 
@@ -162,8 +162,8 @@ _adaptive_radix_tree_put(art_node *parent, art_node **ptr, const void *key, size
         goto begin;
     }
 
-    art_node *new_node = 0;
-    next = art_node_add_child(an, ((unsigned char *) key)[off], (art_node *) make_leaf(key), &new_node);
+    cart_node *new_node = 0;
+    next = art_node_add_child(an, ((unsigned char *) key)[off], (cart_node *) make_leaf(key), &new_node);
     if (unlikely(new_node)) {
         parent = art_node_get_locked_parent(an);
         if (likely(parent)) {
@@ -189,9 +189,9 @@ int
 adaptive_radix_tree_put(adaptive_radix_tree *art, const void *key, size_t len, const void *value, size_t value_len) {
     //print_key(key, len);
 
-    art_node *root = art->root;
+    cart_node *root = art->root;
     if (unlikely(root == 0)) { // empty art
-        art_node *leaf = (art_node *) make_leaf(key);
+        cart_node *leaf = (cart_node *) make_leaf(key);
         if (__atomic_compare_exchange_n(&art->root, &root, leaf, 0 /* weak */, __ATOMIC_RELEASE, __ATOMIC_ACQUIRE))
             return 0;
         // else another thread has replaced empty root
@@ -204,8 +204,8 @@ adaptive_radix_tree_put(adaptive_radix_tree *art, const void *key, size_t len, c
     return ret;
 }
 
-static void *_adaptive_radix_tree_get(art_node *parent, art_node **ptr, const void *key, size_t len, size_t off) {
-    art_node *an;
+static void *_adaptive_radix_tree_get(cart_node *parent, cart_node **ptr, const void *key, size_t len, size_t off) {
+    cart_node *an;
 
     debug_assert(off <= len);
 
@@ -258,7 +258,7 @@ static void *_adaptive_radix_tree_get(art_node *parent, art_node **ptr, const vo
     int advance = off != len;
     unsigned char byte = advance ? ((unsigned char *) key)[off] : 0;
 
-    art_node **next = art_node_find_child(an, v, byte);
+    cart_node **next = art_node_find_child(an, v, byte);
 
     v1 = art_node_get_version(an);
 

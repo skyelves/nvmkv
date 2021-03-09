@@ -18,7 +18,7 @@
 #include "../allocator/allocator.h"
 #endif
 
-#include "art_node.h"
+#include "cart_node.h"
 
 #define node4    ((uint64_t)0x000000)
 #define node16   ((uint64_t)0x100000)
@@ -70,10 +70,10 @@
 #define art_node_header \
   uint64_t version;     \
   char prefix[8];       \
-  art_node *new_node;        \
-  art_node *parent;
+  cart_node *new_node;        \
+  cart_node *parent;
 
-struct art_node {
+struct cart_node {
     art_node_header;
 };
 
@@ -81,52 +81,52 @@ typedef struct art_node4 {
     art_node_header;
     unsigned char key[4];
     unsigned char unused[4];
-    art_node *child[4];
+    cart_node *child[4];
     char meta[0];
 } art_node4;
 
 typedef struct art_node16 {
     art_node_header;
     unsigned char key[16];
-    art_node *child[16];
+    cart_node *child[16];
     char meta[0];
 } art_node16;
 
 typedef struct art_node48 {
     art_node_header;
     unsigned char index[256];
-    art_node *child[48];
+    cart_node *child[48];
     char meta[0];
 } art_node48;
 
 typedef struct art_node256 {
     uint64_t version;
     char prefix[8];
-    art_node *new_node;
-    art_node *parent;
-    art_node *child[256];
+    cart_node *new_node;
+    cart_node *parent;
+    cart_node *child[256];
     char meta[0];
 } art_node256;
 
-uint64_t art_node_get_version(art_node *an) {
+uint64_t art_node_get_version(cart_node *an) {
     uint64_t version;
     __atomic_load(&an->version, &version, __ATOMIC_ACQUIRE);
     return version;
 }
 
-void art_node_set_version(art_node *an, uint64_t version) {
+void art_node_set_version(cart_node *an, uint64_t version) {
     __atomic_store(&an->version, &version, __ATOMIC_RELEASE);
 }
 
-uint64_t art_node_get_version_unsafe(art_node *an) {
+uint64_t art_node_get_version_unsafe(cart_node *an) {
     return an->version;
 }
 
-void art_node_set_version_unsafe(art_node *an, uint64_t version) {
+void art_node_set_version_unsafe(cart_node *an, uint64_t version) {
     an->version = version;
 }
 
-static void art_node_set_offset(art_node *an, size_t off) {
+static void art_node_set_offset(cart_node *an, size_t off) {
     debug_assert(off < 256);
     an->version = set_offset(an->version, off);
 }
@@ -135,11 +135,11 @@ size_t art_node_version_get_offset(uint64_t version) {
     return get_offset(version);
 }
 
-static art_node *_new_art_node(size_t size) {
+static cart_node *_new_art_node(size_t size) {
 #ifdef Allocator
-    art_node *an = (art_node *)allocator_alloc(size);
+    cart_node *an = (cart_node *)allocator_alloc(size);
 #else
-    art_node *an = (art_node *) malloc(size);
+    cart_node *an = (cart_node *) malloc(size);
 #endif
     an->version = 0;
     an->new_node = 0;
@@ -147,37 +147,37 @@ static art_node *_new_art_node(size_t size) {
     return an;
 }
 
-static art_node *new_art_node4() {
-    art_node *an = _new_art_node(sizeof(art_node4));
+static cart_node *new_art_node4() {
+    cart_node *an = _new_art_node(sizeof(art_node4));
     an->version = set_type(an->version, node4);
     return an;
 }
 
-static art_node *new_art_node16() {
-    art_node *an = _new_art_node(sizeof(art_node16));
+static cart_node *new_art_node16() {
+    cart_node *an = _new_art_node(sizeof(art_node16));
     an->version = set_type(an->version, node16);
     return an;
 }
 
-static art_node *new_art_node48() {
-    art_node *an = _new_art_node(sizeof(art_node48));
+static cart_node *new_art_node48() {
+    cart_node *an = _new_art_node(sizeof(art_node48));
     an->version = set_type(an->version, node48);
     memset(((art_node48 *) an)->index, 0, 256);
     return an;
 }
 
-static art_node *new_art_node256() {
-    art_node *an = _new_art_node(sizeof(art_node256));
+static cart_node *new_art_node256() {
+    cart_node *an = _new_art_node(sizeof(art_node256));
     memset(an, 0, sizeof(art_node256));
     an->version = set_type(an->version, node256);
     return an;
 }
 
-art_node *new_art_node() {
+cart_node *new_art_node() {
     return new_art_node4();
 }
 
-void free_art_node(art_node *an) {
+void free_art_node(cart_node *an) {
 #ifdef Allocator
     (void)an;
 #else
@@ -185,7 +185,7 @@ void free_art_node(art_node *an) {
 #endif
 }
 
-art_node **art_node_find_child(art_node *an, uint64_t version, unsigned char byte) {
+cart_node **art_node_find_child(cart_node *an, uint64_t version, unsigned char byte) {
     debug_assert(is_leaf(an) == 0);
 
     switch (get_type(version)) {
@@ -240,19 +240,19 @@ art_node **art_node_find_child(art_node *an, uint64_t version, unsigned char byt
     return 0;
 }
 
-static void art_node_set_new_node(art_node *old, art_node *new_node) {
+static void art_node_set_new_node(cart_node *old, cart_node *new_node) {
     __atomic_store(&old->new_node, &new_node, __ATOMIC_RELAXED);
 }
 
-static art_node *art_node_get_new_node(art_node *old) {
-    art_node *new_node;
+static cart_node *art_node_get_new_node(cart_node *old) {
+    cart_node *new_node;
     __atomic_load(&old->new_node, &new_node, __ATOMIC_RELAXED);
     return new_node;
 }
 
 // require: node is locked
-static art_node *art_node_grow(art_node *an) {
-    art_node *new_node;
+static cart_node *art_node_grow(cart_node *an) {
+    cart_node *new_node;
     uint64_t version = an->version;
 
     debug_assert(is_locked(version));
@@ -316,15 +316,15 @@ static art_node *art_node_grow(art_node *an) {
     return new_node;
 }
 
-// add a child to art_node, return 0 on success, otherwise return next layer
+// add a child to cart_node, return 0 on success, otherwise return next layer
 // require: node is locked
-art_node **art_node_add_child(art_node *an, unsigned char byte, art_node *child, art_node **new_node) {
+cart_node **art_node_add_child(cart_node *an, unsigned char byte, cart_node *child, cart_node **new_node) {
     debug_assert(is_leaf(an) == 0);
 
     uint64_t version = an->version;
     debug_assert(is_locked(version));
 
-    art_node **next;
+    cart_node **next;
     if ((next = art_node_find_child(an, version, byte)))
         return next;
 
@@ -390,7 +390,7 @@ art_node **art_node_add_child(art_node *an, unsigned char byte, art_node *child,
 }
 
 // require: node is locked
-int art_node_is_full(art_node *an) {
+int art_node_is_full(cart_node *an) {
     uint64_t version = an->version;
 
     debug_assert(is_locked(version));
@@ -407,13 +407,13 @@ int art_node_is_full(art_node *an) {
     }
 }
 
-void art_node_set_prefix(art_node *an, const void *key, size_t off, int prefix_len) {
+void art_node_set_prefix(cart_node *an, const void *key, size_t off, int prefix_len) {
     memcpy(an->prefix, (char *) key + off, prefix_len);
     an->version = set_prefix_len(an->version, prefix_len);
 }
 
 // return the first offset that differs
-int art_node_prefix_compare(art_node *an, uint64_t version, const void *key, size_t len, size_t off) {
+int art_node_prefix_compare(cart_node *an, uint64_t version, const void *key, size_t len, size_t off) {
     debug_assert(off <= len);
 
     int prefix_len = get_prefix_len(version);
@@ -430,7 +430,7 @@ int art_node_prefix_compare(art_node *an, uint64_t version, const void *key, siz
 }
 
 // require: node is locked
-unsigned char art_node_truncate_prefix(art_node *an, int off) {
+unsigned char art_node_truncate_prefix(cart_node *an, int off) {
     uint64_t version = an->version;
 
     debug_assert(is_locked(version));
@@ -459,7 +459,7 @@ int art_node_version_get_prefix_len(uint64_t version) {
     return get_prefix_len(version);
 }
 
-uint64_t art_node_get_stable_expand_version(art_node *an) {
+uint64_t art_node_get_stable_expand_version(cart_node *an) {
     int loop = 4;
     uint64_t version = art_node_get_version_unsafe(an);
     while (is_expanding(version)) {
@@ -472,7 +472,7 @@ uint64_t art_node_get_stable_expand_version(art_node *an) {
     return version;
 }
 
-// uint64_t art_node_get_stable_insert_version(art_node *an)
+// uint64_t art_node_get_stable_insert_version(cart_node *an)
 // {
 //   uint64_t version;
 //   do {
@@ -491,7 +491,7 @@ int art_node_version_compare_expand(uint64_t version1, uint64_t version2) {
 // }
 
 // return 0 on success, 1 on failure
-int art_node_lock(art_node *an) {
+int art_node_lock(cart_node *an) {
     while (1) {
         // must use `acquire` operation to avoid deadlock
         uint64_t version = art_node_get_version(an);
@@ -508,18 +508,18 @@ int art_node_lock(art_node *an) {
     return 0;
 }
 
-static art_node *art_node_get_parent(art_node *an) {
-    art_node *parent;
+static cart_node *art_node_get_parent(cart_node *an) {
+    cart_node *parent;
     __atomic_load(&an->parent, &parent, __ATOMIC_ACQUIRE);
     return parent;
 }
 
-void art_node_set_parent_unsafe(art_node *an, art_node *parent) {
+void art_node_set_parent_unsafe(cart_node *an, cart_node *parent) {
     an->parent = parent;
 }
 
-art_node *art_node_get_locked_parent(art_node *an) {
-    art_node *parent;
+cart_node *art_node_get_locked_parent(cart_node *an) {
+    cart_node *parent;
     while (1) {
         if ((parent = art_node_get_parent(an)) == 0)
             break;
@@ -533,7 +533,7 @@ art_node *art_node_get_locked_parent(art_node *an) {
 }
 
 // require: node is locked
-void art_node_unlock(art_node *an) {
+void art_node_unlock(cart_node *an) {
     uint64_t version = an->version;
 
     debug_assert(is_locked(version));
@@ -554,7 +554,7 @@ int art_node_version_is_old(uint64_t version) {
     return is_old(version);
 }
 
-art_node *art_node_replace_leaf_child(art_node *an, const void *key, size_t len, size_t off) {
+cart_node *art_node_replace_leaf_child(cart_node *an, const void *key, size_t len, size_t off) {
     debug_assert(is_leaf(an));
 
     const char *k1 = get_leaf_key(an), *k2 = (const char *) key;
@@ -563,7 +563,7 @@ art_node *art_node_replace_leaf_child(art_node *an, const void *key, size_t len,
     if (unlikely(i == l1 && i == l2))
         return 0; // key exists
 
-    art_node *new_node = new_art_node();
+    cart_node *new_node = new_art_node();
     art_node_set_offset(new_node, off);
     assert(art_node_lock(new_node) == 0);
     // TODO: i - off might be bigger than 8
@@ -574,23 +574,23 @@ art_node *art_node_replace_leaf_child(art_node *an, const void *key, size_t len,
     byte = off == l1 ? 0 : k1[off];
     assert(art_node_add_child(new_node, byte, an, 0) == 0);
     byte = off == l2 ? 0 : k2[off];
-    assert(art_node_add_child(new_node, byte, (art_node *) make_leaf(k2), 0) == 0);
+    assert(art_node_add_child(new_node, byte, (cart_node *) make_leaf(k2), 0) == 0);
     art_node_unlock(new_node);
 
     return new_node;
 }
 
 // require: node is locked
-art_node *art_node_expand_and_insert(art_node *an, const void *key, size_t len, size_t off, int common) {
+cart_node *art_node_expand_and_insert(cart_node *an, const void *key, size_t len, size_t off, int common) {
     debug_assert(is_locked(an->version));
 
-    art_node *new_node = new_art_node();
+    cart_node *new_node = new_art_node();
     art_node_set_offset(new_node, off);
     assert(art_node_lock(new_node) == 0);
     art_node_set_prefix(new_node, key, off, common);
     unsigned char byte;
     byte = (off + common < len) ? ((unsigned char *) key)[off + common] : 0;
-    assert(art_node_add_child(new_node, byte, (art_node *) make_leaf(key), 0) == 0);
+    assert(art_node_add_child(new_node, byte, (cart_node *) make_leaf(key), 0) == 0);
     byte = art_node_truncate_prefix(an, common);
     assert(art_node_add_child(new_node, byte, an, 0) == 0);
     art_node_unlock(new_node);
@@ -599,12 +599,12 @@ art_node *art_node_expand_and_insert(art_node *an, const void *key, size_t len, 
 }
 
 // require: parent is locked
-void art_node_replace_child(art_node *parent, unsigned char byte, art_node *old, art_node *new_node) {
+void art_node_replace_child(cart_node *parent, unsigned char byte, cart_node *old, cart_node *new_node) {
     (void) old;
     uint64_t version = parent->version;
     debug_assert(is_locked(version));
 
-    art_node **child = art_node_find_child(parent, version, byte);
+    cart_node **child = art_node_find_child(parent, version, byte);
 
     debug_assert(child && *child == old);
 
@@ -613,7 +613,7 @@ void art_node_replace_child(art_node *parent, unsigned char byte, art_node *old,
 }
 
 #ifdef Debug
-void art_node_print(art_node *an)
+void art_node_print(cart_node *an)
 {
   uint64_t version = art_node_get_version(an);
 

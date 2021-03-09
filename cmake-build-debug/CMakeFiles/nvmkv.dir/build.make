@@ -80,7 +80,7 @@ nvmkv_EXTERNAL_OBJECTS =
 nvmkv: CMakeFiles/nvmkv.dir/main.cpp.o
 nvmkv: CMakeFiles/nvmkv.dir/build.make
 nvmkv: blink/libnvmkv-blink.a
-nvmkv: art/libnvmkv-art.a
+nvmkv: cart/libnvmkv-cart.a
 nvmkv: mass/libnvmkv-mass.a
 nvmkv: rng/libnvmkv-rng.a
 nvmkv: hashtree/libnvmkv-ht.a
