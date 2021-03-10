@@ -1,2 +1,2 @@
-/Library/Developer/CommandLineTools/usr/bin/ar qc libnvmkv-art.a  CMakeFiles/nvmkv-art.dir/art.cpp.o CMakeFiles/nvmkv-art.dir/art_node.cpp.o
+/Library/Developer/CommandLineTools/usr/bin/ar qc libnvmkv-art.a  
 /Library/Developer/CommandLineTools/usr/bin/ranlib libnvmkv-art.a

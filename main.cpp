@@ -30,7 +30,7 @@ int numThread = 1;
 union {
     blink_tree *bt;
     mass_tree *mt;
-    adaptive_radix_tree *art;
+    adaptive_radix_tree *cart;
     hashtree *ht;
 } mytree;
 
@@ -54,7 +54,7 @@ void *putFunc(void *arg) {
         char *key = new char[9];
         key[0] = 8;
         *(uint64_t *) (key + 1) = rand();
-        adaptive_radix_tree_put(mytree.art, (const void *) (key + 1), 8, value, VALUE_LEN);
+        adaptive_radix_tree_put(mytree.cart, (const void *) (key + 1), 8, value, VALUE_LEN);
 //        uint64_t x = rng_next(&r) % testNum;
 //        uint64_t x = i;
 //        mytree.ht->put(x, x);
@@ -97,7 +97,7 @@ int main(int argc, char *argv[]) {
     sscanf(argv[2], "%d", &testNum);
 //    mytree.ht = new hashtree;
 //    mytree.mt = new_mass_tree();
-    mytree.art = new_adaptive_radix_tree();
+    mytree.cart = new_adaptive_radix_tree();
 //    mytree.bt = new_blink_tree(numThread);
 //    cout << testPut() << endl;
 //    cout << testUpdate() << endl;

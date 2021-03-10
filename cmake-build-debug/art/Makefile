@@ -110,75 +110,6 @@ depend:
 	cd /Users/wangke/CLionProjects/nvmkv/cmake-build-debug && $(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
 .PHONY : depend
 
-# Convenience name for target.
-art/CMakeFiles/nvmkv-art.dir/rule:
-	cd /Users/wangke/CLionProjects/nvmkv/cmake-build-debug && $(MAKE) -f CMakeFiles/Makefile2 art/CMakeFiles/nvmkv-art.dir/rule
-.PHONY : art/CMakeFiles/nvmkv-art.dir/rule
-
-# Convenience name for target.
-nvmkv-art: art/CMakeFiles/nvmkv-art.dir/rule
-
-.PHONY : nvmkv-art
-
-# fast build rule for target.
-nvmkv-art/fast:
-	cd /Users/wangke/CLionProjects/nvmkv/cmake-build-debug && $(MAKE) -f art/CMakeFiles/nvmkv-art.dir/build.make art/CMakeFiles/nvmkv-art.dir/build
-.PHONY : nvmkv-art/fast
-
-art.o: art.cpp.o
-
-.PHONY : art.o
-
-# target to build an object file
-art.cpp.o:
-	cd /Users/wangke/CLionProjects/nvmkv/cmake-build-debug && $(MAKE) -f art/CMakeFiles/nvmkv-art.dir/build.make art/CMakeFiles/nvmkv-art.dir/art.cpp.o
-.PHONY : art.cpp.o
-
-art.i: art.cpp.i
-
-.PHONY : art.i
-
-# target to preprocess a source file
-art.cpp.i:
-	cd /Users/wangke/CLionProjects/nvmkv/cmake-build-debug && $(MAKE) -f art/CMakeFiles/nvmkv-art.dir/build.make art/CMakeFiles/nvmkv-art.dir/art.cpp.i
-.PHONY : art.cpp.i
-
-art.s: art.cpp.s
-
-.PHONY : art.s
-
-# target to generate assembly for a file
-art.cpp.s:
-	cd /Users/wangke/CLionProjects/nvmkv/cmake-build-debug && $(MAKE) -f art/CMakeFiles/nvmkv-art.dir/build.make art/CMakeFiles/nvmkv-art.dir/art.cpp.s
-.PHONY : art.cpp.s
-
-art_node.o: art_node.cpp.o
-
-.PHONY : art_node.o
-
-# target to build an object file
-art_node.cpp.o:
-	cd /Users/wangke/CLionProjects/nvmkv/cmake-build-debug && $(MAKE) -f art/CMakeFiles/nvmkv-art.dir/build.make art/CMakeFiles/nvmkv-art.dir/art_node.cpp.o
-.PHONY : art_node.cpp.o
-
-art_node.i: art_node.cpp.i
-
-.PHONY : art_node.i
-
-# target to preprocess a source file
-art_node.cpp.i:
-	cd /Users/wangke/CLionProjects/nvmkv/cmake-build-debug && $(MAKE) -f art/CMakeFiles/nvmkv-art.dir/build.make art/CMakeFiles/nvmkv-art.dir/art_node.cpp.i
-.PHONY : art_node.cpp.i
-
-art_node.s: art_node.cpp.s
-
-.PHONY : art_node.s
-
-# target to generate assembly for a file
-art_node.cpp.s:
-	cd /Users/wangke/CLionProjects/nvmkv/cmake-build-debug && $(MAKE) -f art/CMakeFiles/nvmkv-art.dir/build.make art/CMakeFiles/nvmkv-art.dir/art_node.cpp.s
-.PHONY : art_node.cpp.s
-
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -187,13 +118,6 @@ help:
 	@echo "... depend"
 	@echo "... rebuild_cache"
 	@echo "... edit_cache"
-	@echo "... nvmkv-art"
-	@echo "... art.o"
-	@echo "... art.i"
-	@echo "... art.s"
-	@echo "... art_node.o"
-	@echo "... art_node.i"
-	@echo "... art_node.s"
 .PHONY : help
 
 
