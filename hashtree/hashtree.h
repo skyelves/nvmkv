@@ -7,10 +7,12 @@
 
 #include "hashtree_node.h"
 #include "bobhash32.h"
+#include "../murmur/murmur.h"
 
 class hashtree {
 private:
-    BOBHash32 *hash;
+//    BOBHash32 *run;
+    murmur *hash;
     hashtree_node *root;
 public:
     hashtree();

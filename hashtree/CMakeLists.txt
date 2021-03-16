@@ -4,4 +4,4 @@ set(HT_SOURCES
         bobhash32.cpp bobhash32.h)
 
 add_library(nvmkv-ht STATIC ${HT_SOURCES})
-target_link_libraries(nvmkv-ht PUBLIC nvmkv-allocator nvmkv-node)
+target_link_libraries(nvmkv-ht PUBLIC nvmkv-allocator nvmkv-node nvmkv-murmur)

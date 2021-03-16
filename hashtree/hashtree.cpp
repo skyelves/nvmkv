@@ -9,7 +9,8 @@
 #include "hashtree.h"
 
 hashtree::hashtree() {
-    hash = new BOBHash32(19);
+//    hash = new BOBHash32(19);
+    hash = new murmur(19);
     root = new_node(1024);
 }
 
@@ -21,7 +22,7 @@ bool hashtree::put(uint64_t k, uint64_t v) {
 //    char k_char[66] = {0};
 //    sprintf(k_char, "%llu", k);
 //    int k_len = strlen(k_char);
-//    int index = root->hash->run(k_char, k_len) % root->size;
+//    int index = root->run->run(k_char, k_len) % root->size;
 //    root->array[index].k = k;
 //    root->array[index].v = v;
     hashtree_node *tmp = root;
@@ -31,8 +32,8 @@ bool hashtree::put(uint64_t k, uint64_t v) {
     uint value = hash->run(k_char, k_len);
     uint index = 0;
     while (1) {
-        index = value % tmp->size;
-//        index = tmp->hash->run(k_char, k_len) % tmp->size;
+//        index = value % tmp->size;
+        index = tmp->hash->run(k_char, k_len) % tmp->size;
         if (tmp->array[index].k == 0) {
             //slot empty
             tmp->array[index].k = k;
@@ -44,24 +45,24 @@ bool hashtree::put(uint64_t k, uint64_t v) {
                 break;
             } else if (tmp->array[index].v == 0) {
                 //not empty
-                //go to the deeper layer hash
+                //go to the deeper layer run
                 tmp = (hashtree_node *) tmp->array[index].k;
             } else {
                 //collision
-                //create a deeper layer hash table and insert two kv
+                //create a deeper layer run table and insert two kv
                 uint64_t k2 = tmp->array[index].k;
                 uint64_t v2 = tmp->array[index].v;
                 char k2_char[66] = {0};
                 sprintf(k2_char, "%llu", k2);
                 int k2_len = strlen(k2_char);
-                uint value2 = hash->run(k2_char, k2_len);
+//                uint value2 = run->run(k2_char, k2_len);
                 hashtree_node *first_new_node = new_node(tmp->size * 2);
                 hashtree_node *_new_node = first_new_node;
                 while (1) {
-                    int index1 = value % _new_node->size;
-                    int index2 = value2 % _new_node->size;
-//                    int index1 = _new_node->hash->run(k_char, k_len) % _new_node->size;
-//                    int index2 = _new_node->hash->run(k2_char, k2_len) % _new_node->size;
+//                    int index1 = value % _new_node->size;
+//                    int index2 = value2 % _new_node->size;
+                    int index1 = _new_node->hash->run(k_char, k_len) % _new_node->size;
+                    int index2 = _new_node->hash->run(k2_char, k2_len) % _new_node->size;
                     if (index1 != index2) {
                         _new_node->array[index1].k = k;
                         _new_node->array[index1].v = v;
