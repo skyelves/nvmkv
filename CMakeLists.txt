@@ -8,8 +8,9 @@ add_subdirectory(cart)
 add_subdirectory(mass)
 add_subdirectory(rng)
 add_subdirectory(hashtree)
+add_subdirectory(murmur)
 
 
 add_executable(nvmkv main.cpp)
 #target_link_libraries(nvmkv PRIVATE nvmkv-blink nvmkv-cart nvmkv-mass nvmkv-rng vmmalloc)
-target_link_libraries(nvmkv PRIVATE nvmkv-blink nvmkv-cart nvmkv-mass nvmkv-rng nvmkv-ht)
+target_link_libraries(nvmkv PRIVATE nvmkv-blink nvmkv-cart nvmkv-mass nvmkv-rng nvmkv-ht nvmkv-murmur)
