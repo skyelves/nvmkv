@@ -125,33 +125,6 @@ nvmkv-ht/fast:
 	cd /Users/wangke/CLionProjects/nvmkv/cmake-build-debug && $(MAKE) -f hashtree/CMakeFiles/nvmkv-ht.dir/build.make hashtree/CMakeFiles/nvmkv-ht.dir/build
 .PHONY : nvmkv-ht/fast
 
-bobhash32.o: bobhash32.cpp.o
-
-.PHONY : bobhash32.o
-
-# target to build an object file
-bobhash32.cpp.o:
-	cd /Users/wangke/CLionProjects/nvmkv/cmake-build-debug && $(MAKE) -f hashtree/CMakeFiles/nvmkv-ht.dir/build.make hashtree/CMakeFiles/nvmkv-ht.dir/bobhash32.cpp.o
-.PHONY : bobhash32.cpp.o
-
-bobhash32.i: bobhash32.cpp.i
-
-.PHONY : bobhash32.i
-
-# target to preprocess a source file
-bobhash32.cpp.i:
-	cd /Users/wangke/CLionProjects/nvmkv/cmake-build-debug && $(MAKE) -f hashtree/CMakeFiles/nvmkv-ht.dir/build.make hashtree/CMakeFiles/nvmkv-ht.dir/bobhash32.cpp.i
-.PHONY : bobhash32.cpp.i
-
-bobhash32.s: bobhash32.cpp.s
-
-.PHONY : bobhash32.s
-
-# target to generate assembly for a file
-bobhash32.cpp.s:
-	cd /Users/wangke/CLionProjects/nvmkv/cmake-build-debug && $(MAKE) -f hashtree/CMakeFiles/nvmkv-ht.dir/build.make hashtree/CMakeFiles/nvmkv-ht.dir/bobhash32.cpp.s
-.PHONY : bobhash32.cpp.s
-
 hashtree.o: hashtree.cpp.o
 
 .PHONY : hashtree.o
@@ -215,9 +188,6 @@ help:
 	@echo "... rebuild_cache"
 	@echo "... edit_cache"
 	@echo "... nvmkv-ht"
-	@echo "... bobhash32.o"
-	@echo "... bobhash32.i"
-	@echo "... bobhash32.s"
 	@echo "... hashtree.o"
 	@echo "... hashtree.i"
 	@echo "... hashtree.s"

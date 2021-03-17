@@ -75,6 +75,9 @@ CMakeFiles/nvmkv.dir/all: cart/CMakeFiles/nvmkv-cart.dir/all
 CMakeFiles/nvmkv.dir/all: mass/CMakeFiles/nvmkv-mass.dir/all
 CMakeFiles/nvmkv.dir/all: rng/CMakeFiles/nvmkv-rng.dir/all
 CMakeFiles/nvmkv.dir/all: hashtree/CMakeFiles/nvmkv-ht.dir/all
+CMakeFiles/nvmkv.dir/all: murmur/CMakeFiles/nvmkv-murmur.dir/all
+CMakeFiles/nvmkv.dir/all: bobhash/CMakeFiles/nvmkv-bobhash32.dir/all
+CMakeFiles/nvmkv.dir/all: extendibleHash/CMakeFiles/nvmkv-extendible_hash.dir/all
 	$(MAKE) -f CMakeFiles/nvmkv.dir/build.make CMakeFiles/nvmkv.dir/depend
 	$(MAKE) -f CMakeFiles/nvmkv.dir/build.make CMakeFiles/nvmkv.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/CMakeFiles --progress-num=1,2 "Built target nvmkv"
@@ -87,7 +90,7 @@ all: CMakeFiles/nvmkv.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/nvmkv.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/wangke/CLionProjects/nvmkv/cmake-build-debug/CMakeFiles 22
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/wangke/CLionProjects/nvmkv/cmake-build-debug/CMakeFiles 27
 	$(MAKE) -f CMakeFiles/Makefile2 CMakeFiles/nvmkv.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/wangke/CLionProjects/nvmkv/cmake-build-debug/CMakeFiles 0
 .PHONY : CMakeFiles/nvmkv.dir/rule
@@ -132,7 +135,7 @@ node/preinstall:
 node/CMakeFiles/nvmkv-node.dir/all:
 	$(MAKE) -f node/CMakeFiles/nvmkv-node.dir/build.make node/CMakeFiles/nvmkv-node.dir/depend
 	$(MAKE) -f node/CMakeFiles/nvmkv-node.dir/build.make node/CMakeFiles/nvmkv-node.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/CMakeFiles --progress-num=19,20 "Built target nvmkv-node"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/CMakeFiles --progress-num=24,25 "Built target nvmkv-node"
 .PHONY : node/CMakeFiles/nvmkv-node.dir/all
 
 # Include target in all.
@@ -299,7 +302,7 @@ cart/CMakeFiles/nvmkv-cart.dir/all: node/CMakeFiles/nvmkv-node.dir/all
 cart/CMakeFiles/nvmkv-cart.dir/all: allocator/CMakeFiles/nvmkv-allocator.dir/all
 	$(MAKE) -f cart/CMakeFiles/nvmkv-cart.dir/build.make cart/CMakeFiles/nvmkv-cart.dir/depend
 	$(MAKE) -f cart/CMakeFiles/nvmkv-cart.dir/build.make cart/CMakeFiles/nvmkv-cart.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/CMakeFiles --progress-num=9,10,11 "Built target nvmkv-cart"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/CMakeFiles --progress-num=11,12,13 "Built target nvmkv-cart"
 .PHONY : cart/CMakeFiles/nvmkv-cart.dir/all
 
 # Include target in all.
@@ -355,7 +358,7 @@ mass/CMakeFiles/nvmkv-mass.dir/all: node/CMakeFiles/nvmkv-node.dir/all
 mass/CMakeFiles/nvmkv-mass.dir/all: allocator/CMakeFiles/nvmkv-allocator.dir/all
 	$(MAKE) -f mass/CMakeFiles/nvmkv-mass.dir/build.make mass/CMakeFiles/nvmkv-mass.dir/depend
 	$(MAKE) -f mass/CMakeFiles/nvmkv-mass.dir/build.make mass/CMakeFiles/nvmkv-mass.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/CMakeFiles --progress-num=16,17,18 "Built target nvmkv-mass"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/CMakeFiles --progress-num=19,20,21 "Built target nvmkv-mass"
 .PHONY : mass/CMakeFiles/nvmkv-mass.dir/all
 
 # Include target in all.
@@ -410,7 +413,7 @@ rng/preinstall:
 rng/CMakeFiles/nvmkv-rng.dir/all:
 	$(MAKE) -f rng/CMakeFiles/nvmkv-rng.dir/build.make rng/CMakeFiles/nvmkv-rng.dir/depend
 	$(MAKE) -f rng/CMakeFiles/nvmkv-rng.dir/build.make rng/CMakeFiles/nvmkv-rng.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/CMakeFiles --progress-num=21,22 "Built target nvmkv-rng"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/CMakeFiles --progress-num=26,27 "Built target nvmkv-rng"
 .PHONY : rng/CMakeFiles/nvmkv-rng.dir/all
 
 # Include target in all.
@@ -464,9 +467,11 @@ hashtree/preinstall:
 # All Build rule for target.
 hashtree/CMakeFiles/nvmkv-ht.dir/all: node/CMakeFiles/nvmkv-node.dir/all
 hashtree/CMakeFiles/nvmkv-ht.dir/all: allocator/CMakeFiles/nvmkv-allocator.dir/all
+hashtree/CMakeFiles/nvmkv-ht.dir/all: murmur/CMakeFiles/nvmkv-murmur.dir/all
+hashtree/CMakeFiles/nvmkv-ht.dir/all: bobhash/CMakeFiles/nvmkv-bobhash32.dir/all
 	$(MAKE) -f hashtree/CMakeFiles/nvmkv-ht.dir/build.make hashtree/CMakeFiles/nvmkv-ht.dir/depend
 	$(MAKE) -f hashtree/CMakeFiles/nvmkv-ht.dir/build.make hashtree/CMakeFiles/nvmkv-ht.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/CMakeFiles --progress-num=12,13,14,15 "Built target nvmkv-ht"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/CMakeFiles --progress-num=16,17,18 "Built target nvmkv-ht"
 .PHONY : hashtree/CMakeFiles/nvmkv-ht.dir/all
 
 # Include target in all.
@@ -476,7 +481,7 @@ all: hashtree/CMakeFiles/nvmkv-ht.dir/all
 
 # Build rule for subdir invocation for target.
 hashtree/CMakeFiles/nvmkv-ht.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/wangke/CLionProjects/nvmkv/cmake-build-debug/CMakeFiles 8
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/wangke/CLionProjects/nvmkv/cmake-build-debug/CMakeFiles 11
 	$(MAKE) -f CMakeFiles/Makefile2 hashtree/CMakeFiles/nvmkv-ht.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/wangke/CLionProjects/nvmkv/cmake-build-debug/CMakeFiles 0
 .PHONY : hashtree/CMakeFiles/nvmkv-ht.dir/rule
@@ -493,6 +498,172 @@ hashtree/CMakeFiles/nvmkv-ht.dir/clean:
 
 # clean rule for target.
 clean: hashtree/CMakeFiles/nvmkv-ht.dir/clean
+
+.PHONY : clean
+
+#=============================================================================
+# Directory level rules for directory murmur
+
+# Convenience name for "all" pass in the directory.
+murmur/all: murmur/CMakeFiles/nvmkv-murmur.dir/all
+
+.PHONY : murmur/all
+
+# Convenience name for "clean" pass in the directory.
+murmur/clean: murmur/CMakeFiles/nvmkv-murmur.dir/clean
+
+.PHONY : murmur/clean
+
+# Convenience name for "preinstall" pass in the directory.
+murmur/preinstall:
+
+.PHONY : murmur/preinstall
+
+#=============================================================================
+# Target rules for target murmur/CMakeFiles/nvmkv-murmur.dir
+
+# All Build rule for target.
+murmur/CMakeFiles/nvmkv-murmur.dir/all:
+	$(MAKE) -f murmur/CMakeFiles/nvmkv-murmur.dir/build.make murmur/CMakeFiles/nvmkv-murmur.dir/depend
+	$(MAKE) -f murmur/CMakeFiles/nvmkv-murmur.dir/build.make murmur/CMakeFiles/nvmkv-murmur.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/CMakeFiles --progress-num=22,23 "Built target nvmkv-murmur"
+.PHONY : murmur/CMakeFiles/nvmkv-murmur.dir/all
+
+# Include target in all.
+all: murmur/CMakeFiles/nvmkv-murmur.dir/all
+
+.PHONY : all
+
+# Build rule for subdir invocation for target.
+murmur/CMakeFiles/nvmkv-murmur.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/wangke/CLionProjects/nvmkv/cmake-build-debug/CMakeFiles 2
+	$(MAKE) -f CMakeFiles/Makefile2 murmur/CMakeFiles/nvmkv-murmur.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/wangke/CLionProjects/nvmkv/cmake-build-debug/CMakeFiles 0
+.PHONY : murmur/CMakeFiles/nvmkv-murmur.dir/rule
+
+# Convenience name for target.
+nvmkv-murmur: murmur/CMakeFiles/nvmkv-murmur.dir/rule
+
+.PHONY : nvmkv-murmur
+
+# clean rule for target.
+murmur/CMakeFiles/nvmkv-murmur.dir/clean:
+	$(MAKE) -f murmur/CMakeFiles/nvmkv-murmur.dir/build.make murmur/CMakeFiles/nvmkv-murmur.dir/clean
+.PHONY : murmur/CMakeFiles/nvmkv-murmur.dir/clean
+
+# clean rule for target.
+clean: murmur/CMakeFiles/nvmkv-murmur.dir/clean
+
+.PHONY : clean
+
+#=============================================================================
+# Directory level rules for directory bobhash
+
+# Convenience name for "all" pass in the directory.
+bobhash/all: bobhash/CMakeFiles/nvmkv-bobhash32.dir/all
+
+.PHONY : bobhash/all
+
+# Convenience name for "clean" pass in the directory.
+bobhash/clean: bobhash/CMakeFiles/nvmkv-bobhash32.dir/clean
+
+.PHONY : bobhash/clean
+
+# Convenience name for "preinstall" pass in the directory.
+bobhash/preinstall:
+
+.PHONY : bobhash/preinstall
+
+#=============================================================================
+# Target rules for target bobhash/CMakeFiles/nvmkv-bobhash32.dir
+
+# All Build rule for target.
+bobhash/CMakeFiles/nvmkv-bobhash32.dir/all:
+	$(MAKE) -f bobhash/CMakeFiles/nvmkv-bobhash32.dir/build.make bobhash/CMakeFiles/nvmkv-bobhash32.dir/depend
+	$(MAKE) -f bobhash/CMakeFiles/nvmkv-bobhash32.dir/build.make bobhash/CMakeFiles/nvmkv-bobhash32.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/CMakeFiles --progress-num=9,10 "Built target nvmkv-bobhash32"
+.PHONY : bobhash/CMakeFiles/nvmkv-bobhash32.dir/all
+
+# Include target in all.
+all: bobhash/CMakeFiles/nvmkv-bobhash32.dir/all
+
+.PHONY : all
+
+# Build rule for subdir invocation for target.
+bobhash/CMakeFiles/nvmkv-bobhash32.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/wangke/CLionProjects/nvmkv/cmake-build-debug/CMakeFiles 2
+	$(MAKE) -f CMakeFiles/Makefile2 bobhash/CMakeFiles/nvmkv-bobhash32.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/wangke/CLionProjects/nvmkv/cmake-build-debug/CMakeFiles 0
+.PHONY : bobhash/CMakeFiles/nvmkv-bobhash32.dir/rule
+
+# Convenience name for target.
+nvmkv-bobhash32: bobhash/CMakeFiles/nvmkv-bobhash32.dir/rule
+
+.PHONY : nvmkv-bobhash32
+
+# clean rule for target.
+bobhash/CMakeFiles/nvmkv-bobhash32.dir/clean:
+	$(MAKE) -f bobhash/CMakeFiles/nvmkv-bobhash32.dir/build.make bobhash/CMakeFiles/nvmkv-bobhash32.dir/clean
+.PHONY : bobhash/CMakeFiles/nvmkv-bobhash32.dir/clean
+
+# clean rule for target.
+clean: bobhash/CMakeFiles/nvmkv-bobhash32.dir/clean
+
+.PHONY : clean
+
+#=============================================================================
+# Directory level rules for directory extendibleHash
+
+# Convenience name for "all" pass in the directory.
+extendibleHash/all: extendibleHash/CMakeFiles/nvmkv-extendible_hash.dir/all
+
+.PHONY : extendibleHash/all
+
+# Convenience name for "clean" pass in the directory.
+extendibleHash/clean: extendibleHash/CMakeFiles/nvmkv-extendible_hash.dir/clean
+
+.PHONY : extendibleHash/clean
+
+# Convenience name for "preinstall" pass in the directory.
+extendibleHash/preinstall:
+
+.PHONY : extendibleHash/preinstall
+
+#=============================================================================
+# Target rules for target extendibleHash/CMakeFiles/nvmkv-extendible_hash.dir
+
+# All Build rule for target.
+extendibleHash/CMakeFiles/nvmkv-extendible_hash.dir/all: allocator/CMakeFiles/nvmkv-allocator.dir/all
+extendibleHash/CMakeFiles/nvmkv-extendible_hash.dir/all: murmur/CMakeFiles/nvmkv-murmur.dir/all
+	$(MAKE) -f extendibleHash/CMakeFiles/nvmkv-extendible_hash.dir/build.make extendibleHash/CMakeFiles/nvmkv-extendible_hash.dir/depend
+	$(MAKE) -f extendibleHash/CMakeFiles/nvmkv-extendible_hash.dir/build.make extendibleHash/CMakeFiles/nvmkv-extendible_hash.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/CMakeFiles --progress-num=14,15 "Built target nvmkv-extendible_hash"
+.PHONY : extendibleHash/CMakeFiles/nvmkv-extendible_hash.dir/all
+
+# Include target in all.
+all: extendibleHash/CMakeFiles/nvmkv-extendible_hash.dir/all
+
+.PHONY : all
+
+# Build rule for subdir invocation for target.
+extendibleHash/CMakeFiles/nvmkv-extendible_hash.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/wangke/CLionProjects/nvmkv/cmake-build-debug/CMakeFiles 6
+	$(MAKE) -f CMakeFiles/Makefile2 extendibleHash/CMakeFiles/nvmkv-extendible_hash.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/wangke/CLionProjects/nvmkv/cmake-build-debug/CMakeFiles 0
+.PHONY : extendibleHash/CMakeFiles/nvmkv-extendible_hash.dir/rule
+
+# Convenience name for target.
+nvmkv-extendible_hash: extendibleHash/CMakeFiles/nvmkv-extendible_hash.dir/rule
+
+.PHONY : nvmkv-extendible_hash
+
+# clean rule for target.
+extendibleHash/CMakeFiles/nvmkv-extendible_hash.dir/clean:
+	$(MAKE) -f extendibleHash/CMakeFiles/nvmkv-extendible_hash.dir/build.make extendibleHash/CMakeFiles/nvmkv-extendible_hash.dir/clean
+.PHONY : extendibleHash/CMakeFiles/nvmkv-extendible_hash.dir/clean
+
+# clean rule for target.
+clean: extendibleHash/CMakeFiles/nvmkv-extendible_hash.dir/clean
 
 .PHONY : clean
 

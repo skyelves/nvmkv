@@ -6,7 +6,7 @@
 #define NVMKV_HASHTREE_NODE_H
 
 #include <cstdint>
-#include "bobhash32.h"
+#include "../bobhash/bobhash32.h"
 
 class hashtree_node {
 public:

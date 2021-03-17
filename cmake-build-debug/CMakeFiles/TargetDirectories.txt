@@ -22,3 +22,12 @@
 /Users/wangke/CLionProjects/nvmkv/cmake-build-debug/hashtree/CMakeFiles/rebuild_cache.dir
 /Users/wangke/CLionProjects/nvmkv/cmake-build-debug/hashtree/CMakeFiles/edit_cache.dir
 /Users/wangke/CLionProjects/nvmkv/cmake-build-debug/hashtree/CMakeFiles/nvmkv-ht.dir
+/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/murmur/CMakeFiles/rebuild_cache.dir
+/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/murmur/CMakeFiles/edit_cache.dir
+/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/murmur/CMakeFiles/nvmkv-murmur.dir
+/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/bobhash/CMakeFiles/rebuild_cache.dir
+/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/bobhash/CMakeFiles/edit_cache.dir
+/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/bobhash/CMakeFiles/nvmkv-bobhash32.dir
+/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/extendibleHash/CMakeFiles/rebuild_cache.dir
+/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/extendibleHash/CMakeFiles/edit_cache.dir
+/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/extendibleHash/CMakeFiles/nvmkv-extendible_hash.dir

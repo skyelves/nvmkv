@@ -1,0 +1,2 @@
+/Library/Developer/CommandLineTools/usr/bin/ar qc libnvmkv-extendible_hash.a  CMakeFiles/nvmkv-extendible_hash.dir/extendible_hash.cpp.o
+/Library/Developer/CommandLineTools/usr/bin/ranlib libnvmkv-extendible_hash.a

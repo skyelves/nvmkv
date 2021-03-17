@@ -83,34 +83,19 @@ hashtree/CMakeFiles/nvmkv-ht.dir/hashtree_node.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/nvmkv-ht.dir/hashtree_node.cpp.s"
 	cd /Users/wangke/CLionProjects/nvmkv/cmake-build-debug/hashtree && /Library/Developer/CommandLineTools/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/wangke/CLionProjects/nvmkv/hashtree/hashtree_node.cpp -o CMakeFiles/nvmkv-ht.dir/hashtree_node.cpp.s
 
-hashtree/CMakeFiles/nvmkv-ht.dir/bobhash32.cpp.o: hashtree/CMakeFiles/nvmkv-ht.dir/flags.make
-hashtree/CMakeFiles/nvmkv-ht.dir/bobhash32.cpp.o: ../hashtree/bobhash32.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object hashtree/CMakeFiles/nvmkv-ht.dir/bobhash32.cpp.o"
-	cd /Users/wangke/CLionProjects/nvmkv/cmake-build-debug/hashtree && /Library/Developer/CommandLineTools/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/nvmkv-ht.dir/bobhash32.cpp.o -c /Users/wangke/CLionProjects/nvmkv/hashtree/bobhash32.cpp
-
-hashtree/CMakeFiles/nvmkv-ht.dir/bobhash32.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/nvmkv-ht.dir/bobhash32.cpp.i"
-	cd /Users/wangke/CLionProjects/nvmkv/cmake-build-debug/hashtree && /Library/Developer/CommandLineTools/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/wangke/CLionProjects/nvmkv/hashtree/bobhash32.cpp > CMakeFiles/nvmkv-ht.dir/bobhash32.cpp.i
-
-hashtree/CMakeFiles/nvmkv-ht.dir/bobhash32.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/nvmkv-ht.dir/bobhash32.cpp.s"
-	cd /Users/wangke/CLionProjects/nvmkv/cmake-build-debug/hashtree && /Library/Developer/CommandLineTools/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/wangke/CLionProjects/nvmkv/hashtree/bobhash32.cpp -o CMakeFiles/nvmkv-ht.dir/bobhash32.cpp.s
-
 # Object files for target nvmkv-ht
 nvmkv__ht_OBJECTS = \
 "CMakeFiles/nvmkv-ht.dir/hashtree.cpp.o" \
-"CMakeFiles/nvmkv-ht.dir/hashtree_node.cpp.o" \
-"CMakeFiles/nvmkv-ht.dir/bobhash32.cpp.o"
+"CMakeFiles/nvmkv-ht.dir/hashtree_node.cpp.o"
 
 # External object files for target nvmkv-ht
 nvmkv__ht_EXTERNAL_OBJECTS =
 
 hashtree/libnvmkv-ht.a: hashtree/CMakeFiles/nvmkv-ht.dir/hashtree.cpp.o
 hashtree/libnvmkv-ht.a: hashtree/CMakeFiles/nvmkv-ht.dir/hashtree_node.cpp.o
-hashtree/libnvmkv-ht.a: hashtree/CMakeFiles/nvmkv-ht.dir/bobhash32.cpp.o
 hashtree/libnvmkv-ht.a: hashtree/CMakeFiles/nvmkv-ht.dir/build.make
 hashtree/libnvmkv-ht.a: hashtree/CMakeFiles/nvmkv-ht.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Linking CXX static library libnvmkv-ht.a"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Linking CXX static library libnvmkv-ht.a"
 	cd /Users/wangke/CLionProjects/nvmkv/cmake-build-debug/hashtree && $(CMAKE_COMMAND) -P CMakeFiles/nvmkv-ht.dir/cmake_clean_target.cmake
 	cd /Users/wangke/CLionProjects/nvmkv/cmake-build-debug/hashtree && $(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/nvmkv-ht.dir/link.txt --verbose=$(VERBOSE)
 

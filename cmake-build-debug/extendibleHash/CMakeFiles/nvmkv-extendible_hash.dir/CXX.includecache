@@ -1,0 +1,20 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/Users/wangke/CLionProjects/nvmkv/extendibleHash/extendible_hash.cpp
+stdio.h
+-
+extendible_hash.h
+/Users/wangke/CLionProjects/nvmkv/extendibleHash/extendible_hash.h
+
+/Users/wangke/CLionProjects/nvmkv/extendibleHash/extendible_hash.h
+math.h
+-
+cstdint
+-
+

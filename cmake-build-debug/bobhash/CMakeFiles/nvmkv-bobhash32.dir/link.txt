@@ -1,0 +1,2 @@
+/Library/Developer/CommandLineTools/usr/bin/ar qc libnvmkv-bobhash32.a  CMakeFiles/nvmkv-bobhash32.dir/bobhash32.cpp.o
+/Library/Developer/CommandLineTools/usr/bin/ranlib libnvmkv-bobhash32.a

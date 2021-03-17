@@ -84,8 +84,11 @@ nvmkv: cart/libnvmkv-cart.a
 nvmkv: mass/libnvmkv-mass.a
 nvmkv: rng/libnvmkv-rng.a
 nvmkv: hashtree/libnvmkv-ht.a
-nvmkv: allocator/libnvmkv-allocator.a
+nvmkv: extendibleHash/libnvmkv-extendible_hash.a
+nvmkv: murmur/libnvmkv-murmur.a
+nvmkv: bobhash/libnvmkv-bobhash32.a
 nvmkv: node/libnvmkv-node.a
+nvmkv: allocator/libnvmkv-allocator.a
 nvmkv: CMakeFiles/nvmkv.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking CXX executable nvmkv"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/nvmkv.dir/link.txt --verbose=$(VERBOSE)

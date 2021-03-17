@@ -40,6 +40,8 @@ extendible_hash *eh;
 //adaptive_radix_tree *mytree;
 //mass_tree *mytree;
 
+uint64_t *mykey;
+
 char value[VALUE_LEN] = {0};
 
 void *putFunc(void *arg) {
@@ -69,10 +71,15 @@ void *putFunc(void *arg) {
 }
 
 void speedTest() {
+    mykey = new uint64_t[testNum];
+    rng r;
+    rng_init(&r, 1, 2);
+    for (int i = 0; i < testNum; ++i) {
+        mykey[i] = rng_next(&r);
+    }
     for (int i = 0; i < VALUE_LEN - 1; ++i) {
         value[i] = '1';
     }
-    srand(time(0));
     timeval start, ends;
     gettimeofday(&start, NULL);
 //    put();
@@ -86,11 +93,8 @@ void speedTest() {
 //    for (int j = 0; j < numThread; ++j) {
 //        pthread_join(tids[j], NULL);
 //    }
-    rng r;
-    rng_init(&r, 1, 2);
     for (int i = 0; i < testNum; ++i) {
-        uint64_t x = rng_next(&r);
-        eh->put(x, x);
+        eh->put(mykey[i], mykey[i]);
     }
     gettimeofday(&ends, NULL);
     double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
@@ -98,6 +102,16 @@ void speedTest() {
     cout << "Total Put " << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;
     cout << "Total Put ThroughPut: " << throughPut << " Mops" << endl;
 //    cout << throughPut << endl;
+    sleep(1);
+    gettimeofday(&start, NULL);
+    for (int i = 0; i < testNum; ++i) {
+        eh->get(mykey[i]);
+    }
+    gettimeofday(&ends, NULL);
+    timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
+    throughPut = (double) testNum / timeCost;
+    cout << "Total Get " << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;
+    cout << "Total Get ThroughPut: " << throughPut << " Mops" << endl;
 }
 
 

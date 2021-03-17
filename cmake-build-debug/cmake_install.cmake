@@ -67,6 +67,21 @@ if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   include("/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/hashtree/cmake_install.cmake")
 endif()
 
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/murmur/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/bobhash/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/extendibleHash/cmake_install.cmake")
+endif()
+
 if(CMAKE_INSTALL_COMPONENT)
   set(CMAKE_INSTALL_MANIFEST "install_manifest_${CMAKE_INSTALL_COMPONENT}.txt")
 else()

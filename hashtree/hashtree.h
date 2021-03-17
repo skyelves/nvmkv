@@ -6,7 +6,7 @@
 #define NVMKV_HASHTREE_H
 
 #include "hashtree_node.h"
-#include "bobhash32.h"
+#include "../bobhash/bobhash32.h"
 #include "../murmur/murmur.h"
 
 class hashtree {

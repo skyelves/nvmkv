@@ -1,0 +1,16 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/Users/wangke/CLionProjects/nvmkv/murmur/murmur.cpp
+murmur.h
+/Users/wangke/CLionProjects/nvmkv/murmur/murmur.h
+
+/Users/wangke/CLionProjects/nvmkv/murmur/murmur.h
+cstdint
+-
+

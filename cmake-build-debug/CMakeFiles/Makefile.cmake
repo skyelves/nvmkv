@@ -42,12 +42,15 @@ set(CMAKE_MAKEFILE_DEPENDS
   "../CMakeLists.txt"
   "../allocator/CMakeLists.txt"
   "../blink/CMakeLists.txt"
+  "../bobhash/CMakeLists.txt"
   "../cart/CMakeLists.txt"
   "CMakeFiles/3.14.3/CMakeCCompiler.cmake"
   "CMakeFiles/3.14.3/CMakeCXXCompiler.cmake"
   "CMakeFiles/3.14.3/CMakeSystem.cmake"
+  "../extendibleHash/CMakeLists.txt"
   "../hashtree/CMakeLists.txt"
   "../mass/CMakeLists.txt"
+  "../murmur/CMakeLists.txt"
   "../node/CMakeLists.txt"
   "../rng/CMakeLists.txt"
   )
@@ -68,6 +71,9 @@ set(CMAKE_MAKEFILE_PRODUCTS
   "mass/CMakeFiles/CMakeDirectoryInformation.cmake"
   "rng/CMakeFiles/CMakeDirectoryInformation.cmake"
   "hashtree/CMakeFiles/CMakeDirectoryInformation.cmake"
+  "murmur/CMakeFiles/CMakeDirectoryInformation.cmake"
+  "bobhash/CMakeFiles/CMakeDirectoryInformation.cmake"
+  "extendibleHash/CMakeFiles/CMakeDirectoryInformation.cmake"
   )
 
 # Dependency information for all targets:
@@ -80,4 +86,7 @@ set(CMAKE_DEPEND_INFO_FILES
   "mass/CMakeFiles/nvmkv-mass.dir/DependInfo.cmake"
   "rng/CMakeFiles/nvmkv-rng.dir/DependInfo.cmake"
   "hashtree/CMakeFiles/nvmkv-ht.dir/DependInfo.cmake"
+  "murmur/CMakeFiles/nvmkv-murmur.dir/DependInfo.cmake"
+  "bobhash/CMakeFiles/nvmkv-bobhash32.dir/DependInfo.cmake"
+  "extendibleHash/CMakeFiles/nvmkv-extendible_hash.dir/DependInfo.cmake"
   )

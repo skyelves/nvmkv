@@ -5,7 +5,7 @@
 		<Option title="nvmkv"/>
 		<Option makefile_is_custom="1"/>
 		<Option compiler="gcc"/>
-		<Option virtualFolders="CMake Files\;CMake Files\node\;CMake Files\allocator\;CMake Files\blink\;CMake Files\cart\;CMake Files\mass\;CMake Files\rng\;CMake Files\hashtree\;"/>
+		<Option virtualFolders="CMake Files\;CMake Files\node\;CMake Files\allocator\;CMake Files\blink\;CMake Files\cart\;CMake Files\mass\;CMake Files\rng\;CMake Files\hashtree\;CMake Files\murmur\;CMake Files\bobhash\;CMake Files\extendibleHash\;"/>
 		<Build>
 			<Target title="all">
 				<Option working_dir="/Users/wangke/CLionProjects/nvmkv/cmake-build-debug"/>
@@ -373,6 +373,132 @@
 					<DistClean command="/usr/bin/make -j16 -f &quot;/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/hashtree/Makefile&quot;  VERBOSE=1 clean"/>
 				</MakeCommands>
 			</Target>
+			<Target title="nvmkv-murmur">
+				<Option output="/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/murmur/libnvmkv-murmur.a" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/murmur"/>
+				<Option object_output="./"/>
+				<Option type="2"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/Library/Developer/CommandLineTools/usr/bin/../include/c++/v1"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/lib/clang/12.0.0/include"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/include"/>
+					<Add directory="/System/Library/Frameworks"/>
+					<Add directory="/Library/Frameworks"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j16 -f &quot;/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/murmur/Makefile&quot;  VERBOSE=1 nvmkv-murmur"/>
+					<CompileFile command="/usr/bin/make -j16 -f &quot;/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/murmur/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j16 -f &quot;/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/murmur/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j16 -f &quot;/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/murmur/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="nvmkv-murmur/fast">
+				<Option output="/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/murmur/libnvmkv-murmur.a" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/murmur"/>
+				<Option object_output="./"/>
+				<Option type="2"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/Library/Developer/CommandLineTools/usr/bin/../include/c++/v1"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/lib/clang/12.0.0/include"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/include"/>
+					<Add directory="/System/Library/Frameworks"/>
+					<Add directory="/Library/Frameworks"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j16 -f &quot;/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/murmur/Makefile&quot;  VERBOSE=1 nvmkv-murmur/fast"/>
+					<CompileFile command="/usr/bin/make -j16 -f &quot;/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/murmur/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j16 -f &quot;/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/murmur/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j16 -f &quot;/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/murmur/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="nvmkv-bobhash32">
+				<Option output="/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/bobhash/libnvmkv-bobhash32.a" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/bobhash"/>
+				<Option object_output="./"/>
+				<Option type="2"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/Library/Developer/CommandLineTools/usr/bin/../include/c++/v1"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/lib/clang/12.0.0/include"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/include"/>
+					<Add directory="/System/Library/Frameworks"/>
+					<Add directory="/Library/Frameworks"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j16 -f &quot;/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/bobhash/Makefile&quot;  VERBOSE=1 nvmkv-bobhash32"/>
+					<CompileFile command="/usr/bin/make -j16 -f &quot;/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/bobhash/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j16 -f &quot;/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/bobhash/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j16 -f &quot;/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/bobhash/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="nvmkv-bobhash32/fast">
+				<Option output="/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/bobhash/libnvmkv-bobhash32.a" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/bobhash"/>
+				<Option object_output="./"/>
+				<Option type="2"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/Library/Developer/CommandLineTools/usr/bin/../include/c++/v1"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/lib/clang/12.0.0/include"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/include"/>
+					<Add directory="/System/Library/Frameworks"/>
+					<Add directory="/Library/Frameworks"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j16 -f &quot;/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/bobhash/Makefile&quot;  VERBOSE=1 nvmkv-bobhash32/fast"/>
+					<CompileFile command="/usr/bin/make -j16 -f &quot;/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/bobhash/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j16 -f &quot;/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/bobhash/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j16 -f &quot;/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/bobhash/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="nvmkv-extendible_hash">
+				<Option output="/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/extendibleHash/libnvmkv-extendible_hash.a" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/extendibleHash"/>
+				<Option object_output="./"/>
+				<Option type="2"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/Library/Developer/CommandLineTools/usr/bin/../include/c++/v1"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/lib/clang/12.0.0/include"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/include"/>
+					<Add directory="/System/Library/Frameworks"/>
+					<Add directory="/Library/Frameworks"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j16 -f &quot;/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/extendibleHash/Makefile&quot;  VERBOSE=1 nvmkv-extendible_hash"/>
+					<CompileFile command="/usr/bin/make -j16 -f &quot;/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/extendibleHash/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j16 -f &quot;/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/extendibleHash/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j16 -f &quot;/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/extendibleHash/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="nvmkv-extendible_hash/fast">
+				<Option output="/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/extendibleHash/libnvmkv-extendible_hash.a" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/extendibleHash"/>
+				<Option object_output="./"/>
+				<Option type="2"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/Library/Developer/CommandLineTools/usr/bin/../include/c++/v1"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/lib/clang/12.0.0/include"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/include"/>
+					<Add directory="/System/Library/Frameworks"/>
+					<Add directory="/Library/Frameworks"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j16 -f &quot;/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/extendibleHash/Makefile&quot;  VERBOSE=1 nvmkv-extendible_hash/fast"/>
+					<CompileFile command="/usr/bin/make -j16 -f &quot;/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/extendibleHash/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j16 -f &quot;/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/extendibleHash/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j16 -f &quot;/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/extendibleHash/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
 		</Build>
 		<Unit filename="/Users/wangke/CLionProjects/nvmkv/allocator/allocator.cpp">
 			<Option target="nvmkv-allocator"/>
@@ -401,6 +527,12 @@
 		<Unit filename="/Users/wangke/CLionProjects/nvmkv/blink/mapping_array.h">
 			<Option target="nvmkv-blink"/>
 		</Unit>
+		<Unit filename="/Users/wangke/CLionProjects/nvmkv/bobhash/bobhash32.cpp">
+			<Option target="nvmkv-bobhash32"/>
+		</Unit>
+		<Unit filename="/Users/wangke/CLionProjects/nvmkv/bobhash/bobhash32.h">
+			<Option target="nvmkv-bobhash32"/>
+		</Unit>
 		<Unit filename="/Users/wangke/CLionProjects/nvmkv/cart/cart.cpp">
 			<Option target="nvmkv-cart"/>
 		</Unit>
@@ -413,11 +545,11 @@
 		<Unit filename="/Users/wangke/CLionProjects/nvmkv/cart/cart_node.h">
 			<Option target="nvmkv-cart"/>
 		</Unit>
-		<Unit filename="/Users/wangke/CLionProjects/nvmkv/hashtree/bobhash32.cpp">
-			<Option target="nvmkv-ht"/>
+		<Unit filename="/Users/wangke/CLionProjects/nvmkv/extendibleHash/extendible_hash.cpp">
+			<Option target="nvmkv-extendible_hash"/>
 		</Unit>
-		<Unit filename="/Users/wangke/CLionProjects/nvmkv/hashtree/bobhash32.h">
-			<Option target="nvmkv-ht"/>
+		<Unit filename="/Users/wangke/CLionProjects/nvmkv/extendibleHash/extendible_hash.h">
+			<Option target="nvmkv-extendible_hash"/>
 		</Unit>
 		<Unit filename="/Users/wangke/CLionProjects/nvmkv/hashtree/hashtree.cpp">
 			<Option target="nvmkv-ht"/>
@@ -445,6 +577,12 @@
 		</Unit>
 		<Unit filename="/Users/wangke/CLionProjects/nvmkv/mass/mass_tree.h">
 			<Option target="nvmkv-mass"/>
+		</Unit>
+		<Unit filename="/Users/wangke/CLionProjects/nvmkv/murmur/murmur.cpp">
+			<Option target="nvmkv-murmur"/>
+		</Unit>
+		<Unit filename="/Users/wangke/CLionProjects/nvmkv/murmur/murmur.h">
+			<Option target="nvmkv-murmur"/>
 		</Unit>
 		<Unit filename="/Users/wangke/CLionProjects/nvmkv/node/node.cpp">
 			<Option target="nvmkv-node"/>
@@ -481,6 +619,15 @@
 		</Unit>
 		<Unit filename="/Users/wangke/CLionProjects/nvmkv/hashtree/CMakeLists.txt">
 			<Option virtualFolder="CMake Files\hashtree\"/>
+		</Unit>
+		<Unit filename="/Users/wangke/CLionProjects/nvmkv/murmur/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\murmur\"/>
+		</Unit>
+		<Unit filename="/Users/wangke/CLionProjects/nvmkv/bobhash/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\bobhash\"/>
+		</Unit>
+		<Unit filename="/Users/wangke/CLionProjects/nvmkv/extendibleHash/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\extendibleHash\"/>
 		</Unit>
 	</Project>
 </CodeBlocks_project_file>

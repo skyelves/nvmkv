@@ -214,6 +214,45 @@ nvmkv-ht/fast:
 	$(MAKE) -f hashtree/CMakeFiles/nvmkv-ht.dir/build.make hashtree/CMakeFiles/nvmkv-ht.dir/build
 .PHONY : nvmkv-ht/fast
 
+#=============================================================================
+# Target rules for targets named nvmkv-murmur
+
+# Build rule for target.
+nvmkv-murmur: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 nvmkv-murmur
+.PHONY : nvmkv-murmur
+
+# fast build rule for target.
+nvmkv-murmur/fast:
+	$(MAKE) -f murmur/CMakeFiles/nvmkv-murmur.dir/build.make murmur/CMakeFiles/nvmkv-murmur.dir/build
+.PHONY : nvmkv-murmur/fast
+
+#=============================================================================
+# Target rules for targets named nvmkv-bobhash32
+
+# Build rule for target.
+nvmkv-bobhash32: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 nvmkv-bobhash32
+.PHONY : nvmkv-bobhash32
+
+# fast build rule for target.
+nvmkv-bobhash32/fast:
+	$(MAKE) -f bobhash/CMakeFiles/nvmkv-bobhash32.dir/build.make bobhash/CMakeFiles/nvmkv-bobhash32.dir/build
+.PHONY : nvmkv-bobhash32/fast
+
+#=============================================================================
+# Target rules for targets named nvmkv-extendible_hash
+
+# Build rule for target.
+nvmkv-extendible_hash: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 nvmkv-extendible_hash
+.PHONY : nvmkv-extendible_hash
+
+# fast build rule for target.
+nvmkv-extendible_hash/fast:
+	$(MAKE) -f extendibleHash/CMakeFiles/nvmkv-extendible_hash.dir/build.make extendibleHash/CMakeFiles/nvmkv-extendible_hash.dir/build
+.PHONY : nvmkv-extendible_hash/fast
+
 main.o: main.cpp.o
 
 .PHONY : main.o
@@ -257,6 +296,9 @@ help:
 	@echo "... nvmkv-mass"
 	@echo "... nvmkv-rng"
 	@echo "... nvmkv-ht"
+	@echo "... nvmkv-murmur"
+	@echo "... nvmkv-bobhash32"
+	@echo "... nvmkv-extendible_hash"
 	@echo "... main.o"
 	@echo "... main.i"
 	@echo "... main.s"

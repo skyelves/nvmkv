@@ -8,6 +8,7 @@ hashtree/CMakeFiles/nvmkv-ht.dir/hashtree.cpp.o: ../hashtree/bobhash32.h
 hashtree/CMakeFiles/nvmkv-ht.dir/hashtree.cpp.o: ../hashtree/hashtree.cpp
 hashtree/CMakeFiles/nvmkv-ht.dir/hashtree.cpp.o: ../hashtree/hashtree.h
 hashtree/CMakeFiles/nvmkv-ht.dir/hashtree.cpp.o: ../hashtree/hashtree_node.h
+hashtree/CMakeFiles/nvmkv-ht.dir/hashtree.cpp.o: ../murmur/murmur.h
 
 hashtree/CMakeFiles/nvmkv-ht.dir/hashtree_node.cpp.o: ../hashtree/bobhash32.h
 hashtree/CMakeFiles/nvmkv-ht.dir/hashtree_node.cpp.o: ../hashtree/hashtree_node.cpp
