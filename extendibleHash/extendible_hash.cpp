@@ -140,7 +140,8 @@ void extendible_hash::put(uint64_t key, uint64_t value) {
             return;
         }
     } else {
-        if (unlikely(tmp_bucket->counter[bucket_index].key == key)) {
+        if (unlikely(
+                (tmp_bucket->counter[bucket_index].key == key) && (tmp_bucket->counter[bucket_index].value != 0))) {
             //key exists
             tmp_bucket->counter[bucket_index].value = value;
         } else {
