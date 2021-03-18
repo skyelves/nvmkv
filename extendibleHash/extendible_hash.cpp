@@ -22,7 +22,8 @@ void bucket::set_depth(int _depth) {
 int bucket::get(uint64_t key) {
     for (int i = 0; i < cnt; ++i) {
         if (key == counter[i].key) {
-            return counter[i].value;
+            if (counter[i].value != 0)
+                return counter[i].value;
         }
     }
     return -1;
@@ -141,7 +142,8 @@ void extendible_hash::put(uint64_t key, uint64_t value) {
         }
     } else {
         if (unlikely(
-                (tmp_bucket->counter[bucket_index].key == key) && (tmp_bucket->counter[bucket_index].value != 0))) {
+                (tmp_bucket->counter[bucket_index].key == key) &&
+                (tmp_bucket->counter[bucket_index].value != 0))) {
             //key exists
             tmp_bucket->counter[bucket_index].value = value;
         } else {

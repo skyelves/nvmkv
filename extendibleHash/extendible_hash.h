@@ -46,7 +46,8 @@ public:
 
     extendible_hash(uint32_t _global_depth);
 
-    void put(uint64_t key, uint64_t value);
+    void put(uint64_t key,
+             uint64_t value);//value is limited to non-zero number, zero is used to define empty counter in bucket
 
     int get(uint64_t key);
 };
