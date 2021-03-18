@@ -31,7 +31,7 @@ public:
 
     void set_depth(int _depth);
 
-    int get(uint64_t key);
+    int64_t get(uint64_t key);
 
     int find_place(uint64_t key);
 };
@@ -49,7 +49,7 @@ public:
     void put(uint64_t key,
              uint64_t value);//value is limited to non-zero number, zero is used to define empty counter in bucket
 
-    int get(uint64_t key);
+    int64_t get(uint64_t key);
 };
 
 

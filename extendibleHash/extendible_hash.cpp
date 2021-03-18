@@ -156,7 +156,7 @@ void extendible_hash::put(uint64_t key, uint64_t value) {
     return;
 }
 
-int extendible_hash::get(uint64_t key) {
+int64_t extendible_hash::get(uint64_t key) {
     uint64_t index = GET_DIR_NUM(key, global_depth);
     return dir[index]->get(key);
 }
