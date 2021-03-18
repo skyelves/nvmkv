@@ -19,7 +19,7 @@ void bucket::set_depth(int _depth) {
     depth = _depth;
 }
 
-int bucket::get(uint64_t key) {
+int64_t bucket::get(uint64_t key) {
     for (int i = 0; i < cnt; ++i) {
         if (key == counter[i].key) {
             if (counter[i].value != 0)
