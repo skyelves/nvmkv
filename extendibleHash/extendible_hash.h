@@ -15,20 +15,24 @@
 
 class key_pointer {
 public:
-    uint64_t key;
-    uint64_t value;
+    uint64_t key = 0;
+    uint64_t value = 0;
 };
 
 class bucket {
 public:
-    int depth=0;
+    int depth = 0;
     int cnt = 0;
     key_pointer counter[BUCKET_SIZE];
+
     bucket();
+
     bucket(int _depth);
+
     void set_depth(int _depth);
 
     int get(uint64_t key);
+
     int find_place(uint64_t key);
 };
 
