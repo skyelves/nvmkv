@@ -8,85 +8,69 @@
 #include <stdlib.h>
 #include "hashtree.h"
 
+/*
+ *         begin  len
+ * key [______|___________|____________]
+ */
+#define GET_SUB_KEY(key, begin, len)  ((key>>(64-begin-len))&((1<<len)-1))
+//len should less than 32
+//#define GET_SUB_KEY(key, begin, len)  ((key>>(64-begin-len))&(0xffff))
+//#define GET_SUB_KEY(key, begin, len)  ((key>>(64-begin-len))&(0xff))
+
 hashtree::hashtree() {
-//    hash = new BOBHash32(19);
-    hash = new murmur(19);
-    root = new_node(1024);
+//    root = new_hashtree_node(init_depth, span);
+    root = new_extendible_hash(init_depth, span);
+}
+
+hashtree::hashtree(int _span, int _init_depth) {
+    span = _span;
+    init_depth = _init_depth;
+//    root = new_hashtree_node(init_depth, _span);
+    root = new_extendible_hash(init_depth, span);
 }
 
 hashtree::~hashtree() {
+    delete root;
+}
+
+hashtree *new_hashtree(int _span, int _init_depth) {
+    hashtree *_new_hash_tree = new hashtree(_span, _init_depth);
+    return _new_hash_tree;
+}
+
+void hashtree::put(uint64_t k, uint64_t v) {
+//    hashtree_node *tmp = root;
+    extendible_hash *tmp = root;
+    uint64_t sub_key;
+    for (int i = 0; i < 64 - span; i += span) {
+        sub_key = GET_SUB_KEY(k, i, span);
+        int64_t next = tmp->get(sub_key);
+        if (next == -1) {
+            //not exists
+//            next = (int64_t) new_hashtree_node(init_depth, span);
+            next = (int64_t) new_extendible_hash(init_depth, span);
+            tmp->put(sub_key, next);
+        }
+        tmp = (extendible_hash *) next;
+    }
+    sub_key = GET_SUB_KEY(k, (sizeof(k) * 8 - span), span);
+    tmp->put(sub_key, v);
     return;
 }
 
-bool hashtree::put(uint64_t k, uint64_t v) {
-//    char k_char[66] = {0};
-//    sprintf(k_char, "%llu", k);
-//    int k_len = strlen(k_char);
-//    int index = root->run->run(k_char, k_len) % root->size;
-//    root->array[index].k = k;
-//    root->array[index].v = v;
-    hashtree_node *tmp = root;
-    char k_char[66] = {0};
-    sprintf(k_char, "%llu", k);
-    int k_len = strlen(k_char);
-    uint value = hash->run(k_char, k_len);
-    uint index = 0;
-    while (1) {
-//        index = value % tmp->size;
-        index = tmp->hash->run(k_char, k_len) % tmp->size;
-        if (tmp->array[index].k == 0) {
-            //slot empty
-            tmp->array[index].k = k;
-            tmp->array[index].v = v;
+int64_t hashtree::get(uint64_t k) {
+    extendible_hash *tmp = root;
+    int64_t next;
+    for (int i = 0; i < 64; i += span) {
+        uint16_t sub_key = GET_SUB_KEY(k, i, span);
+        next = tmp->get(sub_key);
+        if (next == -1) {
+            //not exists
             break;
         } else {
-            if (tmp->array[index].k == k) {
-                tmp->array[index].v = v;
-                break;
-            } else if (tmp->array[index].v == 0) {
-                //not empty
-                //go to the deeper layer run
-                tmp = (hashtree_node *) tmp->array[index].k;
-            } else {
-                //collision
-                //create a deeper layer run table and insert two kv
-                uint64_t k2 = tmp->array[index].k;
-                uint64_t v2 = tmp->array[index].v;
-                char k2_char[66] = {0};
-                sprintf(k2_char, "%llu", k2);
-                int k2_len = strlen(k2_char);
-//                uint value2 = run->run(k2_char, k2_len);
-                hashtree_node *first_new_node = new_node(tmp->size * 2);
-                hashtree_node *_new_node = first_new_node;
-                while (1) {
-//                    int index1 = value % _new_node->size;
-//                    int index2 = value2 % _new_node->size;
-                    int index1 = _new_node->hash->run(k_char, k_len) % _new_node->size;
-                    int index2 = _new_node->hash->run(k2_char, k2_len) % _new_node->size;
-                    if (index1 != index2) {
-                        _new_node->array[index1].k = k;
-                        _new_node->array[index1].v = v;
-                        _new_node->array[index2].k = k2;
-                        _new_node->array[index2].v = v2;
-                        break;
-                    } else {
-                        //todo collision again
-                        hashtree_node *deeper_node = new_node(_new_node->size * 2);
-                        _new_node->array[index1].k = (uint64_t) deeper_node;
-                        _new_node = deeper_node;
-                    }
-                }
-                //todo check the slot is still valid and compress the following operations to a 8 byte operation
-                tmp->array[index].k = (uint64_t) first_new_node;
-                tmp->array[index].v = 0;
-                break;
-            }
+            tmp = (extendible_hash *) next;
         }
     }
-    return true;
-}
-
-int hashtree::get(int k) {
-    return 0;
+    return next;
 }
 

@@ -6,23 +6,27 @@
 #define NVMKV_HASHTREE_H
 
 #include "hashtree_node.h"
-#include "../bobhash/bobhash32.h"
-#include "../murmur/murmur.h"
+#include "extendible_hash.h"
 
 class hashtree {
 private:
-//    BOBHash32 *run;
-    murmur *hash;
-    hashtree_node *root;
+    int64_t span = 8; //equals to the key_len in the extendible hash
+    int init_depth = 4; //represent extendible hash initial global depth
+//    hashtree_node *root = NULL;
+    extendible_hash *root = NULL;
 public:
     hashtree();
 
+    hashtree(int _span, int _init_depth);
+
     ~hashtree();
 
-    bool put(uint64_t k, uint64_t v);
+    void put(uint64_t k, uint64_t v);
 
-    int get(int k);
+    int64_t get(uint64_t k);
 };
+
+hashtree *new_hashtree(int _span = 8, int _init_depth = 4);
 
 
 #endif //NVMKV_HASHTREE_H
