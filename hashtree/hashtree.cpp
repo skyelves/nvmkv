@@ -20,6 +20,7 @@
 hashtree::hashtree() {
 //    root = new_hashtree_node(init_depth, span);
     root = new_extendible_hash(init_depth, span);
+    node_cnt++;
 }
 
 hashtree::hashtree(int _span, int _init_depth) {
@@ -27,6 +28,7 @@ hashtree::hashtree(int _span, int _init_depth) {
     init_depth = _init_depth;
 //    root = new_hashtree_node(init_depth, _span);
     root = new_extendible_hash(init_depth, span);
+    node_cnt++;
 }
 
 hashtree::~hashtree() {
@@ -49,6 +51,7 @@ void hashtree::put(uint64_t k, uint64_t v) {
             //not exists
 //            next = (int64_t) new_hashtree_node(init_depth, span);
             next = (int64_t) new_extendible_hash(init_depth, span);
+            node_cnt++;
             tmp->put(sub_key, next);
         }
         tmp = (extendible_hash *) next;

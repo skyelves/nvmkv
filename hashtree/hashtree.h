@@ -15,6 +15,7 @@ private:
 //    hashtree_node *root = NULL;
     extendible_hash *root = NULL;
 public:
+    int node_cnt = 0;
     hashtree();
 
     hashtree(int _span, int _init_depth);
