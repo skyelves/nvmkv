@@ -3,6 +3,7 @@ project(nvmkv)
 
 add_subdirectory(node)
 add_subdirectory(allocator)
+add_subdirectory(fastalloc)
 add_subdirectory(blink)
 add_subdirectory(cart)
 add_subdirectory(mass)
