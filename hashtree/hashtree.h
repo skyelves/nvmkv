@@ -22,6 +22,8 @@ public:
 
     ~hashtree();
 
+    void init(int _span = 8, int _init_depth = 4);
+
     void put(uint64_t k, uint64_t v);
 
     int64_t get(uint64_t k);

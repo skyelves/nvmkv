@@ -35,6 +35,14 @@ hashtree::~hashtree() {
     delete root;
 }
 
+void hashtree::init(int _span, int _init_depth) {
+    span = _span;
+    init_depth = _init_depth;
+//    root = new_hashtree_node(init_depth, _span);
+    root = new_extendible_hash(init_depth, span);
+    node_cnt++;
+}
+
 hashtree *new_hashtree(int _span, int _init_depth) {
     hashtree *_new_hash_tree = new hashtree(_span, _init_depth);
     return _new_hash_tree;

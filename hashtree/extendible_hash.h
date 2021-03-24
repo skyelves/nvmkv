@@ -7,6 +7,7 @@
 
 #include <math.h>
 #include <cstdint>
+#include "../fastalloc/fastalloc.h"
 
 #define likely(x)   (__builtin_expect(!!(x), 1))
 #define unlikely(x) (__builtin_expect(!!(x), 0))
@@ -29,12 +30,16 @@ public:
 
     bucket(int _depth);
 
+    void init(int _depth);
+
     void set_depth(int _depth);
 
     int64_t get(uint64_t key);
 
     int find_place(uint64_t key);
 };
+
+bucket *new_bucket(int _depth = 0);
 
 class extendible_hash {
 private:
@@ -49,6 +54,8 @@ public:
 
     extendible_hash(uint32_t _global_depth, int _key_len);
 
+    void init(uint32_t _global_depth, int _key_len);
+
     void set_key_len(int _key_len);
 
     void put(uint64_t key,
@@ -57,7 +64,7 @@ public:
     int64_t get(uint64_t key);
 };
 
-extendible_hash* new_extendible_hash(uint32_t _global_depth, int _key_len);
+extendible_hash *new_extendible_hash(uint32_t _global_depth, int _key_len);
 
 
 #endif //NVMKV_EXTENDIBLE_HASH_H

@@ -4,4 +4,4 @@ set(HT_SOURCES
         extendible_hash.cpp extendible_hash.h)
 
 add_library(nvmkv-ht STATIC ${HT_SOURCES})
-target_link_libraries(nvmkv-ht PUBLIC nvmkv-allocator nvmkv-node nvmkv-murmur nvmkv-bobhash32)
+target_link_libraries(nvmkv-ht PUBLIC nvmkv-fastalloc nvmkv-murmur nvmkv-bobhash32)
