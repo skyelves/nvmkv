@@ -8,9 +8,14 @@
 #define GET_DIR_NUM(key, key_len, depth)  ((key>>(key_len-depth))&((1<<key_len)-1))
 //#define GET_DIR_NUM(key, key_len, depth)  ((key>>(key_len-depth))&0xffff)
 
-bucket::bucket() {
-
+key_value *new_key_value(int key, int value) {
+    key_value *_new_key_value = static_cast<key_value *>(fast_alloc(sizeof(key_value)));
+    _new_key_value->key = key;
+    _new_key_value->value = value;
+    return _new_key_value;
 }
+
+bucket::bucket() {}
 
 bucket::bucket(int _depth) {
     depth = _depth;
@@ -104,7 +109,7 @@ void extendible_hash::put(uint64_t key, uint64_t value) {
         //condition: full
         if (likely(tmp_bucket->depth < global_depth)) {
             bucket *new_bucket1 = new_bucket(tmp_bucket->depth + 1);
-            bucket *new_bucket2 =new_bucket(tmp_bucket->depth + 1);
+            bucket *new_bucket2 = new_bucket(tmp_bucket->depth + 1);
             //set dir
             uint64_t left = index, mid = index, right = index + 1;
             for (int i = index + 1; i < dir_size; ++i) {

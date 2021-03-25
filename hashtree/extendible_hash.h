@@ -14,17 +14,20 @@
 
 #define BUCKET_SIZE 8
 
-class key_pointer {
+class key_value {
 public:
+    bool type = 1;
     uint64_t key = 0;// indeed only need uint8 or uint16
     uint64_t value = 0;
 };
+
+key_value *new_key_value(int key=0, int value=0);
 
 class bucket {
 public:
     int depth = 0;
     int cnt = 0;
-    key_pointer counter[BUCKET_SIZE];
+    key_value counter[BUCKET_SIZE];
 
     bucket();
 
@@ -43,6 +46,7 @@ bucket *new_bucket(int _depth = 0);
 
 class extendible_hash {
 private:
+    bool type = 0;
     uint64_t global_depth = 0;
     uint64_t dir_size = 1;
     int key_len = 16;
