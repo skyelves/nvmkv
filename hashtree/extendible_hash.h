@@ -16,7 +16,7 @@
 
 class key_pointer {
 public:
-    uint64_t key = 0;
+    uint64_t key = 0;// indeed only need uint8 or uint16
     uint64_t value = 0;
 };
 
