@@ -49,7 +49,6 @@ hashtree *new_hashtree(int _span, int _init_depth) {
 }
 
 void hashtree::put(uint64_t k, uint64_t v) {
-//    hashtree_node *tmp = root;
     extendible_hash *tmp = root;
     key_value *kv = new_key_value(k, v);
     uint64_t sub_key;
@@ -61,14 +60,13 @@ void hashtree::put(uint64_t k, uint64_t v) {
             break;
         } else {
             if (((bool *) next)[0]) {
-                // is next extendible hash
+                // next is next extendible hash
                 tmp = (extendible_hash *) next;
             } else {
-                // is key value pair, which means collides
+                // next is key value pair, which means collides
                 uint64_t pre_k = ((key_value *) next)->key;
-                uint64_t pre_v = ((key_value *) next)->value;
                 if (unlikely(k == pre_k)) {
-                    //same key
+                    //same key, update the value
                     ((key_value *) next)->value = v;
                     return;
                 } else {
