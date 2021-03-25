@@ -9,27 +9,68 @@ fastalloc *myallocator;
 fastalloc::fastalloc() {}
 
 void fastalloc::init() {
-    dram[dram_cnt] = new char[alloc_size];
+    dram[dram_cnt] = new char[ALLOC_SIZE];
     dram_curr = dram[dram_cnt];
-    dram_left = alloc_size;
+    dram_left = ALLOC_SIZE;
     dram_cnt++;
+
+#ifdef __linux__
+    string nvm_filename = "/aepmount/test";
+    nvm_filename = nvm_filename + to_string(nvm_cnt);
+    int nvm_fd = open(nvm_filename.c_str(), O_CREAT | O_RDWR, 0644);
+    if (posix_fallocate(nvm_fd, 0, ALLOC_SIZE) < 0)
+        puts("fallocate fail\n");
+    nvm[nvm_cnt] = (char *) mmap(NULL, ALLOC_SIZE, PROT_READ | PROT_WRITE, MAP_SYNC | MAP_SHARED_VALIDATE, nvm_fd, 0);
+#else
+    nvm[nvm_cnt] = new char[ALLOC_SIZE];
+#endif
+    nvm_curr = nvm[nvm_cnt];
+    nvm_left = ALLOC_SIZE;
+    nvm_cnt++;
 }
 
 void *fastalloc::alloc(uint64_t size, bool _on_nvm) {
-    if (unlikely(size > dram_left)) {
-        dram[dram_cnt] = new char[alloc_size];
-        dram_curr = dram[dram_cnt];
-        dram_left = alloc_size;
-        dram_cnt++;
-        dram_left -= size;
-        void *tmp = dram_curr;
-        dram_curr = dram_curr + size;
-        return tmp;
+    if (_on_nvm) {
+        if (unlikely(size > nvm_left)) {
+#ifdef __linux__
+            string nvm_filename = "/aepmount/test";
+            nvm_filename = nvm_filename + to_string(nvm_cnt);
+            int nvm_fd = open(nvm_filename.c_str(), O_CREAT | O_RDWR, 0644);
+            if (posix_fallocate(nvm_fd, 0, ALLOC_SIZE) < 0)
+                puts("fallocate fail\n");
+            nvm[nvm_cnt] = (char *) mmap(NULL, ALLOC_SIZE, PROT_READ | PROT_WRITE, MAP_SYNC | MAP_SHARED_VALIDATE, nvm_fd, 0);
+#else
+            nvm[nvm_cnt] = new char[ALLOC_SIZE];
+#endif
+            nvm_curr = nvm[nvm_cnt];
+            nvm_left = ALLOC_SIZE;
+            nvm_cnt++;
+            nvm_left -= size;
+            void *tmp = nvm_curr;
+            nvm_curr = nvm_curr + size;
+            return tmp;
+        } else {
+            nvm_left -= size;
+            void *tmp = nvm_curr;
+            nvm_curr = nvm_curr + size;
+            return tmp;
+        }
     } else {
-        dram_left -= size;
-        void *tmp = dram_curr;
-        dram_curr = dram_curr + size;
-        return tmp;
+        if (unlikely(size > dram_left)) {
+            dram[dram_cnt] = new char[ALLOC_SIZE];
+            dram_curr = dram[dram_cnt];
+            dram_left = ALLOC_SIZE;
+            dram_cnt++;
+            dram_left -= size;
+            void *tmp = dram_curr;
+            dram_curr = dram_curr + size;
+            return tmp;
+        } else {
+            dram_left -= size;
+            void *tmp = dram_curr;
+            dram_curr = dram_curr + size;
+            return tmp;
+        }
     }
 }
 
