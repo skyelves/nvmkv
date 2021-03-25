@@ -51,21 +51,42 @@ hashtree *new_hashtree(int _span, int _init_depth) {
 void hashtree::put(uint64_t k, uint64_t v) {
 //    hashtree_node *tmp = root;
     extendible_hash *tmp = root;
+    key_value *kv = new_key_value(k, v);
     uint64_t sub_key;
     for (int i = 0; i < 64 - span; i += span) {
         sub_key = GET_SUB_KEY(k, i, span);
         int64_t next = tmp->get(sub_key);
         if (next == -1) {
             //not exists
-//            next = (int64_t) new_hashtree_node(init_depth, span);
-            next = (int64_t) new_extendible_hash(init_depth, span);
-            node_cnt++;
-            tmp->put(sub_key, next);
+            break;
+        } else {
+            if (((bool *) next)[0]) {
+                // is next extendible hash
+                tmp = (extendible_hash *) next;
+            } else {
+                // is key value pair, which means collides
+                uint64_t pre_k = ((key_value *) next)->key;
+                uint64_t pre_v = ((key_value *) next)->value;
+                if (unlikely(k == pre_k)) {
+                    //same key
+                    ((key_value *) next)->value = v;
+                    return;
+                } else {
+                    //not same key: needs to create a new eh
+                    extendible_hash *new_eh = new_extendible_hash(init_depth, span);
+                    new_eh->put(GET_SUB_KEY(pre_k, i + span, span), (uint64_t) next);
+                    tmp->put(sub_key, (uint64_t) new_eh);
+                    tmp = new_eh;
+                    node_cnt++;
+                    /* todo: for crash consistency,
+                     * tmp->put(sub_key, (uint64_t) new_eh);
+                     * should be the last operation
+                     */
+                }
+            }
         }
-        tmp = (extendible_hash *) next;
     }
-    sub_key = GET_SUB_KEY(k, (sizeof(k) * 8 - span), span);
-    tmp->put(sub_key, v);
+    tmp->put(sub_key, (uint64_t) kv);
     return;
 }
 
@@ -77,11 +98,17 @@ int64_t hashtree::get(uint64_t k) {
         next = tmp->get(sub_key);
         if (next == -1) {
             //not exists
-            break;
+            return -1;
         } else {
-            tmp = (extendible_hash *) next;
+            if (((bool *) next)[0]) {
+                // is next extendible hash
+                tmp = (extendible_hash *) next;
+            } else {
+                // is key value pair
+                break;
+            }
         }
     }
-    return next;
+    return ((key_value *) next)->value;
 }
 
