@@ -12,7 +12,7 @@
  *         begin  len
  * key [______|___________|____________]
  */
-#define GET_SUB_KEY(key, begin, len)  ((key>>(64-begin-len))&((1<<len)-1))
+#define GET_SUB_KEY(key, begin, len)  (((key)>>(64-(begin)-(len)))&((1<<(len))-1))
 //len should less than 32
 //#define GET_SUB_KEY(key, begin, len)  ((key>>(64-begin-len))&(0xffff))
 //#define GET_SUB_KEY(key, begin, len)  ((key>>(64-begin-len))&(0xff))
@@ -44,7 +44,9 @@ void hashtree::init(int _span, int _init_depth) {
 }
 
 hashtree *new_hashtree(int _span, int _init_depth) {
-    hashtree *_new_hash_tree = new hashtree(_span, _init_depth);
+//    hashtree *_new_hash_tree = new hashtree(_span, _init_depth);
+    hashtree *_new_hash_tree = static_cast<hashtree *>(fast_alloc(sizeof(hashtree)));
+    _new_hash_tree->init(_span, _init_depth);
     return _new_hash_tree;
 }
 
@@ -52,17 +54,15 @@ void hashtree::put(uint64_t k, uint64_t v) {
     extendible_hash *tmp = root;
     key_value *kv = new_key_value(k, v);
     uint64_t sub_key;
-    for (int i = 0; i < 64 - span; i += span) {
+    for (int i = 0; i < 64; i += span) {
         sub_key = GET_SUB_KEY(k, i, span);
         int64_t next = tmp->get(sub_key);
         if (next == -1) {
             //not exists
-            break;
+            tmp->put(sub_key, (uint64_t) kv);
+            return;
         } else {
             if (((bool *) next)[0]) {
-                // next is next extendible hash
-                tmp = (extendible_hash *) next;
-            } else {
                 // next is key value pair, which means collides
                 uint64_t pre_k = ((key_value *) next)->key;
                 if (unlikely(k == pre_k)) {
@@ -72,7 +72,8 @@ void hashtree::put(uint64_t k, uint64_t v) {
                 } else {
                     //not same key: needs to create a new eh
                     extendible_hash *new_eh = new_extendible_hash(init_depth, span);
-                    new_eh->put(GET_SUB_KEY(pre_k, i + span, span), (uint64_t) next);
+                    uint64_t pre_k_next_sub_key = GET_SUB_KEY(pre_k, i + span, span);
+                    new_eh->put(pre_k_next_sub_key, (uint64_t) next);
                     tmp->put(sub_key, (uint64_t) new_eh);
                     tmp = new_eh;
                     node_cnt++;
@@ -81,10 +82,12 @@ void hashtree::put(uint64_t k, uint64_t v) {
                      * should be the last operation
                      */
                 }
+            } else {
+                // next is next extendible hash
+                tmp = (extendible_hash *) next;
             }
         }
     }
-    tmp->put(sub_key, (uint64_t) kv);
     return;
 }
 
@@ -99,11 +102,11 @@ int64_t hashtree::get(uint64_t k) {
             return -1;
         } else {
             if (((bool *) next)[0]) {
-                // is next extendible hash
-                tmp = (extendible_hash *) next;
-            } else {
                 // is key value pair
                 break;
+            } else {
+                // is next extendible hash
+                tmp = (extendible_hash *) next;
             }
         }
     }

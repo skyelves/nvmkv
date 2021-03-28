@@ -21,7 +21,7 @@ public:
     uint64_t value = 0;
 };
 
-key_value *new_key_value(int key=0, int value=0);
+key_value *new_key_value(uint64_t key=0, uint64_t value=0);
 
 class bucket {
 public:
