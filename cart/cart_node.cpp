@@ -137,7 +137,7 @@ size_t art_node_version_get_offset(uint64_t version) {
 
 static cart_node *_new_art_node(size_t size) {
 #ifdef Allocator
-    cart_node *an = (cart_node *)allocator_alloc(size);
+    cart_node *an = (cart_node *)fast_alloc(size);
 #else
     cart_node *an = (cart_node *) malloc(size);
 #endif

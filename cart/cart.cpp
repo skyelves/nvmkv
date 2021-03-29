@@ -4,6 +4,7 @@
  *    license:    BSD-3
 **/
 
+#include <cstring>
 #include <stdlib.h>
 #include <stdint.h>
 #include <assert.h>
@@ -186,8 +187,12 @@ _adaptive_radix_tree_put(cart_node *parent, cart_node **ptr, const void *key, si
 // return 0 on success
 // return 1 on duplication
 int
-adaptive_radix_tree_put(adaptive_radix_tree *art, const void *key, size_t len, const void *value, size_t value_len) {
+adaptive_radix_tree_put(adaptive_radix_tree *art, const void *_key, size_t len, const void *value, size_t value_len) {
     //print_key(key, len);
+    char *key_info = new char[len + 1];
+    key_info[0] = 8;
+    strncpy(key_info + 1, (char *) _key, len);
+    char *key = key_info + 1;
 
     cart_node *root = art->root;
     if (unlikely(root == 0)) { // empty art

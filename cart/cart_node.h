@@ -8,6 +8,7 @@
 #define _art_node_h_
 
 #include <stddef.h>
+#include "../fastalloc/fastalloc.h"
 
 #ifdef Debug
 #include <assert.h>
@@ -17,6 +18,8 @@
 #endif // Debug
 
 #define fuck printf("fuck\n");
+
+#define Allocator
 
 #define likely(x)   (__builtin_expect(!!(x), 1))
 #define unlikely(x) (__builtin_expect(!!(x), 0))

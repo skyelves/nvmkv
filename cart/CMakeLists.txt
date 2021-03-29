@@ -3,4 +3,4 @@ set(CART_SOURCES
         cart_node.cpp cart_node.h)
 
 add_library(nvmkv-cart STATIC ${CART_SOURCES})
-target_link_libraries(nvmkv-cart PUBLIC nvmkv-allocator nvmkv-node)
+target_link_libraries(nvmkv-cart PUBLIC nvmkv-fastalloc nvmkv-node)
