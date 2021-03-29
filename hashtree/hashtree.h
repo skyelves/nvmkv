@@ -15,8 +15,10 @@ private:
 //    hashtree_node *root = NULL;
     extendible_hash *root = NULL;
 public:
+    uint64_t span_test[4] = {32, 16, 8, 8};
     int node_cnt = 0;
     uint64_t get_access = 0;
+
     hashtree();
 
     hashtree(int _span, int _init_depth);

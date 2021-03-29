@@ -40,6 +40,10 @@ void hashtree::init(int _span, int _init_depth) {
     init_depth = _init_depth;
 //    root = new_hashtree_node(init_depth, _span);
     root = new_extendible_hash(init_depth, span);
+    span_test[0] = 32;
+    span_test[1] = 16;
+    span_test[2] = 8;
+    span_test[3] = 8;
     node_cnt++;
 }
 
@@ -54,8 +58,8 @@ void hashtree::put(uint64_t k, uint64_t v) {
     extendible_hash *tmp = root;
     key_value *kv = new_key_value(k, v);
     uint64_t sub_key;
-    for (int i = 0; i < 64; i += span) {
-        sub_key = GET_SUB_KEY(k, i, span);
+    for (int i = 0, j = 0; i < 64; i += span_test[j], j++) {
+        sub_key = GET_SUB_KEY(k, i, span_test[j]);
         int64_t next = tmp->get(sub_key);
         if (next == -1) {
             //not exists
@@ -71,8 +75,8 @@ void hashtree::put(uint64_t k, uint64_t v) {
                     return;
                 } else {
                     //not same key: needs to create a new eh
-                    extendible_hash *new_eh = new_extendible_hash(init_depth, span);
-                    uint64_t pre_k_next_sub_key = GET_SUB_KEY(pre_k, i + span, span);
+                    extendible_hash *new_eh = new_extendible_hash(init_depth, span_test[j + 1]);
+                    uint64_t pre_k_next_sub_key = GET_SUB_KEY(pre_k, i + span_test[j], span_test[j + 1]);
                     new_eh->put(pre_k_next_sub_key, (uint64_t) next);
                     tmp->put(sub_key, (uint64_t) new_eh);
                     tmp = new_eh;
@@ -94,8 +98,8 @@ void hashtree::put(uint64_t k, uint64_t v) {
 int64_t hashtree::get(uint64_t k) {
     extendible_hash *tmp = root;
     int64_t next;
-    for (int i = 0; i < 64; i += span) {
-        uint64_t sub_key = GET_SUB_KEY(k, i, span);
+    for (int i = 0, j = 0; i < 64; i += span_test[j], j++) {
+        uint64_t sub_key = GET_SUB_KEY(k, i, span_test[j]);
         next = tmp->get(sub_key);
         get_access++;
         if (next == -1) {
