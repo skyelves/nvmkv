@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include "extendible_hash.h"
 
-#define GET_DIR_NUM(key, key_len, depth)  ((key>>(key_len-depth))&((1<<key_len)-1))
+#define GET_DIR_NUM(key, key_len, depth)  ((key>>(key_len-depth))&(((uint64_t)1<<key_len)-1))
 //#define GET_DIR_NUM(key, key_len, depth)  ((key>>(key_len-depth))&0xffff)
 
 key_value *new_key_value(uint64_t key, uint64_t value) {

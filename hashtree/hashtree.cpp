@@ -12,7 +12,7 @@
  *         begin  len
  * key [______|___________|____________]
  */
-#define GET_SUB_KEY(key, begin, len)  (((key)>>(64-(begin)-(len)))&((1<<(len))-1))
+#define GET_SUB_KEY(key, begin, len)  (((key)>>(64-(begin)-(len)))&(((uint64_t)1<<(len))-1))
 //len should less than 32
 //#define GET_SUB_KEY(key, begin, len)  ((key>>(64-begin-len))&(0xffff))
 //#define GET_SUB_KEY(key, begin, len)  ((key>>(64-begin-len))&(0xff))
@@ -95,7 +95,7 @@ int64_t hashtree::get(uint64_t k) {
     extendible_hash *tmp = root;
     int64_t next;
     for (int i = 0; i < 64; i += span) {
-        uint16_t sub_key = GET_SUB_KEY(k, i, span);
+        uint64_t sub_key = GET_SUB_KEY(k, i, span);
         next = tmp->get(sub_key);
         if (next == -1) {
             //not exists
