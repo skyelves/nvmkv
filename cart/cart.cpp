@@ -189,7 +189,8 @@ _adaptive_radix_tree_put(cart_node *parent, cart_node **ptr, const void *key, si
 int
 adaptive_radix_tree_put(adaptive_radix_tree *art, const void *_key, size_t len, const void *value, size_t value_len) {
     //print_key(key, len);
-    char *key_info = new char[len + 1];
+    char *key_info = (char *) fast_alloc(len + 2);
+//    char *key_info = new char[len + 1];
     key_info[0] = 8;
     strncpy(key_info + 1, (char *) _key, len);
     char *key = key_info + 1;
