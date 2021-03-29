@@ -97,6 +97,7 @@ int64_t hashtree::get(uint64_t k) {
     for (int i = 0; i < 64; i += span) {
         uint64_t sub_key = GET_SUB_KEY(k, i, span);
         next = tmp->get(sub_key);
+        get_access++;
         if (next == -1) {
             //not exists
             return -1;
