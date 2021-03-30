@@ -6,7 +6,7 @@
 #include "hashtree_node.h"
 
 
-#define GET_DIR_NUM(key, key_len, depth)  ((key>>(key_len-depth))&(((uint64_t)1<<key_len)-1))
+#define GET_DIR_NUM(key, key_len, depth)  ((key>>(key_len-depth))&(((uint64_t)1<<depth)-1))
 //#define GET_DIR_NUM(key, key_len, depth)  ((key>>(key_len-depth))&0xffff)
 
 ht_key_value *new_ht_key_value(uint64_t key, uint64_t value) {
