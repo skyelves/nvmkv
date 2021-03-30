@@ -5,13 +5,24 @@
 #include <stdio.h>
 #include "extendible_hash.h"
 
-#define GET_DIR_NUM(key, depth)  (key>>(64-depth))
+#define GET_DIR_NUM(key, key_len, depth)  ((key>>(key_len-depth))&(((uint64_t)1<<key_len)-1))
+//#define GET_DIR_NUM(key, key_len, depth)  ((key>>(key_len-depth))&0xffff)
 
-bucket::bucket() {
-
+key_value *new_key_value(uint64_t key, uint64_t value) {
+    key_value *_new_key_value = static_cast<key_value *>(fast_alloc(sizeof(key_value)));
+    _new_key_value->type = 1;
+    _new_key_value->key = key;
+    _new_key_value->value = value;
+    return _new_key_value;
 }
 
+bucket::bucket() {}
+
 bucket::bucket(int _depth) {
+    depth = _depth;
+}
+
+inline void bucket::init(int _depth) {
     depth = _depth;
 }
 
@@ -43,34 +54,65 @@ int bucket::find_place(uint64_t key) {
         return -1;
 }
 
+bucket *new_bucket(int _depth) {
+    bucket *_new_bucket = static_cast<bucket *>(fast_alloc(sizeof(bucket)));
+    _new_bucket->init(_depth);
+    return _new_bucket;
+}
+
 extendible_hash::extendible_hash() {
-    dir = new bucket *[dir_size];
+    dir = static_cast<bucket **>(fast_alloc(sizeof(bucket *) * dir_size));
     for (int i = 0; i < dir_size; ++i) {
-        dir[i] = new bucket;
+        dir[i] = new_bucket();
     }
 }
 
 extendible_hash::extendible_hash(uint32_t _global_depth) {
     global_depth = _global_depth;
     dir_size = pow(2, global_depth);
-    dir = new bucket *[dir_size];
+    dir = static_cast<bucket **>(fast_alloc(sizeof(bucket *) * dir_size));
     for (int i = 0; i < dir_size; ++i) {
-        dir[i] = new bucket(_global_depth);
+        dir[i] = new_bucket(_global_depth);
     }
 }
 
+extendible_hash::extendible_hash(uint32_t _global_depth, int _key_len) {
+    global_depth = _global_depth;
+    key_len = _key_len;
+    dir_size = pow(2, global_depth);
+    dir = static_cast<bucket **>(fast_alloc(sizeof(bucket *) * dir_size));
+    for (int i = 0; i < dir_size; ++i) {
+        dir[i] = new_bucket(_global_depth);
+    }
+}
+
+void extendible_hash::init(uint32_t _global_depth, int _key_len) {
+    type = 0;
+    global_depth = _global_depth;
+    key_len = _key_len;
+    dir_size = pow(2, global_depth);
+//    dir = new bucket *[dir_size];
+    dir = static_cast<bucket **>(fast_alloc(sizeof(bucket *) * dir_size));
+    for (int i = 0; i < dir_size; ++i) {
+//        dir[i] = new bucket(_global_depth);
+        dir[i] = new_bucket(_global_depth);
+    }
+}
+
+void extendible_hash::set_key_len(int _key_len) {
+    key_len = _key_len;
+}
+
 void extendible_hash::put(uint64_t key, uint64_t value) {
-    uint64_t index = GET_DIR_NUM(key, global_depth);
+    uint64_t index = GET_DIR_NUM(key, key_len, global_depth);
     bucket *tmp_bucket = dir[index];
     int bucket_index = tmp_bucket->find_place(key);
     if (bucket_index == -1) {
         //condition: full
         if (likely(tmp_bucket->depth < global_depth)) {
-            bucket *new_bucket1 = new bucket;
-            bucket *new_bucket2 = new bucket;
-            new_bucket1->set_depth(tmp_bucket->depth + 1);
-            new_bucket2->set_depth(tmp_bucket->depth + 1);
-            //set dir
+            bucket *new_bucket1 = new_bucket(tmp_bucket->depth + 1);
+            bucket *new_bucket2 = new_bucket(tmp_bucket->depth + 1);
+            //set dir [left,right)
             uint64_t left = index, mid = index, right = index + 1;
             for (int i = index + 1; i < dir_size; ++i) {
                 if (likely(dir[i] != tmp_bucket)) {
@@ -100,8 +142,8 @@ void extendible_hash::put(uint64_t key, uint64_t value) {
             //migrate previous data
             for (int i = 0; i < BUCKET_SIZE; ++i) {
                 uint64_t tmp_key = tmp_bucket->counter[i].key;
-                int tmp_value = tmp_bucket->counter[i].value;
-                index = GET_DIR_NUM(tmp_key, global_depth);
+                uint64_t tmp_value = tmp_bucket->counter[i].value;
+                index = GET_DIR_NUM(tmp_key, key_len, global_depth);
                 bucket *dst_bucket = dir[index];
                 dst_bucket->counter[dst_bucket->cnt].key = tmp_key;
                 dst_bucket->counter[dst_bucket->cnt].value = tmp_value;
@@ -115,21 +157,19 @@ void extendible_hash::put(uint64_t key, uint64_t value) {
             global_depth += 1;
             dir_size *= 2;
             //set dir
-            bucket **new_dir = new bucket *[dir_size];
+            bucket **new_dir = static_cast<bucket **>(fast_alloc(sizeof(bucket *) * dir_size));
             for (int i = 0; i < dir_size; ++i) {
                 new_dir[i] = dir[i / 2];
             }
-            bucket *new_bucket1 = new bucket;
-            bucket *new_bucket2 = new bucket;
-            new_bucket1->set_depth(global_depth);
-            new_bucket2->set_depth(global_depth);
+            bucket *new_bucket1 = new_bucket(global_depth);
+            bucket *new_bucket2 = new_bucket(global_depth);
             new_dir[index * 2] = new_bucket1;
             new_dir[index * 2 + 1] = new_bucket2;
             //migrate previous data
             for (int i = 0; i < BUCKET_SIZE; ++i) {
                 uint64_t tmp_key = tmp_bucket->counter[i].key;
-                int tmp_value = tmp_bucket->counter[i].value;
-                index = GET_DIR_NUM(tmp_key, global_depth);
+                int64_t tmp_value = tmp_bucket->counter[i].value;
+                index = GET_DIR_NUM(tmp_key, key_len, global_depth);
                 bucket *dst_bucket = new_dir[index];
                 dst_bucket->counter[dst_bucket->cnt].key = tmp_key;
                 dst_bucket->counter[dst_bucket->cnt].value = tmp_value;
@@ -157,7 +197,14 @@ void extendible_hash::put(uint64_t key, uint64_t value) {
 }
 
 int64_t extendible_hash::get(uint64_t key) {
-    uint64_t index = GET_DIR_NUM(key, global_depth);
+    uint64_t index = GET_DIR_NUM(key, key_len, global_depth);
     return dir[index]->get(key);
+}
+
+extendible_hash *new_extendible_hash(uint32_t _global_depth, int _key_len) {
+//    extendible_hash *_new_extendible_hash = new extendible_hash(_global_depth, _key_len);
+    extendible_hash *_new_extendible_hash = static_cast<extendible_hash *>(fast_alloc(sizeof(extendible_hash)));
+    _new_extendible_hash->init(_global_depth, _key_len);
+    return _new_extendible_hash;
 }
 
