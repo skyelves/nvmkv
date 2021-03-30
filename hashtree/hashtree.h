@@ -12,8 +12,8 @@ class hashtree {
 private:
     int64_t span = 8; //equals to the key_len in the extendible hash
     int init_depth = 4; //represent extendible hash initial global depth
-//    hashtree_node *root = NULL;
-    extendible_hash *root = NULL;
+    hashtree_node *root = NULL;
+//    extendible_hash *root = NULL;
 public:
     uint64_t span_test[4] = {32, 16, 8, 8};
     int node_cnt = 0;
