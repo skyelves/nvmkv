@@ -57,7 +57,7 @@ hashtree *new_hashtree(int _span, int _init_depth) {
 void hashtree::put(uint64_t k, uint64_t v) {
     hashtree_node *tmp = root;
 //    extendible_hash *tmp = root;
-    key_value *kv = new_key_value(k, v);
+    ht_key_value *kv = new_ht_key_value(k, v);
     uint64_t sub_key;
     for (int i = 0, j = 0; i < 64; i += span_test[j], j++) {
         sub_key = GET_SUB_KEY(k, i, span_test[j]);
@@ -69,10 +69,10 @@ void hashtree::put(uint64_t k, uint64_t v) {
         } else {
             if (((bool *) next)[0]) {
                 // next is key value pair, which means collides
-                uint64_t pre_k = ((key_value *) next)->key;
+                uint64_t pre_k = ((ht_key_value *) next)->key;
                 if (unlikely(k == pre_k)) {
                     //same key, update the value
-                    ((key_value *) next)->value = v;
+                    ((ht_key_value *) next)->value = v;
                     return;
                 } else {
                     //not same key: needs to create a new eh
@@ -120,6 +120,6 @@ int64_t hashtree::get(uint64_t k) {
             }
         }
     }
-    return ((key_value *) next)->value;
+    return ((ht_key_value *) next)->value;
 }
 

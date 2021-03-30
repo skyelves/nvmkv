@@ -6,7 +6,6 @@
 #define NVMKV_HASHTREE_H
 
 #include "hashtree_node.h"
-#include "extendible_hash.h"
 
 class hashtree {
 private:

@@ -6,7 +6,6 @@
 #define NVMKV_HASHTREE_NODE_H
 
 #include <cstdint>
-#include "extendible_hash.h"
 
 #include <math.h>
 #include <cstdint>
@@ -17,31 +16,24 @@
 
 #define BUCKET_SIZE 8
 
-class key_value {
+class ht_key_value {
 public:
     bool type = 1;
     uint64_t key = 0;// indeed only need uint8 or uint16
     uint64_t value = 0;
 };
 
-class inner_key_value {
-public:
-    bool type = 1;
-    uint16_t key = 0;// indeed only need uint8 or uint16
-    uint64_t value = 0;
-};
+ht_key_value *new_ht_key_value(uint64_t key = 0, uint64_t value = 0);
 
-key_value *new_key_value(uint64_t key=0, uint64_t value=0);
-
-class bucket {
+class ht_bucket {
 public:
     int depth = 0;
     int cnt = 0;
-    key_value counter[BUCKET_SIZE];
+    ht_key_value counter[BUCKET_SIZE];
 
-    bucket();
+    ht_bucket();
 
-    bucket(int _depth);
+    ht_bucket(int _depth);
 
     void init(int _depth);
 
@@ -52,7 +44,7 @@ public:
     int find_place(uint64_t key);
 };
 
-bucket *new_bucket(int _depth = 0);
+ht_bucket *new_ht_bucket(int _depth = 0);
 
 class hashtree_node {
 public:
@@ -60,7 +52,7 @@ public:
     uint64_t global_depth = 0;
     uint64_t dir_size = 1;
     int key_len = 16;
-    bucket **dir = NULL;
+    ht_bucket **dir = NULL;
 
     hashtree_node();
 

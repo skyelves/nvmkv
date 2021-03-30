@@ -21,13 +21,6 @@ public:
     uint64_t value = 0;
 };
 
-class inner_key_value {
-public:
-    bool type = 1;
-    uint16_t key = 0;// indeed only need uint8 or uint16
-    uint64_t value = 0;
-};
-
 key_value *new_key_value(uint64_t key=0, uint64_t value=0);
 
 class bucket {
