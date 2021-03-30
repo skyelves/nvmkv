@@ -83,8 +83,8 @@ void speedTest() {
     gettimeofday(&ends, NULL);
     double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
     double throughPut = (double) testNum / timeCost;
-    cout << "Total Put " << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;
-    cout << "Total Put ThroughPut: " << throughPut << " Mops" << endl;
+    cout << "hash tree Put " << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;
+    cout << "hash tree Put ThroughPut: " << throughPut << " Mops" << endl;
 //    cout << throughPut << endl;
 
     //insert speed for concurrent art
@@ -97,8 +97,8 @@ void speedTest() {
     gettimeofday(&ends, NULL);
     timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
     throughPut = (double) testNum / timeCost;
-    cout << "Total Put " << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;
-    cout << "Total Put ThroughPut: " << throughPut << " Mops" << endl;
+    cout << "art Put " << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;
+    cout << "art Put ThroughPut: " << throughPut << " Mops" << endl;
 
 //  query speed for hashtree
     sleep(1);
@@ -109,8 +109,8 @@ void speedTest() {
     gettimeofday(&ends, NULL);
     timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
     throughPut = (double) testNum / timeCost;
-    cout << "Total Get " << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;
-    cout << "Total Get ThroughPut: " << throughPut << " Mops" << endl;
+    cout << "hash tree Get " << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;
+    cout << "hash tree Get ThroughPut: " << throughPut << " Mops" << endl;
 
     //  query speed for cart
     sleep(1);
@@ -121,8 +121,8 @@ void speedTest() {
     gettimeofday(&ends, NULL);
     timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
     throughPut = (double) testNum / timeCost;
-    cout << "Total Get " << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;
-    cout << "Total Get ThroughPut: " << throughPut << " Mops" << endl;
+    cout << "art Get " << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;
+    cout << "art Get ThroughPut: " << throughPut << " Mops" << endl;
 }
 
 void correctnessTest() {
@@ -157,13 +157,14 @@ int main(int argc, char *argv[]) {
     sscanf(argv[1], "%d", &numThread);
     sscanf(argv[2], "%d", &testNum);
     init_fast_allocator();
-    ht = new_hashtree(16, 0);
+    ht = new_hashtree(32, 0);
 //    mt = new_mass_tree();
     cart = new_adaptive_radix_tree();
 //    bt = new_blink_tree(numThread);
     speedTest();
 //    correctnessTest();
     cout << ht->node_cnt << endl;
+    cout << ht->get_access << endl;
     fast_free();
     return 0;
 }
