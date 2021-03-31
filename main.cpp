@@ -11,6 +11,7 @@
 #include "hashtree/hashtree.h"
 #include "extendibleHash/extendible_hash.h"
 #include "rng/rng.h"
+#include "art/art.h"
 
 using namespace std;
 
@@ -21,8 +22,10 @@ int numThread = 1;
 
 blink_tree *bt;
 mass_tree *mt;
-adaptive_radix_tree *cart;
+concurrent_adaptive_radix_tree *cart;
 hashtree *ht;
+extendible_hash *eh;
+art_tree *art;
 
 
 uint64_t *mykey;
@@ -41,7 +44,7 @@ void *putFunc(void *arg) {
 //        char *key = new char[9];
 //        key[0] = 8;
 //        *(uint64_t *) (key + 1) = rand();
-//        adaptive_radix_tree_put(cart, (const void *) (key + 1), 8, value, VALUE_LEN);
+//        concurrent_adaptive_radix_tree_put(cart, (const void *) (key + 1), 8, value, VALUE_LEN);
         uint64_t x = rng_next(&r);
 //        uint64_t x = i;
 //        ht->put(x, x);
@@ -87,18 +90,42 @@ void speedTest() {
     cout << "hash tree Put ThroughPut: " << throughPut << " Mops" << endl;
 //    cout << throughPut << endl;
 
-    //insert speed for concurrent art
-    sleep(1);
+    //  insert speed for art
     uint64_t value = 1;
-    gettimeofday(&start, NULL);
+    sleep(1);
     for (int i = 0; i < testNum; ++i) {
-        adaptive_radix_tree_put(cart, &(mykey[i]), 8, &value, 8);
+        art_put(art, (unsigned char *) &(mykey[i]), 8, &value);
     }
     gettimeofday(&ends, NULL);
     timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
     throughPut = (double) testNum / timeCost;
-    cout << "art Put " << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;
-    cout << "art Put ThroughPut: " << throughPut << " Mops" << endl;
+    cout << "art tree Put " << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;
+    cout << "art tree Put ThroughPut: " << throughPut << " Mops" << endl;
+//    cout << throughPut << endl;
+
+    // insert speed for concurrent art
+    sleep(1);
+    gettimeofday(&start, NULL);
+    for (int i = 0; i < testNum; ++i) {
+//        concurrent_adaptive_radix_tree_put(cart, &(mykey[i]), 8, &value, 8);
+    }
+    gettimeofday(&ends, NULL);
+    timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
+    throughPut = (double) testNum / timeCost;
+    cout << "cart Put " << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;
+    cout << "cart Put ThroughPut: " << throughPut << " Mops" << endl;
+
+    // insert speed for extendible hash
+    sleep(1);
+    gettimeofday(&start, NULL);
+    for (int i = 0; i < testNum; ++i) {
+//        eh->put(mykey[i], 1);
+    }
+    gettimeofday(&ends, NULL);
+    timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
+    throughPut = (double) testNum / timeCost;
+    cout << "eh Put " << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;
+    cout << "eh Put ThroughPut: " << throughPut << " Mops" << endl;
 
 //  query speed for hashtree
     sleep(1);
@@ -112,17 +139,43 @@ void speedTest() {
     cout << "hash tree Get " << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;
     cout << "hash tree Get ThroughPut: " << throughPut << " Mops" << endl;
 
+
     //  query speed for cart
     sleep(1);
     gettimeofday(&start, NULL);
     for (int i = 0; i < testNum; ++i) {
-        adaptive_radix_tree_get(cart, &(mykey[i]), 8);
+        art_get(art, (unsigned char *)&(mykey[i]), 8);
     }
     gettimeofday(&ends, NULL);
     timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
     throughPut = (double) testNum / timeCost;
     cout << "art Get " << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;
     cout << "art Get ThroughPut: " << throughPut << " Mops" << endl;
+
+
+    //  query speed for cart
+    sleep(1);
+    gettimeofday(&start, NULL);
+    for (int i = 0; i < testNum; ++i) {
+//        concurrent_adaptive_radix_tree_get(cart, &(mykey[i]), 8);
+    }
+    gettimeofday(&ends, NULL);
+    timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
+    throughPut = (double) testNum / timeCost;
+    cout << "cart Get " << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;
+    cout << "cart Get ThroughPut: " << throughPut << " Mops" << endl;
+
+    // query speed for extendible hash
+    sleep(1);
+    gettimeofday(&start, NULL);
+    for (int i = 0; i < testNum; ++i) {
+//        eh->get(mykey[i]);
+    }
+    gettimeofday(&ends, NULL);
+    timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
+    throughPut = (double) testNum / timeCost;
+    cout << "eh Get " << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;
+    cout << "eh Get ThroughPut: " << throughPut << " Mops" << endl;
 }
 
 void correctnessTest() {
@@ -158,8 +211,10 @@ int main(int argc, char *argv[]) {
     sscanf(argv[2], "%d", &testNum);
     init_fast_allocator();
     ht = new_hashtree(32, 0);
+    eh = new_extendible_hash(0, 64);
+    art = new_art_tree();
 //    mt = new_mass_tree();
-    cart = new_adaptive_radix_tree();
+    cart = new_concurrent_adaptive_radix_tree();
 //    bt = new_blink_tree(numThread);
     speedTest();
 //    correctnessTest();
