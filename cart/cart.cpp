@@ -18,22 +18,22 @@
 #include "cart.h"
 #include "cart_node.h"
 
-struct adaptive_radix_tree {
+struct concurrent_adaptive_radix_tree {
     cart_node *root;
 };
 
-adaptive_radix_tree *new_adaptive_radix_tree() {
+concurrent_adaptive_radix_tree *new_concurrent_adaptive_radix_tree() {
 #ifdef Allocator
     init_allocator();
 #endif
 
-    adaptive_radix_tree *art = new adaptive_radix_tree;
+    concurrent_adaptive_radix_tree *art = new concurrent_adaptive_radix_tree;
     art->root = 0;
 
     return art;
 }
 
-void free_adaptive_radix_tree(adaptive_radix_tree *art) {
+void free_concurrent_adaptive_radix_tree(concurrent_adaptive_radix_tree *art) {
     (void) art;
 }
 
@@ -187,7 +187,8 @@ _adaptive_radix_tree_put(cart_node *parent, cart_node **ptr, const void *key, si
 // return 0 on success
 // return 1 on duplication
 int
-adaptive_radix_tree_put(adaptive_radix_tree *art, const void *_key, size_t len, const void *value, size_t value_len) {
+concurrent_adaptive_radix_tree_put(concurrent_adaptive_radix_tree *art, const void *_key, size_t len, const void *value,
+                                   size_t value_len) {
     //print_key(key, len);
     char *key_info = (char *) fast_alloc(len + 2);
 //    char *key_info = new char[len + 1];
@@ -279,7 +280,7 @@ static void *_adaptive_radix_tree_get(cart_node *parent, cart_node **ptr, const 
     return 0;
 }
 
-void *adaptive_radix_tree_get(adaptive_radix_tree *art, const void *key, size_t len) {
+void *concurrent_adaptive_radix_tree_get(concurrent_adaptive_radix_tree *art, const void *key, size_t len) {
     void *ret;
     if (unlikely(art->root == 0))
         return 0;
