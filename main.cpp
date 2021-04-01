@@ -13,10 +13,11 @@
 #include "rng/rng.h"
 #include "art/art.h"
 #include "wort/wort.h"
+#include "woart/woart.h"
 
 using namespace std;
 
-#define Time_BODY(condition ,name, func)                                                        \
+#define Time_BODY(condition, name, func)                                                        \
     if(condition) {                                                                             \
         sleep(1);                                                                               \
         timeval start, ends;                                                                    \
@@ -35,12 +36,13 @@ int testNum = 100000;
 
 int numThread = 1;
 
-int test_algorithms_num = 5;
-bool test_case[10] = {0, // ht
+int test_algorithms_num = 10;
+bool test_case[10] = {1, // ht
                       0, // art
                       0, // cart
                       0, // eh
                       1, // wort
+                      1, // woart
                       0};
 
 blink_tree *bt;
@@ -50,6 +52,7 @@ hashtree *ht;
 extendible_hash *eh;
 art_tree *art;
 wort_tree *wort;
+woart_tree *woart;
 
 
 uint64_t *mykey;
@@ -122,6 +125,9 @@ void speedTest() {
     // insert speed for wort
     Time_BODY(test_case[4], "wort put ", { wort_put(wort, mykey[i], 8, &value); })
 
+    // insert speed for woart
+    Time_BODY(test_case[5], "woart put ", { woart_put(woart, mykey[i], 8, &value); })
+
     // query speed for ht
     Time_BODY(test_case[0], "hash tree get ", { ht->get(mykey[i]); })
 
@@ -136,6 +142,9 @@ void speedTest() {
 
     // query speed for wort
     Time_BODY(test_case[4], "wort get ", { wort_get(wort, mykey[i], 8); })
+
+    // query speed for woart
+    Time_BODY(test_case[5], "woart get ", { woart_get(woart, mykey[i], 8); })
 
 }
 
@@ -176,6 +185,7 @@ int main(int argc, char *argv[]) {
     art = new_art_tree();
     cart = new_concurrent_adaptive_radix_tree();
     wort = new_wort_tree();
+    woart = new_woart_tree();
 //    mt = new_mass_tree();
 //    bt = new_blink_tree(numThread);
     speedTest();
