@@ -21,41 +21,19 @@
 #define SET_LEAF(x) ((void*)((uintptr_t)x | 1))
 #define LEAF_RAW(x) ((woart_leaf*)((void*)((uintptr_t)x & ~1)))
 
-#define LATENCY            0
-#define CPU_FREQ_MHZ    2100
-
-static inline void cpu_pause() {
-    __asm__ volatile ("pause":: : "memory");
-}
-
-static inline unsigned long read_tsc(void) {
-    unsigned long var;
-    unsigned int hi, lo;
-
-    asm volatile ("rdtsc" : "=a" (lo), "=d" (hi));
-    var = ((unsigned long long int) hi << 32) | lo;
-
-    return var;
-}
 
 void flush_buffer(void *buf, unsigned long len, bool fence) {
-    unsigned long i, etsc;
+    unsigned long i;
     len = len + ((unsigned long) (buf) & (CACHE_LINE_SIZE - 1));
     if (fence) {
         mfence();
         for (i = 0; i < len; i += CACHE_LINE_SIZE) {
-            etsc = read_tsc() + (unsigned long) (LATENCY * CPU_FREQ_MHZ / 1000);
             asm volatile ("clflush %0\n" : "+m" (*((char *) buf + i)));
-            while (read_tsc() < etsc)
-                cpu_pause();
         }
         mfence();
     } else {
         for (i = 0; i < len; i += CACHE_LINE_SIZE) {
-            etsc = read_tsc() + (unsigned long) (LATENCY * CPU_FREQ_MHZ / 1000);
             asm volatile ("clflush %0\n" : "+m" (*((char *) buf + i)));
-            while (read_tsc() < etsc)
-                cpu_pause();
         }
     }
 }
