@@ -9,14 +9,14 @@
 #include <stdbool.h>
 
 /* If you want to change the number of entries,
- * change the values of NODE_BITS & MAX_DEPTH */
-#define NODE_BITS			4
-#define MAX_DEPTH			15
-#define NUM_NODE_ENTRIES 	(0x1UL << NODE_BITS)
-#define LOW_BIT_MASK		((0x1UL << NODE_BITS) - 1)
+ * change the values of WORT_NODE_BITS & WORT_MAX_DEPTH */
+#define WORT_NODE_BITS			4
+#define WORT_MAX_DEPTH			15
+#define WORT_NUM_NODE_ENTRIES 	(0x1UL << WORT_NODE_BITS)
+#define WORT_LOW_BIT_MASK		((0x1UL << WORT_NODE_BITS) - 1)
 
-#define MAX_PREFIX_LEN		6
-#define MAX_HEIGHT			(MAX_DEPTH + 1)
+#define WORT_MAX_PREFIX_LEN		6
+#define WORT_MAX_HEIGHT			(WORT_MAX_DEPTH + 1)
 
 #if defined(__GNUC__) && !defined(__clang__)
 # if __STDC_VERSION__ >= 199901L && 402 == (__GNUC__ * 100 + __GNUC_MINOR__)
@@ -38,7 +38,7 @@ typedef int(*wort_callback)(void *data, const unsigned char *key, uint32_t key_l
 typedef struct {
     unsigned char depth;
     unsigned char pwortial_len;
-    unsigned char pwortial[MAX_PREFIX_LEN];
+    unsigned char pwortial[WORT_MAX_PREFIX_LEN];
 } wort_node;
 
 /**
@@ -46,7 +46,7 @@ typedef struct {
  */
 typedef struct {
     wort_node n;
-    wort_node *children[NUM_NODE_ENTRIES];
+    wort_node *children[WORT_NUM_NODE_ENTRIES];
 } wort_node16;
 
 /**

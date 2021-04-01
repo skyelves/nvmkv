@@ -62,7 +62,7 @@ static void flush_buffer(void *buf, unsigned long len, bool fence) {
 static int get_index(unsigned long key, int depth) {
     int index;
 
-    index = ((key >> ((MAX_DEPTH - depth) * NODE_BITS)) & LOW_BIT_MASK);
+    index = ((key >> ((WORT_MAX_DEPTH - depth) * WORT_NODE_BITS)) & WORT_LOW_BIT_MASK);
     return index;
 }
 
@@ -115,8 +115,8 @@ static inline int min(int a, int b) {
  * the key and node.
  */
 static int check_prefix(const wort_node *n, const unsigned long key, int key_len, int depth) {
-//	int max_cmp = min(min(n->pwortial_len, MAX_PREFIX_LEN), (key_len * INDEX_BITS) - depth);
-    int max_cmp = min(min(n->pwortial_len, MAX_PREFIX_LEN), MAX_HEIGHT - depth);
+//	int max_cmp = min(min(n->pwortial_len, WORT_MAX_PREFIX_LEN), (key_len * INDEX_BITS) - depth);
+    int max_cmp = min(min(n->pwortial_len, WORT_MAX_PREFIX_LEN), WORT_MAX_HEIGHT - depth);
     int idx;
     for (idx = 0; idx < max_cmp; idx++) {
         if (n->pwortial[idx] != get_index(key, depth + idx))
@@ -153,7 +153,7 @@ static wort_leaf *minimum(const wort_node *n) {
 
 static int longest_common_prefix(wort_leaf *l1, wort_leaf *l2, int depth) {
 //	int idx, max_cmp = (min(l1->key_len, l2->key_len) * INDEX_BITS) - depth;
-    int idx, max_cmp = MAX_HEIGHT - depth;
+    int idx, max_cmp = WORT_MAX_HEIGHT - depth;
 
     for (idx = 0; idx < max_cmp; idx++) {
         if (get_index(l1->key, depth + idx) != get_index(l2->key, depth + idx))
@@ -190,7 +190,7 @@ void *wort_get(const wort_tree *t, const unsigned long key, int key_len) {
             // Bail if the prefix does not match
             if (n->pwortial_len) {
                 prefix_len = check_prefix(n, key, key_len, depth);
-                if (prefix_len != min(MAX_PREFIX_LEN, n->pwortial_len))
+                if (prefix_len != min(WORT_MAX_PREFIX_LEN, n->pwortial_len))
                     return NULL;
                 depth = depth + n->pwortial_len;
             }
@@ -210,11 +210,11 @@ void *wort_get(const wort_tree *t, const unsigned long key, int key_len) {
             int prefix_diff = longest_common_prefix(leaf[0], leaf[1], depth);
             wort_node old_path;
             old_path.pwortial_len = prefix_diff;
-            for (i = 0; i < min(MAX_PREFIX_LEN, prefix_diff); i++)
+            for (i = 0; i < min(WORT_MAX_PREFIX_LEN, prefix_diff); i++)
                 old_path.pwortial[i] = get_index(leaf[1]->key, depth + i);
 
             prefix_len = check_prefix(&old_path, key, key_len, depth);
-            if (prefix_len != min(MAX_PREFIX_LEN, old_path.pwortial_len))
+            if (prefix_len != min(WORT_MAX_PREFIX_LEN, old_path.pwortial_len))
                 return NULL;
             depth = depth + old_path.pwortial_len;
         }
@@ -251,7 +251,7 @@ static void add_child(wort_node16 *n, wort_node **ref, unsigned char c, void *ch
  * Calculates the index at which the prefixes mismatch
  */
 static int prefix_mismatch(const wort_node *n, const unsigned long key, int key_len, int depth, wort_leaf **l) {
-    int max_cmp = min(min(MAX_PREFIX_LEN, n->pwortial_len), MAX_HEIGHT - depth);
+    int max_cmp = min(min(WORT_MAX_PREFIX_LEN, n->pwortial_len), WORT_MAX_HEIGHT - depth);
     int idx;
     for (idx = 0; idx < max_cmp; idx++) {
         if (n->pwortial[idx] != get_index(key, depth + idx))
@@ -259,10 +259,10 @@ static int prefix_mismatch(const wort_node *n, const unsigned long key, int key_
     }
 
     // If the prefix is short we can avoid finding a leaf
-    if (n->pwortial_len > MAX_PREFIX_LEN) {
+    if (n->pwortial_len > WORT_MAX_PREFIX_LEN) {
         // Prefix is longer than what we've checked, find a leaf
         *l = minimum(n);
-        max_cmp = MAX_HEIGHT - depth;
+        max_cmp = WORT_MAX_HEIGHT - depth;
         for (; idx < max_cmp; idx++) {
             if (get_index((*l)->key, idx + depth) != get_index(key, depth + idx))
                 return idx;
@@ -287,7 +287,7 @@ void recovery_prefix(wort_node *n, int depth) {
     int prefix_diff = longest_common_prefix(leaf[0], leaf[1], depth);
     wort_node old_path;
     old_path.pwortial_len = prefix_diff;
-    for (i = 0; i < min(MAX_PREFIX_LEN, prefix_diff); i++)
+    for (i = 0; i < min(WORT_MAX_PREFIX_LEN, prefix_diff); i++)
         old_path.pwortial[i] = get_index(leaf[1]->key, depth + i);
     old_path.depth = depth;
     *((uint64_t *) n) = *((uint64_t *) &old_path);
@@ -326,7 +326,7 @@ static void *recursive_insert(wort_node *n, wort_node **ref, const unsigned long
         // Determine longest prefix
         int i, longest_prefix = longest_common_prefix(l, l2, depth);
         new_node->n.pwortial_len = longest_prefix;
-        for (i = 0; i < min(MAX_PREFIX_LEN, longest_prefix); i++)
+        for (i = 0; i < min(WORT_MAX_PREFIX_LEN, longest_prefix); i++)
             new_node->n.pwortial[i] = get_index(key, depth + i);
 
         // Add the leafs to the new node4
@@ -361,23 +361,23 @@ static void *recursive_insert(wort_node *n, wort_node **ref, const unsigned long
         wort_node16 *new_node = (wort_node16 *) alloc_node();
         new_node->n.depth = depth;
         new_node->n.pwortial_len = prefix_diff;
-        memcpy(new_node->n.pwortial, n->pwortial, min(MAX_PREFIX_LEN, prefix_diff));
+        memcpy(new_node->n.pwortial, n->pwortial, min(WORT_MAX_PREFIX_LEN, prefix_diff));
 
         // Adjust the prefix of the old node
         wort_node temp_path;
-        if (n->pwortial_len <= MAX_PREFIX_LEN) {
+        if (n->pwortial_len <= WORT_MAX_PREFIX_LEN) {
             add_child(new_node, ref, n->pwortial[prefix_diff], n);
             temp_path.pwortial_len = n->pwortial_len - (prefix_diff + 1);
             temp_path.depth = (depth + prefix_diff + 1);
             memcpy(temp_path.pwortial, n->pwortial + prefix_diff + 1,
-                   min(MAX_PREFIX_LEN, temp_path.pwortial_len));
+                   min(WORT_MAX_PREFIX_LEN, temp_path.pwortial_len));
         } else {
             int i;
             if (l == NULL)
                 l = minimum(n);
             add_child(new_node, ref, get_index(l->key, depth + prefix_diff), n);
             temp_path.pwortial_len = n->pwortial_len - (prefix_diff + 1);
-            for (i = 0; i < min(MAX_PREFIX_LEN, temp_path.pwortial_len); i++)
+            for (i = 0; i < min(WORT_MAX_PREFIX_LEN, temp_path.pwortial_len); i++)
                 temp_path.pwortial[i] = get_index(l->key, depth + prefix_diff + 1 + i);
             temp_path.depth = (depth + prefix_diff + 1);
         }
