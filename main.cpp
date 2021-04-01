@@ -12,13 +12,36 @@
 #include "extendibleHash/extendible_hash.h"
 #include "rng/rng.h"
 #include "art/art.h"
+#include "wort/wort.h"
 
 using namespace std;
+
+#define Time_BODY(condition ,name, func)                                                        \
+    if(condition) {                                                                             \
+        sleep(1);                                                                               \
+        timeval start, ends;                                                                    \
+        gettimeofday(&start, NULL);                                                             \
+        for (int i = 0; i < testNum; ++i) {                                                     \
+            func                                                                                \
+        }                                                                                       \
+        gettimeofday(&ends, NULL);                                                              \
+        double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;\
+        double throughPut = (double) testNum / timeCost;                                        \
+        cout << name << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;        \
+        cout << name << "ThroughPut: " << throughPut << " Mops" << endl;                        \
+    }
 
 int testNum = 100000;
 
 int numThread = 1;
 
+int test_algorithms_num = 5;
+bool test_case[10] = {0, // ht
+                      0, // art
+                      0, // cart
+                      0, // eh
+                      1, // wort
+                      0};
 
 blink_tree *bt;
 mass_tree *mt;
@@ -26,6 +49,7 @@ concurrent_adaptive_radix_tree *cart;
 hashtree *ht;
 extendible_hash *eh;
 art_tree *art;
+wort_tree *wort;
 
 
 uint64_t *mykey;
@@ -62,11 +86,9 @@ void speedTest() {
     for (int i = 0; i < testNum; ++i) {
         mykey[i] = rng_next(&r);
     }
-//    for (int i = 0; i < VALUE_LEN - 1; ++i) {
-//        value[i] = '1';
-//    }
-    timeval start, ends;
-    gettimeofday(&start, NULL);
+    uint64_t value = 1;
+//    timeval start, ends;
+//    gettimeofday(&start, NULL);
 //    put();
 //    pthread_t *tids = new pthread_t[numThread];
 //    for (int i = 0; i < numThread; ++i) {
@@ -78,104 +100,43 @@ void speedTest() {
 //    for (int j = 0; j < numThread; ++j) {
 //        pthread_join(tids[j], NULL);
 //    }
-
-//  insert speed for hashtree
-    for (int i = 0; i < testNum; ++i) {
-        ht->put(mykey[i], 1);
-    }
-    gettimeofday(&ends, NULL);
-    double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
-    double throughPut = (double) testNum / timeCost;
-    cout << "hash tree Put " << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;
-    cout << "hash tree Put ThroughPut: " << throughPut << " Mops" << endl;
+//    gettimeofday(&ends, NULL);
+//    double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
+//    double throughPut = (double) testNum / timeCost;
+//    cout << "hash tree Put " << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;
+//    cout << "hash tree Put ThroughPut: " << throughPut << " Mops" << endl;
 //    cout << throughPut << endl;
 
-    //  insert speed for art
-    uint64_t value = 1;
-    sleep(1);
-    for (int i = 0; i < testNum; ++i) {
-        art_put(art, (unsigned char *) &(mykey[i]), 8, &value);
-    }
-    gettimeofday(&ends, NULL);
-    timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
-    throughPut = (double) testNum / timeCost;
-    cout << "art tree Put " << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;
-    cout << "art tree Put ThroughPut: " << throughPut << " Mops" << endl;
-//    cout << throughPut << endl;
+    // insert speed for ht
+    Time_BODY(test_case[0], "hash tree put ", { ht->put(mykey[i], 1); })
 
-    // insert speed for concurrent art
-    sleep(1);
-    gettimeofday(&start, NULL);
-    for (int i = 0; i < testNum; ++i) {
-//        concurrent_adaptive_radix_tree_put(cart, &(mykey[i]), 8, &value, 8);
-    }
-    gettimeofday(&ends, NULL);
-    timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
-    throughPut = (double) testNum / timeCost;
-    cout << "cart Put " << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;
-    cout << "cart Put ThroughPut: " << throughPut << " Mops" << endl;
+    // insert speed for art
+    Time_BODY(test_case[1], "art tree put ", { art_put(art, (unsigned char *) &(mykey[i]), 8, &value); })
+
+    // insert speed for cart
+    Time_BODY(test_case[2], "cart tree put ", { concurrent_adaptive_radix_tree_put(cart, &(mykey[i]), 8, &value, 8); })
 
     // insert speed for extendible hash
-    sleep(1);
-    gettimeofday(&start, NULL);
-    for (int i = 0; i < testNum; ++i) {
-//        eh->put(mykey[i], 1);
-    }
-    gettimeofday(&ends, NULL);
-    timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
-    throughPut = (double) testNum / timeCost;
-    cout << "eh Put " << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;
-    cout << "eh Put ThroughPut: " << throughPut << " Mops" << endl;
+    Time_BODY(test_case[3], "eh put ", { eh->put(mykey[i], 1); })
 
-//  query speed for hashtree
-    sleep(1);
-    gettimeofday(&start, NULL);
-    for (int i = 0; i < testNum; ++i) {
-        ht->get(mykey[i]);
-    }
-    gettimeofday(&ends, NULL);
-    timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
-    throughPut = (double) testNum / timeCost;
-    cout << "hash tree Get " << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;
-    cout << "hash tree Get ThroughPut: " << throughPut << " Mops" << endl;
+    // insert speed for wort
+    Time_BODY(test_case[4], "wort put ", { wort_put(wort, mykey[i], 8, &value); })
 
+    // query speed for ht
+    Time_BODY(test_case[0], "hash tree get ", { ht->get(mykey[i]); })
 
-    //  query speed for cart
-    sleep(1);
-    gettimeofday(&start, NULL);
-    for (int i = 0; i < testNum; ++i) {
-        art_get(art, (unsigned char *)&(mykey[i]), 8);
-    }
-    gettimeofday(&ends, NULL);
-    timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
-    throughPut = (double) testNum / timeCost;
-    cout << "art Get " << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;
-    cout << "art Get ThroughPut: " << throughPut << " Mops" << endl;
+    // query speed for art
+    Time_BODY(test_case[1], "art tree get ", { art_get(art, (unsigned char *) &(mykey[i]), 8); })
 
-
-    //  query speed for cart
-    sleep(1);
-    gettimeofday(&start, NULL);
-    for (int i = 0; i < testNum; ++i) {
-//        concurrent_adaptive_radix_tree_get(cart, &(mykey[i]), 8);
-    }
-    gettimeofday(&ends, NULL);
-    timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
-    throughPut = (double) testNum / timeCost;
-    cout << "cart Get " << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;
-    cout << "cart Get ThroughPut: " << throughPut << " Mops" << endl;
+    // query speed for art
+    Time_BODY(test_case[2], "cart tree get ", { concurrent_adaptive_radix_tree_get(cart, &(mykey[i]), 8); })
 
     // query speed for extendible hash
-    sleep(1);
-    gettimeofday(&start, NULL);
-    for (int i = 0; i < testNum; ++i) {
-//        eh->get(mykey[i]);
-    }
-    gettimeofday(&ends, NULL);
-    timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
-    throughPut = (double) testNum / timeCost;
-    cout << "eh Get " << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;
-    cout << "eh Get ThroughPut: " << throughPut << " Mops" << endl;
+    Time_BODY(test_case[3], "eh get ", { eh->get(mykey[i]); })
+
+    // query speed for wort
+    Time_BODY(test_case[4], "wort get ", { wort_get(wort, mykey[i], 8); })
+
 }
 
 void correctnessTest() {
@@ -213,8 +174,9 @@ int main(int argc, char *argv[]) {
     ht = new_hashtree(32, 0);
     eh = new_extendible_hash(0, 64);
     art = new_art_tree();
-//    mt = new_mass_tree();
     cart = new_concurrent_adaptive_radix_tree();
+    wort = new_wort_tree();
+//    mt = new_mass_tree();
 //    bt = new_blink_tree(numThread);
     speedTest();
 //    correctnessTest();
