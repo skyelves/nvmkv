@@ -14,6 +14,7 @@
 #include "art/art.h"
 #include "wort/wort.h"
 #include "woart/woart.h"
+#include "cceh/cacheline_concious_extendible_hash.h"
 
 using namespace std;
 
@@ -37,12 +38,13 @@ int testNum = 100000;
 int numThread = 1;
 
 int test_algorithms_num = 10;
-bool test_case[10] = {1, // ht
+bool test_case[10] = {0, // ht
                       0, // art
                       0, // cart
                       0, // eh
-                      1, // wort
-                      1, // woart
+                      0, // wort
+                      0, // woart
+                      1, // cacheline_concious_extendible_hash
                       0};
 
 blink_tree *bt;
@@ -53,7 +55,7 @@ extendible_hash *eh;
 art_tree *art;
 wort_tree *wort;
 woart_tree *woart;
-
+cacheline_concious_extendible_hash *cceh;
 
 uint64_t *mykey;
 
@@ -128,6 +130,9 @@ void speedTest() {
     // insert speed for woart
     Time_BODY(test_case[5], "woart put ", { woart_put(woart, mykey[i], 8, &value); })
 
+    // insert speed for cceh
+    Time_BODY(test_case[6], "cceh put ", { cceh->put(mykey[i], value); })
+
     // query speed for ht
     Time_BODY(test_case[0], "hash tree get ", { ht->get(mykey[i]); })
 
@@ -146,6 +151,8 @@ void speedTest() {
     // query speed for woart
     Time_BODY(test_case[5], "woart get ", { woart_get(woart, mykey[i], 8); })
 
+    // query speed for cceh
+    Time_BODY(test_case[6], "cceh get ", { cceh->get(mykey[i]); })
 }
 
 void correctnessTest() {
@@ -153,20 +160,26 @@ void correctnessTest() {
     mykey = new uint64_t[testNum];
     rng r;
     rng_init(&r, 1, 2);
+
     for (int i = 0; i < testNum; ++i) {
         mykey[i] = rng_next(&r);
         mm[mykey[i]] = i + 1;
-    }
-
-    for (int i = 0; i < testNum; ++i) {
-        ht->put(mykey[i], i + 1);
+        cceh->put(mykey[i], i + 1);
+//        for (int j = 0; j < testNum; ++j) {
+//            int64_t res = cceh->get(mykey[j]);
+//            if (res != mm[mykey[j]]) {
+//                cout << i << endl;
+//                cout << j << ", " << mykey[j] << ", " << res << ", " << mm[mykey[j]] << endl;
+//                return;
+//            }
+//        }
     }
 
     int64_t res = 0;
     for (int i = 0; i < testNum; ++i) {
-        res = ht->get(mykey[i]);
+        res = cceh->get(mykey[i]);
         if (res != mm[mykey[i]]) {
-            cout << i << ", " << mykey[i] << ", " << res << endl;
+            cout << i << ", " << mykey[i] << ", " << res << ", " << mm[mykey[i]] << endl;
 //            return;
         }
     }
@@ -186,12 +199,13 @@ int main(int argc, char *argv[]) {
     cart = new_concurrent_adaptive_radix_tree();
     wort = new_wort_tree();
     woart = new_woart_tree();
+    cceh = new_cceh();
 //    mt = new_mass_tree();
 //    bt = new_blink_tree(numThread);
-    speedTest();
-//    correctnessTest();
-    cout << ht->node_cnt << endl;
-    cout << ht->get_access << endl;
+//    speedTest();
+    correctnessTest();
+//    cout << ht->node_cnt << endl;
+//    cout << ht->get_access << endl;
     fast_free();
     return 0;
 }
