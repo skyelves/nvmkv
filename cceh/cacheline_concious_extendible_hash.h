@@ -34,7 +34,7 @@ public:
     cceh_key_value kv[CCEH_BUCKET_SIZE];
     uint64_t cnt = 0;
 
-    int find_place(Key_t key);
+    int find_place(Key_t key, uint64_t depth);
 
     Value_t get(Key_t key);
 };

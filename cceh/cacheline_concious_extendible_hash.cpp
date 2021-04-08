@@ -17,20 +17,22 @@ inline void clflush(char *data, size_t len) {
     mfence();
 }
 
-int cceh_bucket::find_place(Key_t key) {
-    for (int i = 0; i < cnt; ++i) {
+int cceh_bucket::find_place(Key_t key, uint64_t depth) {
+    int res = -1;
+    for (int i = 0; i < CCEH_BUCKET_SIZE; ++i) {
         if (key == kv[i].key) {
             return i;
+        } else if ((res == -1) && kv[i].key == 0) {
+            res = i;
+        } else if ((res == -1) && ((GET_SEG_NUM(key, 64, depth)) != (GET_SEG_NUM(kv[i].key, 64, depth)))) {
+            res = i;
         }
     }
-    if (likely(cnt < CCEH_BUCKET_SIZE))
-        return cnt;
-    else
-        return -1;
+    return res;
 }
 
 Value_t cceh_bucket::get(Key_t key) {
-    for (int i = 0; i < cnt; ++i) {
+    for (int i = 0; i < CCEH_BUCKET_SIZE; ++i) {
         if (key == kv[i].key) {
             return kv[i].value;
         }
@@ -94,7 +96,7 @@ void cacheline_concious_extendible_hash::put(Key_t key, Value_t value) {
     cceh_segment *tmp_seg = dir[dir_index];
     uint64_t seg_index = GET_BUCKET_NUM(key, tmp_seg->bucket_mask_len);
     cceh_bucket *tmp_bucket = &(tmp_seg->bucket[seg_index]);
-    int bucket_index = tmp_bucket->find_place(key);
+    int bucket_index = tmp_bucket->find_place(key, tmp_seg->depth);
     if (bucket_index == -1) {
         //condition: full
         if (likely(tmp_seg->depth < global_depth)) {
@@ -184,9 +186,12 @@ void cacheline_concious_extendible_hash::put(Key_t key, Value_t value) {
             tmp_bucket->kv[bucket_index].value = value;
         } else {
             // there is a place to insert
-            tmp_bucket->kv[bucket_index].key = key;
             tmp_bucket->kv[bucket_index].value = value;
-            tmp_bucket->cnt++;
+            mfence();
+            tmp_bucket->kv[bucket_index].key = key;
+//            clflush((char *) tmp_bucket->kv[bucket_index].value, 8);
+
+            tmp_bucket->cnt++;//not needed
         }
     }
 }
