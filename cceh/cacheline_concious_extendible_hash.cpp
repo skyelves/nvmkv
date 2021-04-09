@@ -9,9 +9,9 @@ inline void mfence(void) {
 }
 
 inline void clflush(char *data, size_t len) {
-    volatile char *ptr = (char *) ((unsigned long) data & (~(CacheLineSize - 1)));
+    volatile char *ptr = (char *) ((unsigned long) data & (~(CACHELINESIZE - 1)));
     mfence();
-    for (; ptr < data + len; ptr += CacheLineSize) {
+    for (; ptr < data + len; ptr += CACHELINESIZE) {
         asm volatile("clflush %0" : "+m" (*(volatile char *) ptr));
     }
     mfence();

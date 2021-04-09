@@ -13,6 +13,7 @@
 #define NVMKV_FASTALLOC_H
 
 #define ALLOC_SIZE ((size_t)4<<30) // 4GB
+#define CACHELINESIZE (64)
 
 #define MAP_SYNC 0x080000 /* perform synchronous page faults for the mapping */
 #define MAP_SHARED_VALIDATE 0x03    /* share + validate extension flags */

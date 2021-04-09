@@ -14,7 +14,6 @@
 #include "../fastalloc/fastalloc.h"
 
 #define CAS(_p, _u, _v)  (__atomic_compare_exchange_n (_p, _u, _v, false, __ATOMIC_ACQUIRE, __ATOMIC_ACQUIRE))
-#define CacheLineSize (64)
 #define CCEH_BUCKET_SIZE 2
 
 #define GET_SEG_NUM(key, key_len, depth)  ((key>>(key_len-depth))&(((uint64_t)1<<depth)-1))
