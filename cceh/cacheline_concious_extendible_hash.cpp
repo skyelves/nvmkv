@@ -22,7 +22,7 @@ int cceh_bucket::find_place(Key_t key, uint64_t depth) {
     for (int i = 0; i < CCEH_BUCKET_SIZE; ++i) {
         if (key == kv[i].key) {
             return i;
-        } else if ((res == -1) && kv[i].key == 0) {
+        } else if ((res == -1) && kv[i].key == 0 && kv[i].value == 0) {
             res = i;
         } else if ((res == -1) && ((GET_SEG_NUM(key, 64, depth)) != (GET_SEG_NUM(kv[i].key, 64, depth)))) {
             res = i;
