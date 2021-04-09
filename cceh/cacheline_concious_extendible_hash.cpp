@@ -44,7 +44,6 @@ cceh_segment::cceh_segment() {
     bucket_mask_len = 8;
     max_num = pow(2, bucket_mask_len);
     depth = 0;
-    cnt = 0;
     bucket = static_cast<cceh_bucket *>(fast_alloc(sizeof(cceh_bucket) * max_num));
 }
 
@@ -56,7 +55,6 @@ void cceh_segment::init(uint64_t _depth, uint64_t _bucket_mask_len) {
     bucket_mask_len = _bucket_mask_len;
     max_num = pow(2, bucket_mask_len);
     depth = _depth;
-    cnt = 0;
     bucket = static_cast<cceh_bucket *>(fast_alloc(sizeof(cceh_bucket) * max_num));
 }
 
@@ -100,10 +98,9 @@ void cacheline_concious_extendible_hash::put(Key_t key, Value_t value) {
     if (bucket_index == -1) {
         //condition: full
         if (likely(tmp_seg->depth < global_depth)) {
-            cceh_segment *new_seg1 = new_cceh_segment(tmp_seg->depth + 1);
-            cceh_segment *new_seg2 = new_cceh_segment(tmp_seg->depth + 1);
+            cceh_segment *new_seg = new_cceh_segment(tmp_seg->depth + 1);
             //set dir [left,right)
-            uint64_t left = dir_index, mid = dir_index, right = dir_index + 1;
+            int64_t left = dir_index, mid = dir_index, right = dir_index + 1;
             for (int i = dir_index + 1; i < dir_size; ++i) {
                 if (likely(dir[i] != tmp_seg)) {
                     right = i;
@@ -123,28 +120,42 @@ void cacheline_concious_extendible_hash::put(Key_t key, Value_t value) {
                 }
             }
             mid = (left + right) / 2;
-            for (int i = left; i < mid; ++i) {
-                dir[i] = new_seg1;
-            }
-            for (int i = mid; i < right; ++i) {
-                dir[i] = new_seg2;
-            }
-            //migrate previous data
+            //migrate previous data to the new segment
             for (int i = 0; i < tmp_seg->max_num; ++i) {
-                for (int j = 0; j < tmp_seg->bucket[i].cnt; ++j) {
+                uint64_t bucket_cnt = 0;
+                for (int j = 0; j < CCEH_BUCKET_SIZE; ++j) {
                     uint64_t tmp_key = tmp_seg->bucket[i].kv[j].key;
                     uint64_t tmp_value = tmp_seg->bucket[i].kv[j].value;
                     dir_index = GET_SEG_NUM(tmp_key, key_len, global_depth);
-                    cceh_segment *dst_seg = dir[dir_index];
-//                    seg_index = GET_BUCKET_NUM(tmp_key, dst_seg->bucket_mask_len);
-                    seg_index = i;
-                    cceh_bucket *dst_bucket = &(dst_seg->bucket[seg_index]);
-                    dst_bucket->kv[dst_bucket->cnt].key = tmp_key;
-                    dst_bucket->kv[dst_bucket->cnt].value = tmp_value;
-                    dst_bucket->cnt++;
+                    if (dir_index >= mid) {
+                        cceh_segment *dst_seg = new_seg;
+                        seg_index = i;
+                        cceh_bucket *dst_bucket = &(dst_seg->bucket[seg_index]);
+                        dst_bucket->kv[bucket_cnt].value = tmp_value;
+                        dst_bucket->kv[bucket_cnt].key = tmp_key;
+                        bucket_cnt++;
+                    }
                 }
             }
-            //todo delete previous bucket
+            mfence();
+            clflush((char *) new_seg, sizeof(cceh_segment));
+
+
+            //set dir[mid, right) to the new segment
+            for (int i = right - 1; i >= mid; --i) {
+                dir[i] = new_seg;
+                mfence();
+
+                clflush((char *) dir[i], sizeof(cceh_segment *));
+
+            }
+
+            tmp_seg->depth = tmp_seg->depth + 1;
+            mfence();
+
+            clflush((char *) &(tmp_seg->depth), sizeof(tmp_seg->depth));
+
+
             put(key, value);
             return;
         } else {
@@ -156,27 +167,35 @@ void cacheline_concious_extendible_hash::put(Key_t key, Value_t value) {
             for (int i = 0; i < dir_size; ++i) {
                 new_dir[i] = dir[i / 2];
             }
-            cceh_segment *new_seg1 = new_cceh_segment(global_depth);
-            cceh_segment *new_seg2 = new_cceh_segment(global_depth);
-            new_dir[dir_index * 2] = new_seg1;
-            new_dir[dir_index * 2 + 1] = new_seg2;
+            cceh_segment *new_seg = new_cceh_segment(global_depth);
+            new_dir[dir_index * 2 + 1] = new_seg;
             //migrate previous data
             for (int i = 0; i < tmp_seg->max_num; ++i) {
-                for (int j = 0; j < tmp_seg->bucket[i].cnt; ++j) {
+                uint64_t bucket_cnt = 0;
+                uint64_t new_dir_index = 0;
+                for (int j = 0; j < CCEH_BUCKET_SIZE; ++j) {
                     uint64_t tmp_key = tmp_seg->bucket[i].kv[j].key;
                     uint64_t tmp_value = tmp_seg->bucket[i].kv[j].value;
-                    dir_index = GET_SEG_NUM(tmp_key, key_len, global_depth);
-                    cceh_segment *dst_seg = new_dir[dir_index];
-//                    seg_index = GET_BUCKET_NUM(tmp_key, dst_seg->bucket_mask_len);
-                    seg_index = i;
-                    cceh_bucket *dst_bucket = &(dst_seg->bucket[seg_index]);
-                    dst_bucket->kv[dst_bucket->cnt].key = tmp_key;
-                    dst_bucket->kv[dst_bucket->cnt].value = tmp_value;
-                    dst_bucket->cnt++;
+                    new_dir_index = GET_SEG_NUM(tmp_key, key_len, global_depth);
+                    if ((dir_index * 2 + 1) == new_dir_index) {
+                        cceh_segment *dst_seg = new_seg;
+                        seg_index = i;
+                        cceh_bucket *dst_bucket = &(dst_seg->bucket[seg_index]);
+                        dst_bucket->kv[bucket_cnt].key = tmp_key;
+                        dst_bucket->kv[bucket_cnt].value = tmp_value;
+                        bucket_cnt++;
+                    }
                 }
             }
-            //todo delete previous dir
+            mfence();
+
+            clflush((char *) new_seg, sizeof(cceh_segment));
+            clflush((char *) new_dir, sizeof(cceh_segment *) * dir_size);
+
             dir = new_dir;
+            mfence();
+            clflush((char *) dir, sizeof(dir));
+
             put(key, value);
             return;
         }
@@ -184,14 +203,17 @@ void cacheline_concious_extendible_hash::put(Key_t key, Value_t value) {
         if (unlikely(tmp_bucket->kv[bucket_index].key == key)) {
             //key exists
             tmp_bucket->kv[bucket_index].value = value;
+            mfence();
+            clflush((char *) &(tmp_bucket->kv[bucket_index].value), 8);
+
         } else {
             // there is a place to insert
             tmp_bucket->kv[bucket_index].value = value;
             mfence();
             tmp_bucket->kv[bucket_index].key = key;
-//            clflush((char *) tmp_bucket->kv[bucket_index].value, 8);
+            mfence();
+            clflush((char *) &(tmp_bucket->kv[bucket_index].key), 16);
 
-            tmp_bucket->cnt++;//not needed
         }
     }
 }
