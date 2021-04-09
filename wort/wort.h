@@ -7,6 +7,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "../fastalloc/fastalloc.h"
 
 /* If you want to change the number of entries,
  * change the values of WORT_NODE_BITS & WORT_MAX_DEPTH */

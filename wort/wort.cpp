@@ -51,7 +51,8 @@ static int get_index(unsigned long key, int depth) {
 static wort_node *alloc_node() {
     wort_node *n;
     void *ret;
-    posix_memalign(&ret, 64, sizeof(wort_node16));
+    ret = fast_alloc(sizeof(wort_node16));
+//    posix_memalign(&ret, 64, sizeof(wort_node16));
     n = static_cast<wort_node *>(ret);
     memset(n, 0, sizeof(wort_node16));
     return n;
@@ -209,7 +210,8 @@ static wort_leaf *make_leaf(const unsigned long key, int key_len, void *value, b
     //wort_leaf *l = (wort_leaf*)malloc(sizeof(wort_leaf));
     wort_leaf *l;
     void *ret;
-    posix_memalign(&ret, 64, sizeof(wort_leaf));
+    ret = fast_alloc(sizeof(wort_leaf));
+//    posix_memalign(&ret, 64, sizeof(wort_leaf));
     l = static_cast<wort_leaf *>(ret);
     l->value = value;
     l->key_len = key_len;
