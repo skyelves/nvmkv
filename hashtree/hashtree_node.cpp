@@ -45,7 +45,7 @@ void ht_bucket::set_depth(int _depth) {
 }
 
 uint64_t ht_bucket::get(uint64_t key) {
-    for (int i = 0; i < cnt; ++i) {
+    for (int i = 0; i < BUCKET_SIZE; ++i) {
         if (key == counter[i].key) {
             return counter[i].value;
         }
@@ -53,18 +53,21 @@ uint64_t ht_bucket::get(uint64_t key) {
     return 0;
 }
 
-int ht_bucket::find_place(uint64_t key) {
+int ht_bucket::find_place(uint64_t _key, uint64_t _key_len) {
     // full: return -1
     // exists or not full: return index or empty counter
-    for (int i = 0; i < cnt; ++i) {
-        if (key == counter[i].key) {
+    int res = -1;
+    for (int i = 0; i < BUCKET_SIZE; ++i) {
+        if (_key == counter[i].key) {
             return i;
+        } else if ((res == -1) && counter[i].key == 0 && counter[i].value == 0) {
+            res = i;
+        } else if ((res == -1) &&
+                   (GET_DIR_NUM(_key, _key_len, depth) != GET_DIR_NUM(counter[i].key, _key_len, depth))) {
+            res = i;
         }
     }
-    if (likely(cnt < BUCKET_SIZE))
-        return cnt;
-    else
-        return -1;
+    return res;
 }
 
 ht_bucket *new_ht_bucket(int _depth) {
@@ -110,14 +113,13 @@ void hashtree_node::put(uint64_t key, uint64_t value) {
     // value should not be 0
     uint64_t index = GET_DIR_NUM(key, key_len, global_depth);
     ht_bucket *tmp_bucket = dir[index];
-    int bucket_index = tmp_bucket->find_place(key);
+    int bucket_index = tmp_bucket->find_place(key, key_len);
     if (bucket_index == -1) {
         //condition: full
         if (likely(tmp_bucket->depth < global_depth)) {
-            ht_bucket *new_bucket1 = new_ht_bucket(tmp_bucket->depth + 1);
-            ht_bucket *new_bucket2 = new_ht_bucket(tmp_bucket->depth + 1);
+            ht_bucket *new_bucket = new_ht_bucket(tmp_bucket->depth + 1);
             //set dir [left,right)
-            uint64_t left = index, mid = index, right = index + 1;
+            int64_t left = index, mid = index, right = index + 1;
             for (int i = index + 1; i < dir_size; ++i) {
                 if (likely(dir[i] != tmp_bucket)) {
                     right = i;
@@ -137,23 +139,34 @@ void hashtree_node::put(uint64_t key, uint64_t value) {
                 }
             }
             mid = (left + right) / 2;
-            for (int i = left; i < mid; ++i) {
-                dir[i] = new_bucket1;
-            }
-            for (int i = mid; i < right; ++i) {
-                dir[i] = new_bucket2;
-            }
-            //migrate previous data
+
+            //migrate previous data to the new bucket
+            uint64_t bucket_cnt = 0;
             for (int i = 0; i < BUCKET_SIZE; ++i) {
                 uint64_t tmp_key = tmp_bucket->counter[i].key;
                 uint64_t tmp_value = tmp_bucket->counter[i].value;
                 index = GET_DIR_NUM(tmp_key, key_len, global_depth);
-                ht_bucket *dst_bucket = dir[index];
-                dst_bucket->counter[dst_bucket->cnt].key = tmp_key;
-                dst_bucket->counter[dst_bucket->cnt].value = tmp_value;
-                dst_bucket->cnt++;
+                if (index >= mid) {
+                    ht_bucket *dst_bucket = new_bucket;
+                    dst_bucket->counter[bucket_cnt].key = tmp_key;
+                    dst_bucket->counter[bucket_cnt].value = tmp_value;
+                    bucket_cnt++;
+                }
             }
-            //todo delete previous bucket
+            mfence();
+            clflush((char *) new_bucket, sizeof(ht_bucket));
+
+            // set dir[mid, right) to the new bucket
+            for (int i = right - 1; i >= mid; --i) {
+                dir[i] = new_bucket;
+                mfence();
+                clflush((char *) dir[i], sizeof(ht_bucket *));
+            }
+
+            tmp_bucket->depth = tmp_bucket->depth + 1;
+            mfence();
+            clflush((char *) &(tmp_bucket->depth), sizeof(tmp_bucket->depth));
+
             put(key, value);
             return;
         } else {
@@ -165,36 +178,45 @@ void hashtree_node::put(uint64_t key, uint64_t value) {
             for (int i = 0; i < dir_size; ++i) {
                 new_dir[i] = dir[i / 2];
             }
-            ht_bucket *new_bucket1 = new_ht_bucket(global_depth);
-            ht_bucket *new_bucket2 = new_ht_bucket(global_depth);
-            new_dir[index * 2] = new_bucket1;
-            new_dir[index * 2 + 1] = new_bucket2;
+            clflush((char *) new_dir, sizeof(ht_bucket *) * dir_size);
+            ht_bucket *new_bucket = new_ht_bucket(global_depth);
+            new_dir[index * 2 + 1] = new_bucket;
             //migrate previous data
+            uint64_t bucket_cnt = 0;
+            uint64_t new_index = 0;
             for (int i = 0; i < BUCKET_SIZE; ++i) {
                 uint64_t tmp_key = tmp_bucket->counter[i].key;
                 int64_t tmp_value = tmp_bucket->counter[i].value;
-                index = GET_DIR_NUM(tmp_key, key_len, global_depth);
-                ht_bucket *dst_bucket = new_dir[index];
-                dst_bucket->counter[dst_bucket->cnt].key = tmp_key;
-                dst_bucket->counter[dst_bucket->cnt].value = tmp_value;
-                dst_bucket->cnt++;
+                new_index = GET_DIR_NUM(tmp_key, key_len, global_depth);
+                if ((index * 2 + 1) == new_index) {
+                    ht_bucket *dst_bucket = new_bucket;
+                    dst_bucket->counter[bucket_cnt].key = tmp_key;
+                    dst_bucket->counter[bucket_cnt].value = tmp_value;
+                    bucket_cnt++;
+                }
             }
-            //todo delete previous dir
+            mfence();
+            clflush((char *) new_bucket, sizeof(ht_bucket));
+
             dir = new_dir;
+            mfence();
+            clflush((char *) dir, sizeof(dir));
             put(key, value);
             return;
         }
     } else {
-        if (unlikely(
-                (tmp_bucket->counter[bucket_index].key == key) &&
-                (tmp_bucket->counter[bucket_index].value != 0))) {
+        if (unlikely(tmp_bucket->counter[bucket_index].key == key)) {
             //key exists
             tmp_bucket->counter[bucket_index].value = value;
+            mfence();
+            clflush((char *) &(tmp_bucket->counter[bucket_index].value), 8);
         } else {
             // there is a place to insert
-            tmp_bucket->counter[bucket_index].key = key;
             tmp_bucket->counter[bucket_index].value = value;
-            tmp_bucket->cnt++;
+            mfence();
+            tmp_bucket->counter[bucket_index].key = key;
+            mfence();
+            clflush((char *) &(tmp_bucket->counter[bucket_index].key), 16);
         }
     }
     return;

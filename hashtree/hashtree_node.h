@@ -41,7 +41,7 @@ public:
 
     uint64_t get(uint64_t key);
 
-    int find_place(uint64_t key);
+    int find_place(uint64_t _key, uint64_t _key_len);
 };
 
 ht_bucket *new_ht_bucket(int _depth = 0);
