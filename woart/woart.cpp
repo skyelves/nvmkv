@@ -137,23 +137,27 @@ static woart_node *alloc_node(uint8_t type) {
     int i;
     switch (type) {
         case NODE4:
-            posix_memalign(&ret, 64, sizeof(woart_node4));
+            ret = fast_alloc(sizeof(woart_node4));
+//            posix_memalign(&ret, 64, sizeof(woart_node4));
             n = static_cast<woart_node *>(ret);
             for (i = 0; i < 4; i++)
                 ((woart_node4 *) n)->slot[i].i_ptr = -1;
             break;
         case NODE16:
-            posix_memalign(&ret, 64, sizeof(woart_node16));
+            ret = fast_alloc(sizeof(woart_node16));
+//            posix_memalign(&ret, 64, sizeof(woart_node16));
             n = static_cast<woart_node *>(ret);
             ((woart_node16 *) n)->bitmap = 0;
             break;
         case NODE48:
-            posix_memalign(&ret, 64, sizeof(woart_node48));
+            ret = fast_alloc(sizeof(woart_node48));
+//            posix_memalign(&ret, 64, sizeof(woart_node48));
             n = static_cast<woart_node *>(ret);
             memset(n, 0, sizeof(woart_node48));
             break;
         case NODE256:
-            posix_memalign(&ret, 64, sizeof(woart_node256));
+            ret = fast_alloc(sizeof(woart_node256));
+//            posix_memalign(&ret, 64, sizeof(woart_node256));
             n = static_cast<woart_node *>(ret);
             memset(n, 0, sizeof(woart_node256));
             break;
@@ -340,7 +344,8 @@ static woart_leaf *make_leaf(const unsigned long key, int key_len, void *value, 
     //woart_leaf *l = (woart_leaf*)malloc(sizeof(woart_leaf));
     woart_leaf *l;
     void *ret;
-    posix_memalign(&ret, 64, sizeof(woart_leaf));
+    ret = fast_alloc(sizeof(woart_leaf));
+//    posix_memalign(&ret, 64, sizeof(woart_leaf));
     l = static_cast<woart_leaf *>(ret);
     l->value = value;
     l->key_len = key_len;
@@ -413,7 +418,7 @@ static void add_child48(woart_node48 *n, woart_node **ref, unsigned char c, void
         *ref = (woart_node *) new_node;
         flush_buffer(ref, 8, true);
 
-        free(n);
+//        free(n);
     }
 }
 
@@ -454,7 +459,7 @@ static void add_child16(woart_node16 *n, woart_node **ref, unsigned char c, void
         *ref = (woart_node *) new_node;
         flush_buffer(ref, sizeof(uintptr_t), true);
 
-        free(n);
+//        free(n);
     }
 }
 
@@ -520,7 +525,7 @@ static void add_child4(woart_node4 *n, woart_node **ref, unsigned char c, void *
         *ref = (woart_node *) new_node;
         flush_buffer(ref, 8, true);
 
-        free(n);
+//        free(n);
     }
 }
 
