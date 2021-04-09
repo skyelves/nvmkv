@@ -175,7 +175,7 @@ int woart_tree_init(woart_tree *t) {
 }
 
 woart_tree *new_woart_tree() {
-    woart_tree *_new_woart_tree = new woart_tree;
+    woart_tree *_new_woart_tree = static_cast<woart_tree *>(fast_alloc(sizeof(woart_tree)));
     woart_tree_init(_new_woart_tree);
     return _new_woart_tree;
 }

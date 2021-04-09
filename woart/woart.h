@@ -8,6 +8,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "../fastalloc/fastalloc.h"
 
 #ifdef __linux__
 #include <byteswap.h>
