@@ -28,7 +28,7 @@ public:
 
     void put(uint64_t k, uint64_t v);
 
-    int64_t get(uint64_t k);
+    uint64_t get(uint64_t k);
 };
 
 hashtree *new_hashtree(int _span = 8, int _init_depth = 4);

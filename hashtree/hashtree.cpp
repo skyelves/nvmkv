@@ -17,6 +17,19 @@
 //#define GET_SUB_KEY(key, begin, len)  ((key>>(64-begin-len))&(0xffff))
 //#define GET_SUB_KEY(key, begin, len)  ((key>>(64-begin-len))&(0xff))
 
+inline void mfence(void) {
+    asm volatile("mfence":: :"memory");
+}
+
+inline void clflush(char *data, size_t len) {
+    volatile char *ptr = (char *) ((unsigned long) data & (~(CACHELINESIZE - 1)));
+    mfence();
+    for (; ptr < data + len; ptr += CACHELINESIZE) {
+        asm volatile("clflush %0" : "+m" (*(volatile char *) ptr));
+    }
+    mfence();
+}
+
 hashtree::hashtree() {
     root = new_hashtree_node(init_depth, span);
 //    root = new_extendible_hash(init_depth, span);
@@ -56,15 +69,18 @@ hashtree *new_hashtree(int _span, int _init_depth) {
 
 void hashtree::put(uint64_t k, uint64_t v) {
     hashtree_node *tmp = root;
-//    extendible_hash *tmp = root;
+
     ht_key_value *kv = new_ht_key_value(k, v);
+    mfence();
+    clflush((char *) kv, sizeof(ht_key_value));
+
     uint64_t sub_key;
     for (int i = 0, j = 0; i < 64; i += span_test[j], j++) {
         sub_key = GET_SUB_KEY(k, i, span_test[j]);
         int64_t next = tmp->get(sub_key);
-        if (next == -1) {
+        if (next == 0) {
             //not exists
-            tmp->put(sub_key, (uint64_t) kv);
+            tmp->put(sub_key, (uint64_t) kv);//crash consistency operations
             return;
         } else {
             if (((bool *) next)[0]) {
@@ -73,11 +89,12 @@ void hashtree::put(uint64_t k, uint64_t v) {
                 if (unlikely(k == pre_k)) {
                     //same key, update the value
                     ((ht_key_value *) next)->value = v;
+                    mfence();
+                    clflush((char *) &(((ht_key_value *) next)->value), 8);
                     return;
                 } else {
                     //not same key: needs to create a new eh
                     hashtree_node *new_node = new_hashtree_node(init_depth, span_test[j + 1]);
-//                    extendible_hash *new_node = new_extendible_hash(init_depth, span_test[j + 1]);
                     uint64_t pre_k_next_sub_key = GET_SUB_KEY(pre_k, i + span_test[j], span_test[j + 1]);
                     new_node->put(pre_k_next_sub_key, (uint64_t) next);
                     tmp->put(sub_key, (uint64_t) new_node);
@@ -91,24 +108,22 @@ void hashtree::put(uint64_t k, uint64_t v) {
             } else {
                 // next is next extendible hash
                 tmp = (hashtree_node *) next;
-//                tmp = (extendible_hash *) next;
             }
         }
     }
     return;
 }
 
-int64_t hashtree::get(uint64_t k) {
+uint64_t hashtree::get(uint64_t k) {
     hashtree_node *tmp = root;
-//    extendible_hash *tmp = root;
     int64_t next;
     for (int i = 0, j = 0; i < 64; i += span_test[j], j++) {
         uint64_t sub_key = GET_SUB_KEY(k, i, span_test[j]);
         next = tmp->get(sub_key);
         get_access++;
-        if (next == -1) {
+        if (next == 0) {
             //not exists
-            return -1;
+            return 0;
         } else {
             if (((bool *) next)[0]) {
                 // is key value pair
@@ -116,7 +131,6 @@ int64_t hashtree::get(uint64_t k) {
             } else {
                 // is next extendible hash
                 tmp = (hashtree_node *) next;
-//                tmp = (extendible_hash *) next;
             }
         }
     }

@@ -39,7 +39,7 @@ public:
 
     void set_depth(int _depth);
 
-    int64_t get(uint64_t key);
+    uint64_t get(uint64_t key);
 
     int find_place(uint64_t key);
 };
@@ -66,7 +66,7 @@ public:
     void put(uint64_t key,
              uint64_t value);//value is limited to non-zero number, zero is used to define empty counter in bucket
 
-    int64_t get(uint64_t key);
+    uint64_t get(uint64_t key);
 };
 
 hashtree_node *new_hashtree_node(int _depth = 4, int _key_len = 8);

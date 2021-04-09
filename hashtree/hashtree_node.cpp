@@ -9,6 +9,19 @@
 #define GET_DIR_NUM(key, key_len, depth)  ((key>>(key_len-depth))&(((uint64_t)1<<depth)-1))
 //#define GET_DIR_NUM(key, key_len, depth)  ((key>>(key_len-depth))&0xffff)
 
+inline void mfence(void) {
+    asm volatile("mfence":: :"memory");
+}
+
+inline void clflush(char *data, size_t len) {
+    volatile char *ptr = (char *) ((unsigned long) data & (~(CACHELINESIZE - 1)));
+    mfence();
+    for (; ptr < data + len; ptr += CACHELINESIZE) {
+        asm volatile("clflush %0" : "+m" (*(volatile char *) ptr));
+    }
+    mfence();
+}
+
 ht_key_value *new_ht_key_value(uint64_t key, uint64_t value) {
     ht_key_value *_new_key_value = static_cast<ht_key_value *>(fast_alloc(sizeof(ht_key_value)));
     _new_key_value->type = 1;
@@ -31,14 +44,13 @@ void ht_bucket::set_depth(int _depth) {
     depth = _depth;
 }
 
-int64_t ht_bucket::get(uint64_t key) {
+uint64_t ht_bucket::get(uint64_t key) {
     for (int i = 0; i < cnt; ++i) {
         if (key == counter[i].key) {
-            if (counter[i].value != 0)
-                return counter[i].value;
+            return counter[i].value;
         }
     }
-    return -1;
+    return 0;
 }
 
 int ht_bucket::find_place(uint64_t key) {
@@ -95,6 +107,7 @@ void hashtree_node::init(uint32_t _global_depth, int _key_len) {
 }
 
 void hashtree_node::put(uint64_t key, uint64_t value) {
+    // value should not be 0
     uint64_t index = GET_DIR_NUM(key, key_len, global_depth);
     ht_bucket *tmp_bucket = dir[index];
     int bucket_index = tmp_bucket->find_place(key);
@@ -187,7 +200,7 @@ void hashtree_node::put(uint64_t key, uint64_t value) {
     return;
 }
 
-int64_t hashtree_node::get(uint64_t key) {
+uint64_t hashtree_node::get(uint64_t key) {
     uint64_t index = GET_DIR_NUM(key, key_len, global_depth);
     return dir[index]->get(key);
 }
