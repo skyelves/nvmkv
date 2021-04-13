@@ -26,6 +26,8 @@ public:
 
     void init(int _span = 8, int _init_depth = 4);
 
+    void crash_consistent_put(hashtree_node *_node, uint64_t k, uint64_t v, uint64_t layer);
+
     void put(uint64_t k, uint64_t v);
 
     uint64_t get(uint64_t k);
