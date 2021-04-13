@@ -7,10 +7,8 @@
 #include <sys/time.h>
 #include <pthread.h>
 #include "blink/blink_tree.h"
-#include "cart/cart.h"
 #include "mass/mass_tree.h"
 #include "hashtree/hashtree.h"
-#include "extendibleHash/extendible_hash.h"
 #include "rng/rng.h"
 #include "art/art.h"
 #include "wort/wort.h"
@@ -41,8 +39,6 @@ int numThread = 1;
 int test_algorithms_num = 10;
 bool test_case[10] = {1, // ht
                       0, // art
-                      0, // cart
-                      0, // eh
                       0, // wort
                       0, // woart
                       1, // cacheline_concious_extendible_hash
@@ -50,9 +46,7 @@ bool test_case[10] = {1, // ht
 
 blink_tree *bt;
 mass_tree *mt;
-concurrent_adaptive_radix_tree *cart;
 hashtree *ht;
-extendible_hash *eh;
 art_tree *art;
 wort_tree *wort;
 woart_tree *woart;
@@ -119,20 +113,14 @@ void speedTest() {
     // insert speed for art
     Time_BODY(test_case[1], "art tree put ", { art_put(art, (unsigned char *) &(mykey[i]), 8, &value); })
 
-    // insert speed for cart
-    Time_BODY(test_case[2], "cart tree put ", { concurrent_adaptive_radix_tree_put(cart, &(mykey[i]), 8, &value, 8); })
-
-    // insert speed for extendible hash
-    Time_BODY(test_case[3], "eh put ", { eh->put(mykey[i], 1); })
-
     // insert speed for wort
-    Time_BODY(test_case[4], "wort put ", { wort_put(wort, mykey[i], 8, &value); })
+    Time_BODY(test_case[2], "wort put ", { wort_put(wort, mykey[i], 8, &value); })
 
     // insert speed for woart
-    Time_BODY(test_case[5], "woart put ", { woart_put(woart, mykey[i], 8, &value); })
+    Time_BODY(test_case[3], "woart put ", { woart_put(woart, mykey[i], 8, &value); })
 
     // insert speed for cceh
-    Time_BODY(test_case[6], "cceh put ", { cceh->put(mykey[i], value); })
+    Time_BODY(test_case[4], "cceh put ", { cceh->put(mykey[i], value); })
 
     // query speed for ht
     Time_BODY(test_case[0], "hash tree get ", { ht->get(mykey[i]); })
@@ -140,20 +128,14 @@ void speedTest() {
     // query speed for art
     Time_BODY(test_case[1], "art tree get ", { art_get(art, (unsigned char *) &(mykey[i]), 8); })
 
-    // query speed for art
-    Time_BODY(test_case[2], "cart tree get ", { concurrent_adaptive_radix_tree_get(cart, &(mykey[i]), 8); })
-
-    // query speed for extendible hash
-    Time_BODY(test_case[3], "eh get ", { eh->get(mykey[i]); })
-
     // query speed for wort
-    Time_BODY(test_case[4], "wort get ", { wort_get(wort, mykey[i], 8); })
+    Time_BODY(test_case[2], "wort get ", { wort_get(wort, mykey[i], 8); })
 
     // query speed for woart
-    Time_BODY(test_case[5], "woart get ", { woart_get(woart, mykey[i], 8); })
+    Time_BODY(test_case[3], "woart get ", { woart_get(woart, mykey[i], 8); })
 
     // query speed for cceh
-    Time_BODY(test_case[6], "cceh get ", { cceh->get(mykey[i]); })
+    Time_BODY(test_case[4], "cceh get ", { cceh->get(mykey[i]); })
 }
 
 void correctnessTest() {
@@ -217,9 +199,7 @@ int main(int argc, char *argv[]) {
     sscanf(argv[2], "%d", &testNum);
     init_fast_allocator();
     ht = new_hashtree(32, 0);
-    eh = new_extendible_hash(0, 64);
     art = new_art_tree();
-    cart = new_concurrent_adaptive_radix_tree();
     wort = new_wort_tree();
     woart = new_woart_tree();
     cceh = new_cceh();
