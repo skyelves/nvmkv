@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <unistd.h>
 #include <stdio.h>
 #include <map>
@@ -38,7 +39,7 @@ int testNum = 100000;
 int numThread = 1;
 
 int test_algorithms_num = 10;
-bool test_case[10] = {0, // ht
+bool test_case[10] = {1, // ht
                       0, // art
                       0, // cart
                       0, // eh
@@ -113,7 +114,7 @@ void speedTest() {
 //    cout << throughPut << endl;
 
     // insert speed for ht
-    Time_BODY(test_case[0], "hash tree put ", { ht->put(mykey[i], 1); })
+    Time_BODY(test_case[0], "hash tree put ", { ht->crash_consistent_put(NULL, mykey[i], 1, 0); })
 
     // insert speed for art
     Time_BODY(test_case[1], "art tree put ", { art_put(art, (unsigned char *) &(mykey[i]), 8, &value); })
@@ -164,7 +165,8 @@ void correctnessTest() {
     for (int i = 0; i < testNum; ++i) {
         mykey[i] = rng_next(&r);
         mm[mykey[i]] = i + 1;
-        cceh->put(mykey[i], i + 1);
+//        ht->put(mykey[i], i + 1);
+        ht->crash_consistent_put(NULL, mykey[i], i + 1, 0);
 //        for (int j = 0; j < testNum; ++j) {
 //            int64_t res = cceh->get(mykey[j]);
 //            if (res != mm[mykey[j]]) {
@@ -177,7 +179,7 @@ void correctnessTest() {
 
     int64_t res = 0;
     for (int i = 0; i < testNum; ++i) {
-        res = cceh->get(mykey[i]);
+        res = ht->get(mykey[i]);
         if (res != mm[mykey[i]]) {
             cout << i << ", " << mykey[i] << ", " << res << ", " << mm[mykey[i]] << endl;
 //            return;
@@ -185,7 +187,28 @@ void correctnessTest() {
     }
 //    cout << 1 << endl;
     return;
+}
 
+void cceh_profile() {
+    ofstream out;
+    out.open("/Users/wangke/Desktop/cceh_profile.csv");
+    mykey = new uint64_t[testNum];
+    rng r;
+    rng_init(&r, 1, 2);
+    for (int i = 0; i < testNum; ++i) {
+        mykey[i] = rng_next(&r);
+    }
+    uint64_t value = 1;
+    timeval start, ends;
+    gettimeofday(&start, NULL);
+    for (int i = 0; i < testNum; ++i) {
+        cceh->put(mykey[i], value);
+    }
+    gettimeofday(&ends, NULL);
+    double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
+    out << cceh->t1 << endl << cceh->t2 << endl << cceh->t3 << endl;
+    out << timeCost << endl;
+    out.close();
 }
 
 
@@ -202,8 +225,9 @@ int main(int argc, char *argv[]) {
     cceh = new_cceh();
 //    mt = new_mass_tree();
 //    bt = new_blink_tree(numThread);
-//    speedTest();
-    correctnessTest();
+    speedTest();
+//    correctnessTest();
+//    cceh_profile();
 //    cout << ht->node_cnt << endl;
 //    cout << ht->get_access << endl;
     fast_free();
