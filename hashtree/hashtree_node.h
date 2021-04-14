@@ -17,10 +17,15 @@
 #define BUCKET_SIZE 8
 
 //#define HT_PROFILE_TIME 1
+#define HT_PROFILE_LOAD_FACTOR 1
 
 #ifdef HT_PROFILE_TIME
 extern timeval start_time, end_time;
 extern uint64_t t1, t2, t3;
+#endif
+
+#ifdef HT_PROFILE_LOAD_FACTOR
+extern uint64_t ht_bucket_num;
 #endif
 
 class ht_key_value {

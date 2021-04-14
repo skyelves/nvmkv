@@ -25,55 +25,6 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="a7d8e42b-0243-4f2b-af7e-00eff78c18b0" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/CMakeCache.txt" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/CMakeCache.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/Makefile.cmake" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/Makefile.cmake" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/Makefile2" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/Makefile2" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/TargetDirectories.txt" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/TargetDirectories.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/nvmkv.dir/CXX.includecache" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/nvmkv.dir/CXX.includecache" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/nvmkv.dir/DependInfo.cmake" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/nvmkv.dir/DependInfo.cmake" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/nvmkv.dir/build.make" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/nvmkv.dir/build.make" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/nvmkv.dir/depend.internal" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/nvmkv.dir/depend.internal" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/nvmkv.dir/depend.make" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/nvmkv.dir/depend.make" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/nvmkv.dir/link.txt" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/nvmkv.dir/link.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/nvmkv.dir/main.cpp.o" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/nvmkv.dir/main.cpp.o" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/progress.marks" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/progress.marks" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/Makefile" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/Makefile" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/art/CMakeFiles/nvmkv-art.dir/CXX.includecache" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/art/CMakeFiles/nvmkv-art.dir/CXX.includecache" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/art/CMakeFiles/nvmkv-art.dir/DependInfo.cmake" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/art/CMakeFiles/nvmkv-art.dir/DependInfo.cmake" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/art/CMakeFiles/nvmkv-art.dir/build.make" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/art/CMakeFiles/nvmkv-art.dir/build.make" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/art/CMakeFiles/nvmkv-art.dir/cmake_clean.cmake" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/art/CMakeFiles/nvmkv-art.dir/cmake_clean.cmake" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/art/CMakeFiles/nvmkv-art.dir/depend.internal" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/art/CMakeFiles/nvmkv-art.dir/depend.internal" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/art/CMakeFiles/nvmkv-art.dir/depend.make" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/art/CMakeFiles/nvmkv-art.dir/depend.make" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/art/CMakeFiles/nvmkv-art.dir/flags.make" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/art/CMakeFiles/nvmkv-art.dir/flags.make" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/art/CMakeFiles/nvmkv-art.dir/link.txt" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/art/CMakeFiles/nvmkv-art.dir/link.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/art/CMakeFiles/nvmkv-art.dir/progress.make" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/art/CMakeFiles/nvmkv-art.dir/progress.make" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/art/CMakeFiles/progress.marks" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/art/CMakeFiles/progress.marks" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/art/Makefile" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/art/Makefile" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/blink/CMakeFiles/nvmkv-blink.dir/progress.make" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/blink/CMakeFiles/nvmkv-blink.dir/progress.make" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/bobhash/CMakeFiles/nvmkv-bobhash32.dir/progress.make" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/bobhash/CMakeFiles/nvmkv-bobhash32.dir/progress.make" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/cart/CMakeFiles/nvmkv-cart.dir/CXX.includecache" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/cart/CMakeFiles/nvmkv-cart.dir/CXX.includecache" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/cart/CMakeFiles/nvmkv-cart.dir/DependInfo.cmake" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/cart/CMakeFiles/nvmkv-cart.dir/DependInfo.cmake" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/cart/CMakeFiles/nvmkv-cart.dir/progress.make" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/cart/CMakeFiles/nvmkv-cart.dir/progress.make" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/cmake_install.cmake" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/cmake_install.cmake" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/extendibleHash/CMakeFiles/nvmkv-extendible_hash.dir/progress.make" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/extendibleHash/CMakeFiles/nvmkv-extendible_hash.dir/progress.make" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/hashtree/CMakeFiles/nvmkv-ht.dir/CXX.includecache" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/hashtree/CMakeFiles/nvmkv-ht.dir/CXX.includecache" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/hashtree/CMakeFiles/nvmkv-ht.dir/DependInfo.cmake" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/hashtree/CMakeFiles/nvmkv-ht.dir/DependInfo.cmake" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/hashtree/CMakeFiles/nvmkv-ht.dir/bobhash32.cpp.o" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/hashtree/CMakeFiles/nvmkv-ht.dir/depend.internal" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/hashtree/CMakeFiles/nvmkv-ht.dir/depend.internal" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/hashtree/CMakeFiles/nvmkv-ht.dir/depend.make" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/hashtree/CMakeFiles/nvmkv-ht.dir/depend.make" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/hashtree/CMakeFiles/nvmkv-ht.dir/hashtree.cpp.o" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/hashtree/CMakeFiles/nvmkv-ht.dir/hashtree.cpp.o" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/hashtree/CMakeFiles/nvmkv-ht.dir/hashtree_node.cpp.o" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/hashtree/CMakeFiles/nvmkv-ht.dir/hashtree_node.cpp.o" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/hashtree/CMakeFiles/nvmkv-ht.dir/progress.make" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/hashtree/CMakeFiles/nvmkv-ht.dir/progress.make" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/hashtree/CMakeFiles/progress.marks" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/hashtree/CMakeFiles/progress.marks" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/hashtree/libnvmkv-ht.a" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/hashtree/libnvmkv-ht.a" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/mass/CMakeFiles/nvmkv-mass.dir/progress.make" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/mass/CMakeFiles/nvmkv-mass.dir/progress.make" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/murmur/CMakeFiles/nvmkv-murmur.dir/progress.make" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/murmur/CMakeFiles/nvmkv-murmur.dir/progress.make" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/node/CMakeFiles/nvmkv-node.dir/progress.make" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/node/CMakeFiles/nvmkv-node.dir/progress.make" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/nvmkv" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/nvmkv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/nvmkv.cbp" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/nvmkv.cbp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/rng/CMakeFiles/nvmkv-rng.dir/progress.make" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/rng/CMakeFiles/nvmkv-rng.dir/progress.make" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hashtree/hashtree.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/hashtree/hashtree.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/hashtree/hashtree_node.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/hashtree/hashtree_node.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/hashtree/hashtree_node.h" beforeDir="false" afterPath="$PROJECT_DIR$/hashtree/hashtree_node.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/main.cpp" afterDir="false" />
@@ -110,43 +61,11 @@
           <file pinned="false" current-in-tab="true">
             <entry file="file://$PROJECT_DIR$/main.cpp">
               <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="167">
-                  <caret line="177" column="10" selection-start-line="177" selection-start-column="10" selection-end-line="177" selection-end-column="10" />
+                <state relative-caret-position="487">
+                  <caret line="191" column="30" lean-forward="true" selection-start-line="191" selection-start-column="30" selection-end-line="191" selection-end-column="30" />
                   <folding>
                     <element signature="e#0#19#0" expanded="true" />
-                  </folding>
-                </state>
-              </provider>
-            </entry>
-          </file>
-          <file pinned="false" current-in-tab="false">
-            <entry file="file://$PROJECT_DIR$/CMakeLists.txt">
-              <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="323">
-                  <caret line="19" column="48" selection-start-line="19" selection-start-column="48" selection-end-line="19" selection-end-column="48" />
-                </state>
-              </provider>
-            </entry>
-          </file>
-          <file pinned="false" current-in-tab="false">
-            <entry file="file://$PROJECT_DIR$/hashtree/hashtree.cpp">
-              <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="2788">
-                  <caret line="164" selection-start-line="164" selection-end-line="164" />
-                  <folding>
-                    <element signature="e#39#57#0" expanded="true" />
-                  </folding>
-                </state>
-              </provider>
-            </entry>
-          </file>
-          <file pinned="false" current-in-tab="false">
-            <entry file="file://$PROJECT_DIR$/hashtree/hashtree_node.cpp">
-              <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="3009">
-                  <caret line="177" selection-start-line="177" selection-end-line="177" />
-                  <folding>
-                    <element signature="e#39#57#0" expanded="true" />
+                    <element signature="e#6741#6787#0" expanded="true" />
                   </folding>
                 </state>
               </provider>
@@ -168,8 +87,8 @@
           <file pinned="false" current-in-tab="true">
             <entry file="file://$PROJECT_DIR$/hashtree/hashtree_node.h">
               <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="138">
-                  <caret line="19" lean-forward="true" selection-start-line="19" selection-end-line="19" />
+                <state relative-caret-position="362">
+                  <caret line="27" column="19" selection-start-line="27" selection-start-column="19" selection-end-line="27" selection-end-column="19" />
                   <folding>
                     <element signature="e#100#118#0" expanded="true" />
                     <element signature="e#389#453#0" expanded="true" />
@@ -287,8 +206,8 @@
         <option value="$PROJECT_DIR$/cceh/cacheline_concious_extendible_hash.cpp" />
         <option value="$PROJECT_DIR$/cceh/cacheline_concious_extendible_hash.h" />
         <option value="$PROJECT_DIR$/hashtree/hashtree_node.cpp" />
-        <option value="$PROJECT_DIR$/main.cpp" />
         <option value="$PROJECT_DIR$/hashtree/hashtree_node.h" />
+        <option value="$PROJECT_DIR$/main.cpp" />
       </list>
     </option>
   </component>
@@ -469,12 +388,12 @@
       <workItem from="1615791867327" duration="33000" />
       <workItem from="1615876168429" duration="26168000" />
       <workItem from="1618315000518" duration="11061000" />
-      <workItem from="1618381731216" duration="441000" />
+      <workItem from="1618381731216" duration="1032000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="169438000" />
+    <option name="totallyTimeSpent" value="170029000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="0" y="0" width="1920" height="1080" extended-state="0" />
@@ -534,7 +453,7 @@
       <breakpoints>
         <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
           <url>file://$PROJECT_DIR$/hashtree/hashtree_node.cpp</url>
-          <line>117</line>
+          <line>124</line>
           <option name="timeStamp" value="4" />
         </line-breakpoint>
       </breakpoints>
@@ -726,33 +645,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/CMakeLists.txt">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="323">
-          <caret line="19" column="48" selection-start-line="19" selection-start-column="48" selection-end-line="19" selection-end-column="48" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/hashtree/hashtree.cpp">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="2788">
-          <caret line="164" selection-start-line="164" selection-end-line="164" />
-          <folding>
-            <element signature="e#39#57#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/hashtree/hashtree_node.cpp">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="3009">
-          <caret line="177" selection-start-line="177" selection-end-line="177" />
-          <folding>
-            <element signature="e#39#57#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/hashtree/hashtree.h">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="255">
@@ -760,23 +652,52 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/main.cpp">
+    <entry file="file://$PROJECT_DIR$/hashtree/hashtree_node.cpp">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="167">
-          <caret line="177" column="10" selection-start-line="177" selection-start-column="10" selection-end-line="177" selection-end-column="10" />
+        <state relative-caret-position="368">
+          <caret line="82" column="17" selection-start-line="82" selection-start-column="17" selection-end-line="82" selection-end-column="17" />
           <folding>
-            <element signature="e#0#19#0" expanded="true" />
+            <element signature="e#39#57#0" expanded="true" />
+            <element signature="e#5571#5708#0" expanded="true" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/hashtree/hashtree.cpp">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="10">
+          <caret line="157" column="20" lean-forward="true" selection-start-line="157" selection-start-column="20" selection-end-line="157" selection-end-column="20" />
+          <folding>
+            <element signature="e#39#57#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/CMakeLists.txt">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="323">
+          <caret line="19" column="48" selection-start-line="19" selection-start-column="48" selection-end-line="19" selection-end-column="48" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/hashtree/hashtree_node.h">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="138">
-          <caret line="19" lean-forward="true" selection-start-line="19" selection-end-line="19" />
+        <state relative-caret-position="362">
+          <caret line="27" column="19" selection-start-line="27" selection-start-column="19" selection-end-line="27" selection-end-column="19" />
           <folding>
             <element signature="e#100#118#0" expanded="true" />
             <element signature="e#389#453#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/main.cpp">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="487">
+          <caret line="191" column="30" lean-forward="true" selection-start-line="191" selection-start-column="30" selection-end-line="191" selection-end-column="30" />
+          <folding>
+            <element signature="e#0#19#0" expanded="true" />
+            <element signature="e#6741#6787#0" expanded="true" />
           </folding>
         </state>
       </provider>

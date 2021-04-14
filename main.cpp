@@ -185,6 +185,9 @@ void profile() {
     gettimeofday(&start, NULL);
     for (int i = 0; i < testNum; ++i) {
         ht->put(mykey[i], value);
+        if (i % 10000 == 0) {
+            out << i << ", " << (double) i / (ht_bucket_num * BUCKET_SIZE) << endl;
+        }
     }
     gettimeofday(&ends, NULL);
     double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;

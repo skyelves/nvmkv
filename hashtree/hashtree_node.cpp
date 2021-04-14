@@ -10,6 +10,10 @@ timeval start_time, end_time;
 uint64_t t1, t2, t3;
 #endif
 
+#ifdef HT_PROFILE_LOAD_FACTOR
+uint64_t ht_bucket_num = 0;
+#endif
+
 #define GET_DIR_NUM(key, key_len, depth)  ((key>>(key_len-depth))&(((uint64_t)1<<depth)-1))
 //#define GET_DIR_NUM(key, key_len, depth)  ((key>>(key_len-depth))&0xffff)
 
@@ -75,6 +79,9 @@ int ht_bucket::find_place(uint64_t _key, uint64_t _key_len) {
 }
 
 ht_bucket *new_ht_bucket(int _depth) {
+#ifdef HT_PROFILE_LOAD_FACTOR
+    ht_bucket_num++;
+#endif
     ht_bucket *_new_bucket = static_cast<ht_bucket *>(fast_alloc(sizeof(ht_bucket)));
     _new_bucket->init(_depth);
     return _new_bucket;
