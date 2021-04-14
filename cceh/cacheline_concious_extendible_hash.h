@@ -23,8 +23,8 @@
 #define GET_SEG_NUM(key, key_len, depth)  ((key>>(key_len-depth))&(((uint64_t)1<<depth)-1))
 #define GET_BUCKET_NUM(key, bucket_mask_len) ((key)&(((uint64_t)1<<bucket_mask_len)-1))
 
-//#define PROFILE_TIME 1
-#define PROFILE_LOAD_FACTOR 1
+#define CCEH_PROFILE_TIME 1
+#define CCEH_PROFILE_LOAD_FACTOR 1
 
 typedef uint64_t Key_t;
 typedef uint64_t Value_t;
@@ -65,12 +65,12 @@ public:
     uint64_t global_depth = 0;
     uint64_t dir_size = 1;
     uint64_t key_len = 64;
-#ifdef PROFILE_TIME
+#ifdef CCEH_PROFILE_TIME
     timeval start, ends;
     uint64_t t1 = 0, t2 = 0, t3 = 0;
 #endif
 
-#ifdef PROFILE_LOAD_FACTOR
+#ifdef CCEH_PROFILE_LOAD_FACTOR
     uint64_t seg_num = 0;
 #endif
 

@@ -67,7 +67,7 @@ cacheline_concious_extendible_hash::cacheline_concious_extendible_hash() {
     for (int i = 0; i < dir_size; ++i) {
         dir[i] = new_cceh_segment();
     }
-#ifdef PROFILE_LOAD_FACTOR
+#ifdef CCEH_PROFILE_LOAD_FACTOR
     seg_num = dir_size;
 #endif
 }
@@ -83,7 +83,7 @@ void cacheline_concious_extendible_hash::init(uint64_t _global_depth, uint64_t _
     for (int i = 0; i < dir_size; ++i) {
         dir[i] = new_cceh_segment(_global_depth);
     }
-#ifdef PROFILE_LOAD_FACTOR
+#ifdef CCEH_PROFILE_LOAD_FACTOR
     seg_num = dir_size;
 #endif
 }
@@ -98,10 +98,10 @@ void cacheline_concious_extendible_hash::put(Key_t key, Value_t value) {
     if (bucket_index == -1) {
         //condition: full
         if (likely(tmp_seg->depth < global_depth)) {
-#ifdef PROFILE_TIME
+#ifdef CCEH_PROFILE_TIME
             gettimeofday(&start, NULL);
 #endif
-#ifdef PROFILE_LOAD_FACTOR
+#ifdef CCEH_PROFILE_LOAD_FACTOR
             seg_num++;
 #endif
             cceh_segment *new_seg = new_cceh_segment(tmp_seg->depth + 1);
@@ -160,7 +160,7 @@ void cacheline_concious_extendible_hash::put(Key_t key, Value_t value) {
             mfence();
 
             clflush((char *) &(tmp_seg->depth), sizeof(tmp_seg->depth));
-#ifdef PROFILE_TIME
+#ifdef CCEH_PROFILE_TIME
             gettimeofday(&ends, NULL);
             t2+=(ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
 #endif
@@ -168,10 +168,10 @@ void cacheline_concious_extendible_hash::put(Key_t key, Value_t value) {
             return;
         } else {
             //condition: tmp_seg->depth == global_depth
-#ifdef PROFILE_TIME
+#ifdef CCEH_PROFILE_TIME
             gettimeofday(&start, NULL);
 #endif
-#ifdef PROFILE_LOAD_FACTOR
+#ifdef CCEH_PROFILE_LOAD_FACTOR
             seg_num++;
 #endif
             global_depth += 1;
@@ -210,7 +210,7 @@ void cacheline_concious_extendible_hash::put(Key_t key, Value_t value) {
             mfence();
             clflush((char *) dir, sizeof(dir));
 
-#ifdef PROFILE_TIME
+#ifdef CCEH_PROFILE_TIME
             gettimeofday(&ends, NULL);
             t3+=(ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
 #endif
@@ -219,7 +219,7 @@ void cacheline_concious_extendible_hash::put(Key_t key, Value_t value) {
             return;
         }
     } else {
-#ifdef PROFILE_TIME
+#ifdef CCEH_PROFILE_TIME
         gettimeofday(&start, NULL);
 #endif
         if (unlikely(tmp_bucket->kv[bucket_index].key == key)) {
@@ -236,7 +236,7 @@ void cacheline_concious_extendible_hash::put(Key_t key, Value_t value) {
             mfence();
             clflush((char *) &(tmp_bucket->kv[bucket_index].key), 16);
         }
-#ifdef PROFILE_TIME
+#ifdef CCEH_PROFILE_TIME
         gettimeofday(&ends, NULL);
         t1+=(ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
 #endif
