@@ -26,6 +26,7 @@ extern uint64_t t1, t2, t3;
 
 #ifdef HT_PROFILE_LOAD_FACTOR
 extern uint64_t ht_bucket_num;
+extern uint64_t ht_dir_num;
 #endif
 
 class ht_key_value {

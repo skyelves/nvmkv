@@ -12,6 +12,7 @@ uint64_t t1, t2, t3;
 
 #ifdef HT_PROFILE_LOAD_FACTOR
 uint64_t ht_bucket_num = 0;
+uint64_t ht_dir_num = 0;
 #endif
 
 #define GET_DIR_NUM(key, key_len, depth)  ((key>>(key_len-depth))&(((uint64_t)1<<depth)-1))
@@ -118,6 +119,9 @@ void hashtree_node::init(uint32_t _global_depth, int _key_len) {
 //        dir[i] = new bucket(_global_depth);
         dir[i] = new_ht_bucket(_global_depth);
     }
+#ifdef HT_PROFILE_LOAD_FACTOR
+    ht_dir_num += dir_size;
+#endif
 }
 
 void hashtree_node::put(uint64_t key, uint64_t value) {
@@ -190,6 +194,9 @@ void hashtree_node::put(uint64_t key, uint64_t value) {
             //condition: tmp_bucket->depth == global_depth
 #ifdef HT_PROFILE_TIME
             gettimeofday(&start_time, NULL);
+#endif
+#ifdef HT_PROFILE_LOAD_FACTOR
+            ht_dir_num += dir_size;
 #endif
             global_depth += 1;
             dir_size *= 2;

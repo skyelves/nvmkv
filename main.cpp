@@ -186,13 +186,14 @@ void profile() {
     for (int i = 0; i < testNum; ++i) {
         ht->put(mykey[i], value);
         if (i % 10000 == 0) {
-            out << i << ", " << (double) i / (ht_bucket_num * BUCKET_SIZE) << endl;
+            out << i << ", " << ht_dir_num << endl;
+//            out << i << ", " << (double) i / (ht_bucket_num * BUCKET_SIZE) << endl;
         }
     }
     gettimeofday(&ends, NULL);
     double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
 //    out << cceh->t1 << endl << cceh->t2 << endl << cceh->t3 << endl;
-    out << timeCost << endl;
+//    out << timeCost << endl;
 #ifdef HT_PROFILE_TIME
     out << t1 << endl << t2 << endl << t3 << endl;
 #endif
