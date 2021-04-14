@@ -17,6 +17,8 @@
 
 #define CAS(_p, _u, _v)  (__atomic_compare_exchange_n (_p, _u, _v, false, __ATOMIC_ACQUIRE, __ATOMIC_ACQUIRE))
 #define CCEH_BUCKET_SIZE 2
+#define CCEH_BUCKET_MASK_LEN 8
+#define CCEH_MAX_BUCKET_NUM (2<<CCEH_BUCKET_MASK_LEN)
 
 #define GET_SEG_NUM(key, key_len, depth)  ((key>>(key_len-depth))&(((uint64_t)1<<depth)-1))
 #define GET_BUCKET_NUM(key, bucket_mask_len) ((key)&(((uint64_t)1<<bucket_mask_len)-1))
@@ -45,18 +47,16 @@ class cceh_segment {
 public:
     uint64_t depth = 0;
     uint64_t cnt = 0;
-    uint64_t bucket_mask_len = 8;
-    uint64_t max_num = 256;
     cceh_bucket *bucket;
 
     cceh_segment();
 
     ~cceh_segment();
 
-    void init(uint64_t _depth, uint64_t _bucket_mask_len = 8);
+    void init(uint64_t _depth);
 };
 
-cceh_segment *new_cceh_segment(uint64_t _depth = 0, uint64_t _bucket_mask_len = 8);
+cceh_segment *new_cceh_segment(uint64_t _depth = 0);
 
 class cacheline_concious_extendible_hash {
 public:
