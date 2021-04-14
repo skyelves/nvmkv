@@ -57,15 +57,30 @@ include art/CMakeFiles/nvmkv-art.dir/progress.make
 # Include the compile flags for this target's objects.
 include art/CMakeFiles/nvmkv-art.dir/flags.make
 
+art/CMakeFiles/nvmkv-art.dir/art.cpp.o: art/CMakeFiles/nvmkv-art.dir/flags.make
+art/CMakeFiles/nvmkv-art.dir/art.cpp.o: ../art/art.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object art/CMakeFiles/nvmkv-art.dir/art.cpp.o"
+	cd /Users/wangke/CLionProjects/nvmkv/cmake-build-debug/art && /Library/Developer/CommandLineTools/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/nvmkv-art.dir/art.cpp.o -c /Users/wangke/CLionProjects/nvmkv/art/art.cpp
+
+art/CMakeFiles/nvmkv-art.dir/art.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/nvmkv-art.dir/art.cpp.i"
+	cd /Users/wangke/CLionProjects/nvmkv/cmake-build-debug/art && /Library/Developer/CommandLineTools/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/wangke/CLionProjects/nvmkv/art/art.cpp > CMakeFiles/nvmkv-art.dir/art.cpp.i
+
+art/CMakeFiles/nvmkv-art.dir/art.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/nvmkv-art.dir/art.cpp.s"
+	cd /Users/wangke/CLionProjects/nvmkv/cmake-build-debug/art && /Library/Developer/CommandLineTools/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/wangke/CLionProjects/nvmkv/art/art.cpp -o CMakeFiles/nvmkv-art.dir/art.cpp.s
+
 # Object files for target nvmkv-art
-nvmkv__art_OBJECTS =
+nvmkv__art_OBJECTS = \
+"CMakeFiles/nvmkv-art.dir/art.cpp.o"
 
 # External object files for target nvmkv-art
 nvmkv__art_EXTERNAL_OBJECTS =
 
+art/libnvmkv-art.a: art/CMakeFiles/nvmkv-art.dir/art.cpp.o
 art/libnvmkv-art.a: art/CMakeFiles/nvmkv-art.dir/build.make
 art/libnvmkv-art.a: art/CMakeFiles/nvmkv-art.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Linking CXX static library libnvmkv-art.a"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking CXX static library libnvmkv-art.a"
 	cd /Users/wangke/CLionProjects/nvmkv/cmake-build-debug/art && $(CMAKE_COMMAND) -P CMakeFiles/nvmkv-art.dir/cmake_clean_target.cmake
 	cd /Users/wangke/CLionProjects/nvmkv/cmake-build-debug/art && $(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/nvmkv-art.dir/link.txt --verbose=$(VERBOSE)
 

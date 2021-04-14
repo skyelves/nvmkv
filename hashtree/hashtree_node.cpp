@@ -5,6 +5,10 @@
 #include <stdio.h>
 #include "hashtree_node.h"
 
+#ifdef HT_PROFILE_TIME
+timeval start_time, end_time;
+uint64_t t1, t2, t3;
+#endif
 
 #define GET_DIR_NUM(key, key_len, depth)  ((key>>(key_len-depth))&(((uint64_t)1<<depth)-1))
 //#define GET_DIR_NUM(key, key_len, depth)  ((key>>(key_len-depth))&0xffff)
@@ -117,6 +121,9 @@ void hashtree_node::put(uint64_t key, uint64_t value) {
     if (bucket_index == -1) {
         //condition: full
         if (likely(tmp_bucket->depth < global_depth)) {
+#ifdef HT_PROFILE_TIME
+            gettimeofday(&start_time, NULL);
+#endif
             ht_bucket *new_bucket = new_ht_bucket(tmp_bucket->depth + 1);
             //set dir [left,right)
             int64_t left = index, mid = index, right = index + 1;
@@ -166,11 +173,17 @@ void hashtree_node::put(uint64_t key, uint64_t value) {
             tmp_bucket->depth = tmp_bucket->depth + 1;
             mfence();
             clflush((char *) &(tmp_bucket->depth), sizeof(tmp_bucket->depth));
-
+#ifdef HT_PROFILE_TIME
+            gettimeofday(&end_time, NULL);
+            t2 += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
             put(key, value);
             return;
         } else {
             //condition: tmp_bucket->depth == global_depth
+#ifdef HT_PROFILE_TIME
+            gettimeofday(&start_time, NULL);
+#endif
             global_depth += 1;
             dir_size *= 2;
             //set dir
@@ -201,10 +214,17 @@ void hashtree_node::put(uint64_t key, uint64_t value) {
             dir = new_dir;
             mfence();
             clflush((char *) dir, sizeof(dir));
+#ifdef HT_PROFILE_TIME
+            gettimeofday(&end_time, NULL);
+            t3 += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
             put(key, value);
             return;
         }
     } else {
+#ifdef HT_PROFILE_TIME
+        gettimeofday(&start_time, NULL);
+#endif
         if (unlikely(tmp_bucket->counter[bucket_index].key == key)) {
             //key exists
             tmp_bucket->counter[bucket_index].value = value;
@@ -219,6 +239,10 @@ void hashtree_node::put(uint64_t key, uint64_t value) {
             clflush((char *) &(tmp_bucket->counter[bucket_index].key), 16);
         }
     }
+#ifdef HT_PROFILE_TIME
+    gettimeofday(&end_time, NULL);
+    t1 += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
     return;
 }
 

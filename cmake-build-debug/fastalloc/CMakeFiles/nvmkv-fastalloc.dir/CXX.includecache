@@ -1,0 +1,26 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/Users/wangke/CLionProjects/nvmkv/fastalloc/fastalloc.cpp
+fastalloc.h
+/Users/wangke/CLionProjects/nvmkv/fastalloc/fastalloc.h
+
+/Users/wangke/CLionProjects/nvmkv/fastalloc/fastalloc.h
+iostream
+-
+stdio.h
+-
+cstdlib
+-
+fcntl.h
+-
+string
+-
+sys/mman.h
+-
+

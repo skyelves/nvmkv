@@ -1,0 +1,16 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/Users/wangke/CLionProjects/nvmkv/bobhash/bobhash32.cpp
+bobhash32.h
+/Users/wangke/CLionProjects/nvmkv/bobhash/bobhash32.h
+
+/Users/wangke/CLionProjects/nvmkv/bobhash/bobhash32.h
+stdio.h
+-
+

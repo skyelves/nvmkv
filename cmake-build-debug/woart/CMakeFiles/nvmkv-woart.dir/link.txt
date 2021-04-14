@@ -1,0 +1,2 @@
+/Library/Developer/CommandLineTools/usr/bin/ar qc libnvmkv-woart.a  CMakeFiles/nvmkv-woart.dir/woart.cpp.o
+/Library/Developer/CommandLineTools/usr/bin/ranlib libnvmkv-woart.a

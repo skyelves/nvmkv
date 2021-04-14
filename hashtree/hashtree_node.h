@@ -6,7 +6,7 @@
 #define NVMKV_HASHTREE_NODE_H
 
 #include <cstdint>
-
+#include <sys/time.h>
 #include <math.h>
 #include <cstdint>
 #include "../fastalloc/fastalloc.h"
@@ -15,6 +15,13 @@
 #define unlikely(x) (__builtin_expect(!!(x), 0))
 
 #define BUCKET_SIZE 8
+
+//#define HT_PROFILE_TIME 1
+
+#ifdef HT_PROFILE_TIME
+extern timeval start_time, end_time;
+extern uint64_t t1, t2, t3;
+#endif
 
 class ht_key_value {
 public:

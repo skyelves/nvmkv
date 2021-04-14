@@ -1,0 +1,46 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/Users/wangke/CLionProjects/nvmkv/cceh/cacheline_concious_extendible_hash.cpp
+cacheline_concious_extendible_hash.h
+/Users/wangke/CLionProjects/nvmkv/cceh/cacheline_concious_extendible_hash.h
+
+/Users/wangke/CLionProjects/nvmkv/cceh/cacheline_concious_extendible_hash.h
+iostream
+-
+stdio.h
+-
+sys/time.h
+-
+cstring
+-
+cmath
+-
+vector
+-
+pthread.h
+-
+iostream
+-
+../fastalloc/fastalloc.h
+/Users/wangke/CLionProjects/nvmkv/fastalloc/fastalloc.h
+
+/Users/wangke/CLionProjects/nvmkv/fastalloc/fastalloc.h
+iostream
+-
+stdio.h
+-
+cstdlib
+-
+fcntl.h
+-
+string
+-
+sys/mman.h
+-
+

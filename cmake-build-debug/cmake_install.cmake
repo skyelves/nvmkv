@@ -44,12 +44,12 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/blink/cmake_install.cmake")
+  include("/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/fastalloc/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/cart/cmake_install.cmake")
+  include("/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/blink/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
@@ -79,7 +79,22 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/extendibleHash/cmake_install.cmake")
+  include("/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/art/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/wort/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/woart/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/cceh/cmake_install.cmake")
 endif()
 
 if(CMAKE_INSTALL_COMPONENT)

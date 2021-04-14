@@ -13,9 +13,6 @@
  * key [______|___________|____________]
  */
 #define GET_SUB_KEY(key, begin, len)  (((key)>>(64-(begin)-(len)))&(((uint64_t)1<<(len))-1))
-//len should less than 32
-//#define GET_SUB_KEY(key, begin, len)  ((key>>(64-begin-len))&(0xffff))
-//#define GET_SUB_KEY(key, begin, len)  ((key>>(64-begin-len))&(0xff))
 
 inline void mfence(void) {
     asm volatile("mfence":: :"memory");

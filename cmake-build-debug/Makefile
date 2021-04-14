@@ -150,6 +150,19 @@ nvmkv-allocator/fast:
 .PHONY : nvmkv-allocator/fast
 
 #=============================================================================
+# Target rules for targets named nvmkv-fastalloc
+
+# Build rule for target.
+nvmkv-fastalloc: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 nvmkv-fastalloc
+.PHONY : nvmkv-fastalloc
+
+# fast build rule for target.
+nvmkv-fastalloc/fast:
+	$(MAKE) -f fastalloc/CMakeFiles/nvmkv-fastalloc.dir/build.make fastalloc/CMakeFiles/nvmkv-fastalloc.dir/build
+.PHONY : nvmkv-fastalloc/fast
+
+#=============================================================================
 # Target rules for targets named nvmkv-blink
 
 # Build rule for target.
@@ -161,19 +174,6 @@ nvmkv-blink: cmake_check_build_system
 nvmkv-blink/fast:
 	$(MAKE) -f blink/CMakeFiles/nvmkv-blink.dir/build.make blink/CMakeFiles/nvmkv-blink.dir/build
 .PHONY : nvmkv-blink/fast
-
-#=============================================================================
-# Target rules for targets named nvmkv-cart
-
-# Build rule for target.
-nvmkv-cart: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 nvmkv-cart
-.PHONY : nvmkv-cart
-
-# fast build rule for target.
-nvmkv-cart/fast:
-	$(MAKE) -f cart/CMakeFiles/nvmkv-cart.dir/build.make cart/CMakeFiles/nvmkv-cart.dir/build
-.PHONY : nvmkv-cart/fast
 
 #=============================================================================
 # Target rules for targets named nvmkv-mass
@@ -241,17 +241,56 @@ nvmkv-bobhash32/fast:
 .PHONY : nvmkv-bobhash32/fast
 
 #=============================================================================
-# Target rules for targets named nvmkv-extendible_hash
+# Target rules for targets named nvmkv-art
 
 # Build rule for target.
-nvmkv-extendible_hash: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 nvmkv-extendible_hash
-.PHONY : nvmkv-extendible_hash
+nvmkv-art: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 nvmkv-art
+.PHONY : nvmkv-art
 
 # fast build rule for target.
-nvmkv-extendible_hash/fast:
-	$(MAKE) -f extendibleHash/CMakeFiles/nvmkv-extendible_hash.dir/build.make extendibleHash/CMakeFiles/nvmkv-extendible_hash.dir/build
-.PHONY : nvmkv-extendible_hash/fast
+nvmkv-art/fast:
+	$(MAKE) -f art/CMakeFiles/nvmkv-art.dir/build.make art/CMakeFiles/nvmkv-art.dir/build
+.PHONY : nvmkv-art/fast
+
+#=============================================================================
+# Target rules for targets named nvmkv-wort
+
+# Build rule for target.
+nvmkv-wort: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 nvmkv-wort
+.PHONY : nvmkv-wort
+
+# fast build rule for target.
+nvmkv-wort/fast:
+	$(MAKE) -f wort/CMakeFiles/nvmkv-wort.dir/build.make wort/CMakeFiles/nvmkv-wort.dir/build
+.PHONY : nvmkv-wort/fast
+
+#=============================================================================
+# Target rules for targets named nvmkv-woart
+
+# Build rule for target.
+nvmkv-woart: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 nvmkv-woart
+.PHONY : nvmkv-woart
+
+# fast build rule for target.
+nvmkv-woart/fast:
+	$(MAKE) -f woart/CMakeFiles/nvmkv-woart.dir/build.make woart/CMakeFiles/nvmkv-woart.dir/build
+.PHONY : nvmkv-woart/fast
+
+#=============================================================================
+# Target rules for targets named nvmkv-cceh
+
+# Build rule for target.
+nvmkv-cceh: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 nvmkv-cceh
+.PHONY : nvmkv-cceh
+
+# fast build rule for target.
+nvmkv-cceh/fast:
+	$(MAKE) -f cceh/CMakeFiles/nvmkv-cceh.dir/build.make cceh/CMakeFiles/nvmkv-cceh.dir/build
+.PHONY : nvmkv-cceh/fast
 
 main.o: main.cpp.o
 
@@ -291,14 +330,17 @@ help:
 	@echo "... nvmkv"
 	@echo "... nvmkv-node"
 	@echo "... nvmkv-allocator"
+	@echo "... nvmkv-fastalloc"
 	@echo "... nvmkv-blink"
-	@echo "... nvmkv-cart"
 	@echo "... nvmkv-mass"
 	@echo "... nvmkv-rng"
 	@echo "... nvmkv-ht"
 	@echo "... nvmkv-murmur"
 	@echo "... nvmkv-bobhash32"
-	@echo "... nvmkv-extendible_hash"
+	@echo "... nvmkv-art"
+	@echo "... nvmkv-wort"
+	@echo "... nvmkv-woart"
+	@echo "... nvmkv-cceh"
 	@echo "... main.o"
 	@echo "... main.i"
 	@echo "... main.s"

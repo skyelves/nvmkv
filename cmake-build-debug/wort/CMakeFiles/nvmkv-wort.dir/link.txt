@@ -1,0 +1,2 @@
+/Library/Developer/CommandLineTools/usr/bin/ar qc libnvmkv-wort.a  CMakeFiles/nvmkv-wort.dir/wort.cpp.o
+/Library/Developer/CommandLineTools/usr/bin/ranlib libnvmkv-wort.a

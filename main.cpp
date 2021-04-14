@@ -37,7 +37,7 @@ int testNum = 100000;
 int numThread = 1;
 
 int test_algorithms_num = 10;
-bool test_case[10] = {1, // ht
+bool test_case[10] = {0, // ht
                       0, // art
                       0, // wort
                       0, // woart
@@ -147,8 +147,8 @@ void correctnessTest() {
     for (int i = 0; i < testNum; ++i) {
         mykey[i] = rng_next(&r);
         mm[mykey[i]] = i + 1;
-//        ht->put(mykey[i], i + 1);
-        ht->crash_consistent_put(NULL, mykey[i], i + 1, 0);
+        cceh->put(mykey[i], i + 1);
+//        ht->crash_consistent_put(NULL, mykey[i], i + 1, 0);
 //        for (int j = 0; j < testNum; ++j) {
 //            int64_t res = cceh->get(mykey[j]);
 //            if (res != mm[mykey[j]]) {
@@ -161,7 +161,7 @@ void correctnessTest() {
 
     int64_t res = 0;
     for (int i = 0; i < testNum; ++i) {
-        res = ht->get(mykey[i]);
+        res = cceh->get(mykey[i]);
         if (res != mm[mykey[i]]) {
             cout << i << ", " << mykey[i] << ", " << res << ", " << mm[mykey[i]] << endl;
 //            return;
@@ -171,7 +171,7 @@ void correctnessTest() {
     return;
 }
 
-void cceh_profile() {
+void profile() {
     ofstream out;
     out.open("/Users/wangke/Desktop/cceh_profile.csv");
     mykey = new uint64_t[testNum];
@@ -184,12 +184,15 @@ void cceh_profile() {
     timeval start, ends;
     gettimeofday(&start, NULL);
     for (int i = 0; i < testNum; ++i) {
-        cceh->put(mykey[i], value);
+        ht->put(mykey[i], value);
     }
     gettimeofday(&ends, NULL);
     double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
-    out << cceh->t1 << endl << cceh->t2 << endl << cceh->t3 << endl;
+//    out << cceh->t1 << endl << cceh->t2 << endl << cceh->t3 << endl;
     out << timeCost << endl;
+#ifdef HT_PROFILE_TIME
+    out << t1 << endl << t2 << endl << t3 << endl;
+#endif
     out.close();
 }
 
@@ -205,9 +208,9 @@ int main(int argc, char *argv[]) {
     cceh = new_cceh();
 //    mt = new_mass_tree();
 //    bt = new_blink_tree(numThread);
-    speedTest();
+//    speedTest();
 //    correctnessTest();
-//    cceh_profile();
+    profile();
 //    cout << ht->node_cnt << endl;
 //    cout << ht->get_access << endl;
     fast_free();

@@ -80,15 +80,18 @@ nvmkv_EXTERNAL_OBJECTS =
 nvmkv: CMakeFiles/nvmkv.dir/main.cpp.o
 nvmkv: CMakeFiles/nvmkv.dir/build.make
 nvmkv: blink/libnvmkv-blink.a
-nvmkv: cart/libnvmkv-cart.a
 nvmkv: mass/libnvmkv-mass.a
 nvmkv: rng/libnvmkv-rng.a
 nvmkv: hashtree/libnvmkv-ht.a
-nvmkv: extendibleHash/libnvmkv-extendible_hash.a
 nvmkv: murmur/libnvmkv-murmur.a
 nvmkv: bobhash/libnvmkv-bobhash32.a
-nvmkv: node/libnvmkv-node.a
+nvmkv: art/libnvmkv-art.a
+nvmkv: wort/libnvmkv-wort.a
+nvmkv: woart/libnvmkv-woart.a
+nvmkv: cceh/libnvmkv-cceh.a
 nvmkv: allocator/libnvmkv-allocator.a
+nvmkv: node/libnvmkv-node.a
+nvmkv: fastalloc/libnvmkv-fastalloc.a
 nvmkv: CMakeFiles/nvmkv.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/Users/wangke/CLionProjects/nvmkv/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking CXX executable nvmkv"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/nvmkv.dir/link.txt --verbose=$(VERBOSE)

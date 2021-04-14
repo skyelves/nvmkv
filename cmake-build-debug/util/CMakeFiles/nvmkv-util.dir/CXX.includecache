@@ -1,0 +1,20 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/Users/wangke/CLionProjects/nvmkv/util/util.cpp
+util.h
+/Users/wangke/CLionProjects/nvmkv/util/util.h
+
+/Users/wangke/CLionProjects/nvmkv/util/util.h
+stdio.h
+-
+iostream
+-
+sys/time.h
+-
+
