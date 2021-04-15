@@ -24,7 +24,7 @@
 #define GET_BUCKET_NUM(key, bucket_mask_len) ((key)&(((uint64_t)1<<bucket_mask_len)-1))
 
 //#define CCEH_PROFILE_TIME 1
-#define CCEH_PROFILE_LOAD_FACTOR 1
+//#define CCEH_PROF ILE_LOAD_FACTOR 1
 
 #ifdef CCEH_PROFILE_TIME
 extern timeval start_time, end_time;
