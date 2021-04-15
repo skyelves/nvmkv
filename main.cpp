@@ -147,7 +147,7 @@ void correctnessTest() {
     for (int i = 0; i < testNum; ++i) {
         mykey[i] = rng_next(&r);
         mm[mykey[i]] = i + 1;
-        cceh->put(mykey[i], i + 1);
+        ht->put(mykey[i], i + 1);
 //        ht->crash_consistent_put(NULL, mykey[i], i + 1, 0);
 //        for (int j = 0; j < testNum; ++j) {
 //            int64_t res = cceh->get(mykey[j]);
@@ -161,7 +161,7 @@ void correctnessTest() {
 
     int64_t res = 0;
     for (int i = 0; i < testNum; ++i) {
-        res = cceh->get(mykey[i]);
+        res = ht->get(mykey[i]);
         if (res != mm[mykey[i]]) {
             cout << i << ", " << mykey[i] << ", " << res << ", " << mm[mykey[i]] << endl;
 //            return;
@@ -186,8 +186,8 @@ void profile() {
     for (int i = 0; i < testNum; ++i) {
         cceh->put(mykey[i], value);
         if (i % 10000 == 0) {
-            out << i << ", " << cceh->dir_size << endl;
-            cout << cceh_seg_num << endl;
+//            out << i << ", " << cceh->dir_size << endl;
+//            cout << cceh_seg_num << endl;
 //            out << i << ", " << (double) i / (cceh_seg_num * CCEH_BUCKET_SIZE * CCEH_MAX_BUCKET_NUM) << endl;
 //            out << i << ", " << ht_dir_num << endl;
 //            out << i << ", " << (double) i / (ht_bucket_num * BUCKET_SIZE) << endl;
@@ -197,9 +197,6 @@ void profile() {
     double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
 //    out << t1 << endl << t2 << endl << t3 << endl;
 //    out << timeCost << endl;
-#ifdef HT_PROFILE_TIME
-    out << t1 << endl << t2 << endl << t3 << endl;
-#endif
     out.close();
 }
 
@@ -215,9 +212,9 @@ int main(int argc, char *argv[]) {
     cceh = new_cceh();
 //    mt = new_mass_tree();
 //    bt = new_blink_tree(numThread);
-//    speedTest();
+    speedTest();
 //    correctnessTest();
-    profile();
+//    profile();
 //    cout << ht->node_cnt << endl;
 //    cout << ht->get_access << endl;
     fast_free();

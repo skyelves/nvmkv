@@ -36,12 +36,6 @@ hashtree.h
 hashtree_node.h
 /Users/wangke/CLionProjects/nvmkv/hashtree/hashtree_node.h
 
-/Users/wangke/CLionProjects/nvmkv/hashtree/hashtree_node.cpp
-stdio.h
--
-hashtree_node.h
-/Users/wangke/CLionProjects/nvmkv/hashtree/hashtree_node.h
-
 /Users/wangke/CLionProjects/nvmkv/hashtree/hashtree_node.h
 cstdint
 -

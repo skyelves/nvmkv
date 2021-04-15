@@ -30,7 +30,7 @@ inline void clflush(char *data, size_t len) {
 hashtree::hashtree() {
     root = new_hashtree_node(init_depth, span);
 //    root = new_extendible_hash(init_depth, span);
-    node_cnt++;
+//    node_cnt++;
 }
 
 hashtree::hashtree(int _span, int _init_depth) {
@@ -38,7 +38,7 @@ hashtree::hashtree(int _span, int _init_depth) {
     init_depth = _init_depth;
     root = new_hashtree_node(init_depth, _span);
 //    root = new_extendible_hash(init_depth, span);
-    node_cnt++;
+//    node_cnt++;
 }
 
 hashtree::~hashtree() {
@@ -54,7 +54,7 @@ void hashtree::init(int _span, int _init_depth) {
     init_depth = _init_depth;
     root = new_hashtree_node(init_depth, span_test[0]);
 //    root = new_extendible_hash(init_depth, span);
-    node_cnt++;
+//    node_cnt++;
 }
 
 hashtree *new_hashtree(int _span, int _init_depth) {
@@ -69,9 +69,6 @@ void hashtree::crash_consistent_put(hashtree_node *_node, uint64_t k, uint64_t v
     if (_node == NULL)
         tmp = root;
 
-    ht_key_value *kv = new_ht_key_value(k, v);
-    mfence();
-    clflush((char *) kv, sizeof(ht_key_value));
 
     uint64_t sub_key;
     int i = 0, j = 0;
@@ -83,6 +80,9 @@ void hashtree::crash_consistent_put(hashtree_node *_node, uint64_t k, uint64_t v
         uint64_t next = tmp->get(sub_key);
         if (next == 0) {
             //not exists
+            ht_key_value *kv = new_ht_key_value(k, v);
+            mfence();
+            clflush((char *) kv, sizeof(ht_key_value));
             tmp->put(sub_key, (uint64_t) kv);//crash consistency operations
             return;
         } else {
@@ -102,12 +102,8 @@ void hashtree::crash_consistent_put(hashtree_node *_node, uint64_t k, uint64_t v
                     new_node->put(pre_k_next_sub_key, (uint64_t) next);
                     crash_consistent_put(new_node, k, v, j + 1);
                     tmp->put(sub_key, (uint64_t) new_node);
-                    node_cnt++;
+//                    node_cnt++;
                     return;
-                    /* todo: for crash consistency,
-                     * tmp->put(sub_key, (uint64_t) new_eh);
-                     * should be the last operation
-                     */
                 }
             } else {
                 // next is next extendible hash
@@ -149,7 +145,7 @@ void hashtree::put(uint64_t k, uint64_t v) {
                     new_node->put(pre_k_next_sub_key, (uint64_t) next);
                     tmp->put(sub_key, (uint64_t) new_node);
                     tmp = new_node;
-                    node_cnt++;
+//                    node_cnt++;
                     /* todo: for crash consistency,
                      * tmp->put(sub_key, (uint64_t) new_eh);
                      * should be the last operation
