@@ -25,18 +25,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="a7d8e42b-0243-4f2b-af7e-00eff78c18b0" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cceh/cacheline_concious_extendible_hash.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/cceh/cacheline_concious_extendible_hash.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cceh/cacheline_concious_extendible_hash.h" beforeDir="false" afterPath="$PROJECT_DIR$/cceh/cacheline_concious_extendible_hash.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/nvmkv.dir/main.cpp.o" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/cceh/CMakeFiles/nvmkv-cceh.dir/cacheline_concious_extendible_hash.cpp.o" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/cceh/CMakeFiles/nvmkv-cceh.dir/cacheline_concious_extendible_hash.cpp.o" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/cceh/libnvmkv-cceh.a" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/cceh/libnvmkv-cceh.a" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmake-build-debug/nvmkv" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/nvmkv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hashtree/hashtree.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/hashtree/hashtree.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hashtree/hashtree_node.h" beforeDir="false" afterPath="$PROJECT_DIR$/hashtree/hashtree_node.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cmake-build-debug/nvmkv" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/main.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/util/CMakeLists.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/util/util.cpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/util/util.h" beforeDir="false" />
     </list>
     <ignored path="$PROJECT_DIR$/cmake-build-debug/" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -67,11 +59,11 @@
     <splitter split-orientation="horizontal" split-proportion="0.5">
       <split-first>
         <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-          <file pinned="false" current-in-tab="false">
+          <file pinned="false" current-in-tab="true">
             <entry file="file://$PROJECT_DIR$/main.cpp">
               <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="608">
-                  <caret line="207" column="26" selection-start-line="207" selection-start-column="26" selection-end-line="207" selection-end-column="26" />
+                <state relative-caret-position="392">
+                  <caret line="193" column="9" lean-forward="true" selection-start-line="193" selection-start-column="9" selection-end-line="193" selection-end-column="9" />
                   <folding>
                     <element signature="e#0#19#0" expanded="true" />
                     <element signature="e#6741#6787#0" expanded="true" />
@@ -95,8 +87,8 @@
           <file pinned="false" current-in-tab="false">
             <entry file="file://$PROJECT_DIR$/hashtree/hashtree_node.cpp">
               <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="469">
-                  <caret line="267" column="15" selection-start-line="267" selection-start-column="15" selection-end-line="267" selection-end-column="15" />
+                <state relative-caret-position="294">
+                  <caret line="93" column="33" lean-forward="true" selection-start-line="93" selection-start-column="33" selection-end-line="93" selection-end-column="33" />
                   <folding>
                     <element signature="e#39#57#0" expanded="true" />
                   </folding>
@@ -104,14 +96,11 @@
               </provider>
             </entry>
           </file>
-          <file pinned="false" current-in-tab="true">
-            <entry file="file://$PROJECT_DIR$/cceh/cacheline_concious_extendible_hash.h">
+          <file pinned="false" current-in-tab="false">
+            <entry file="file://$PROJECT_DIR$/cceh/cacheline_concious_extendible_hash.cpp">
               <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="493">
-                  <caret line="29" column="25" lean-forward="true" selection-start-line="29" selection-start-column="25" selection-end-line="29" selection-end-column="25" />
-                  <folding>
-                    <element signature="e#142#161#0" expanded="true" />
-                  </folding>
+                <state relative-caret-position="151">
+                  <caret line="10" selection-start-line="10" selection-end-line="10" />
                 </state>
               </provider>
             </entry>
@@ -129,15 +118,28 @@
               </provider>
             </entry>
           </file>
-          <file pinned="false" current-in-tab="true">
+          <file pinned="false" current-in-tab="false">
             <entry file="file://$PROJECT_DIR$/hashtree/hashtree_node.h">
               <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="271">
-                  <caret line="16" column="21" selection-start-line="16" selection-start-column="21" selection-end-line="16" selection-end-column="21" />
+                <state relative-caret-position="50">
+                  <caret line="3" lean-forward="true" selection-start-line="3" selection-end-line="3" />
                   <folding>
                     <element signature="e#100#118#0" expanded="true" />
                     <element signature="e#424#488#0" expanded="true" />
                     <element signature="e#527#585#0" expanded="true" />
+                  </folding>
+                </state>
+              </provider>
+            </entry>
+          </file>
+          <file pinned="false" current-in-tab="true">
+            <entry file="file://$PROJECT_DIR$/cceh/cacheline_concious_extendible_hash.h">
+              <provider selected="true" editor-type-id="text-editor">
+                <state relative-caret-position="410">
+                  <caret line="37" column="22" selection-start-line="37" selection-start-column="22" selection-end-line="37" selection-end-column="22" />
+                  <folding>
+                    <element signature="e#142#161#0" expanded="true" />
+                    <element signature="e#831#895#0" expanded="true" />
                   </folding>
                 </state>
               </provider>
@@ -179,13 +181,13 @@
       <find>concurrent_adaptive_radix_tree_get</find>
       <find>new</find>
       <find>#if (PROFILE==1)</find>
-      <find>ends</find>
       <find>bucket_mask_len</find>
       <find>max_num</find>
       <find>new_cceh_segment</find>
       <find>t1</find>
       <find>dir_size</find>
       <find>span</find>
+      <find>ends</find>
     </findStrings>
     <replaceStrings>
       <replace>new_block</replace>
@@ -247,13 +249,13 @@
         <option value="$PROJECT_DIR$/hashtree/hashtree.h" />
         <option value="$PROJECT_DIR$/CMakeLists.txt" />
         <option value="$PROJECT_DIR$/hashtree/util.h" />
-        <option value="$PROJECT_DIR$/cceh/cacheline_concious_extendible_hash.cpp" />
         <option value="$PROJECT_DIR$/hashtree/hashtree_node.cpp" />
         <option value="$PROJECT_DIR$/fastalloc/fastalloc.h" />
         <option value="$PROJECT_DIR$/hashtree/hashtree.cpp" />
-        <option value="$PROJECT_DIR$/main.cpp" />
         <option value="$PROJECT_DIR$/hashtree/hashtree_node.h" />
         <option value="$PROJECT_DIR$/cceh/cacheline_concious_extendible_hash.h" />
+        <option value="$PROJECT_DIR$/cceh/cacheline_concious_extendible_hash.cpp" />
+        <option value="$PROJECT_DIR$/main.cpp" />
       </list>
     </option>
   </component>
@@ -439,29 +441,29 @@
       <workItem from="1615791867327" duration="33000" />
       <workItem from="1615876168429" duration="26168000" />
       <workItem from="1618315000518" duration="11061000" />
-      <workItem from="1618381731216" duration="4710000" />
+      <workItem from="1618381731216" duration="6081000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="173707000" />
+    <option name="totallyTimeSpent" value="175078000" />
   </component>
   <component name="ToolWindowManager">
-    <frame x="0" y="0" width="1920" height="1080" extended-state="0" />
+    <frame x="0" y="0" width="1680" height="1050" extended-state="0" />
     <editor active="true" />
     <layout>
-      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.14749734" />
+      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.16910867" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" weight="0.32970297" />
-      <window_info active="true" anchor="bottom" id="Run" order="2" visible="true" weight="0.3059406" />
+      <window_info active="true" anchor="bottom" id="Run" order="2" visible="true" weight="0.31530613" />
       <window_info anchor="bottom" id="Debug" order="3" weight="0.34725052" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
       <window_info anchor="bottom" id="TODO" order="6" />
       <window_info anchor="bottom" id="Database Changes" order="7" />
-      <window_info anchor="bottom" id="Messages" order="8" weight="0.32673267" />
+      <window_info anchor="bottom" id="Messages" order="8" weight="0.3265306" />
       <window_info anchor="bottom" id="Terminal" order="9" weight="0.3237624" />
       <window_info anchor="bottom" id="Event Log" order="10" side_tool="true" />
       <window_info anchor="bottom" id="CMake" order="11" weight="0.319802" />
@@ -672,13 +674,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/cceh/cacheline_concious_extendible_hash.cpp">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="2012">
-          <caret line="160" lean-forward="true" selection-start-line="160" selection-end-line="160" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/util/util.h">
       <provider selected="true" editor-type-id="text-editor" />
     </entry>
@@ -704,16 +699,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/hashtree/hashtree_node.cpp">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="469">
-          <caret line="267" column="15" selection-start-line="267" selection-start-column="15" selection-end-line="267" selection-end-column="15" />
-          <folding>
-            <element signature="e#39#57#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/hashtree/hashtree.h">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="272">
@@ -721,21 +706,10 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/main.cpp">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="608">
-          <caret line="207" column="26" selection-start-line="207" selection-start-column="26" selection-end-line="207" selection-end-column="26" />
-          <folding>
-            <element signature="e#0#19#0" expanded="true" />
-            <element signature="e#6741#6787#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/hashtree/hashtree_node.h">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="271">
-          <caret line="16" column="21" selection-start-line="16" selection-start-column="21" selection-end-line="16" selection-end-column="21" />
+        <state relative-caret-position="50">
+          <caret line="3" lean-forward="true" selection-start-line="3" selection-end-line="3" />
           <folding>
             <element signature="e#100#118#0" expanded="true" />
             <element signature="e#424#488#0" expanded="true" />
@@ -744,12 +718,41 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/hashtree/hashtree_node.cpp">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="294">
+          <caret line="93" column="33" lean-forward="true" selection-start-line="93" selection-start-column="33" selection-end-line="93" selection-end-column="33" />
+          <folding>
+            <element signature="e#39#57#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/cceh/cacheline_concious_extendible_hash.cpp">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="151">
+          <caret line="10" selection-start-line="10" selection-end-line="10" />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/cceh/cacheline_concious_extendible_hash.h">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="493">
-          <caret line="29" column="25" lean-forward="true" selection-start-line="29" selection-start-column="25" selection-end-line="29" selection-end-column="25" />
+        <state relative-caret-position="410">
+          <caret line="37" column="22" selection-start-line="37" selection-start-column="22" selection-end-line="37" selection-end-column="22" />
           <folding>
             <element signature="e#142#161#0" expanded="true" />
+            <element signature="e#831#895#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/main.cpp">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="392">
+          <caret line="193" column="9" lean-forward="true" selection-start-line="193" selection-start-column="9" selection-end-line="193" selection-end-column="9" />
+          <folding>
+            <element signature="e#0#19#0" expanded="true" />
+            <element signature="e#6741#6787#0" expanded="true" />
           </folding>
         </state>
       </provider>

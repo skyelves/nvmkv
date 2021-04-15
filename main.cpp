@@ -184,15 +184,18 @@ void profile() {
     timeval start, ends;
     gettimeofday(&start, NULL);
     for (int i = 0; i < testNum; ++i) {
-        ht->put(mykey[i], value);
+        cceh->put(mykey[i], value);
         if (i % 10000 == 0) {
+            out << i << ", " << cceh->dir_size << endl;
+            cout << cceh_seg_num << endl;
+//            out << i << ", " << (double) i / (cceh_seg_num * CCEH_BUCKET_SIZE * CCEH_MAX_BUCKET_NUM) << endl;
 //            out << i << ", " << ht_dir_num << endl;
 //            out << i << ", " << (double) i / (ht_bucket_num * BUCKET_SIZE) << endl;
         }
     }
     gettimeofday(&ends, NULL);
     double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
-//    out << cceh->t1 << endl << cceh->t2 << endl << cceh->t3 << endl;
+//    out << t1 << endl << t2 << endl << t3 << endl;
 //    out << timeCost << endl;
 #ifdef HT_PROFILE_TIME
     out << t1 << endl << t2 << endl << t3 << endl;
@@ -212,9 +215,9 @@ int main(int argc, char *argv[]) {
     cceh = new_cceh();
 //    mt = new_mass_tree();
 //    bt = new_blink_tree(numThread);
-    speedTest();
+//    speedTest();
 //    correctnessTest();
-//    profile();
+    profile();
 //    cout << ht->node_cnt << endl;
 //    cout << ht->get_access << endl;
     fast_free();
