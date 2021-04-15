@@ -37,10 +37,10 @@ int testNum = 100000;
 int numThread = 1;
 
 int test_algorithms_num = 10;
-bool test_case[10] = {0, // ht
+bool test_case[10] = {1, // ht
                       0, // art
-                      0, // wort
-                      0, // woart
+                      1, // wort
+                      1, // woart
                       1, // cacheline_concious_extendible_hash
                       0};
 
@@ -186,7 +186,7 @@ void profile() {
     for (int i = 0; i < testNum; ++i) {
         ht->put(mykey[i], value);
         if (i % 10000 == 0) {
-            out << i << ", " << ht_dir_num << endl;
+//            out << i << ", " << ht_dir_num << endl;
 //            out << i << ", " << (double) i / (ht_bucket_num * BUCKET_SIZE) << endl;
         }
     }
@@ -205,16 +205,16 @@ int main(int argc, char *argv[]) {
     sscanf(argv[1], "%d", &numThread);
     sscanf(argv[2], "%d", &testNum);
     init_fast_allocator();
-    ht = new_hashtree(32, 0);
+    ht = new_hashtree(64, 0);
     art = new_art_tree();
     wort = new_wort_tree();
     woart = new_woart_tree();
     cceh = new_cceh();
 //    mt = new_mass_tree();
 //    bt = new_blink_tree(numThread);
-//    speedTest();
+    speedTest();
 //    correctnessTest();
-    profile();
+//    profile();
 //    cout << ht->node_cnt << endl;
 //    cout << ht->get_access << endl;
     fast_free();

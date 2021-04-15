@@ -16,7 +16,7 @@
 #include "../fastalloc/fastalloc.h"
 
 #define CAS(_p, _u, _v)  (__atomic_compare_exchange_n (_p, _u, _v, false, __ATOMIC_ACQUIRE, __ATOMIC_ACQUIRE))
-#define CCEH_BUCKET_SIZE 2
+#define CCEH_BUCKET_SIZE 8
 #define CCEH_BUCKET_MASK_LEN 8
 #define CCEH_MAX_BUCKET_NUM (2<<CCEH_BUCKET_MASK_LEN)
 

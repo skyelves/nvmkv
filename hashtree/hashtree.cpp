@@ -47,13 +47,13 @@ hashtree::~hashtree() {
 
 void hashtree::init(int _span, int _init_depth) {
     span = _span;
-    init_depth = _init_depth;
-    root = new_hashtree_node(init_depth, _span);
-//    root = new_extendible_hash(init_depth, span);
     span_test[0] = 32;
     span_test[1] = 16;
     span_test[2] = 8;
     span_test[3] = 8;
+    init_depth = _init_depth;
+    root = new_hashtree_node(init_depth, span_test[0]);
+//    root = new_extendible_hash(init_depth, span);
     node_cnt++;
 }
 
