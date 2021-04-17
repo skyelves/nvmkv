@@ -17,6 +17,8 @@
 
 using namespace std;
 
+ofstream out;
+
 #define Time_BODY(condition, name, func)                                                        \
     if(condition) {                                                                             \
         sleep(1);                                                                               \
@@ -80,6 +82,7 @@ void *putFunc(void *arg) {
 }
 
 void speedTest() {
+    out.open("/home/wangke/nvmkv/res.txt");
     mykey = new uint64_t[testNum];
     rng r;
     rng_init(&r, 1, 2);
@@ -136,6 +139,8 @@ void speedTest() {
 
     // query speed for cceh
     Time_BODY(test_case[4], "cceh get ", { cceh->get(mykey[i]); })
+
+    out.close();
 }
 
 void correctnessTest() {
@@ -172,7 +177,6 @@ void correctnessTest() {
 }
 
 void profile() {
-    ofstream out;
     out.open("/Users/wangke/Desktop/cceh_profile.csv");
     mykey = new uint64_t[testNum];
     rng r;
