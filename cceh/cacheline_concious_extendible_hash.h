@@ -20,9 +20,6 @@
 #define CCEH_BUCKET_MASK_LEN 8
 #define CCEH_MAX_BUCKET_NUM (2<<CCEH_BUCKET_MASK_LEN)
 
-#define GET_SEG_NUM(key, key_len, depth)  ((key>>(key_len-depth))&(((uint64_t)1<<depth)-1))
-#define GET_BUCKET_NUM(key, bucket_mask_len) ((key)&(((uint64_t)1<<bucket_mask_len)-1))
-
 //#define CCEH_PROFILE_TIME 1
 //#define CCEH_PROF ILE_LOAD_FACTOR 1
 

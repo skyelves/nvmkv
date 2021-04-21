@@ -2,6 +2,9 @@
 
 using namespace std;
 
+#define GET_SEG_NUM(key, key_len, depth)  ((key>>(key_len-depth))&(((uint64_t)1<<depth)-1))
+#define GET_BUCKET_NUM(key, bucket_mask_len) ((key)&(((uint64_t)1<<bucket_mask_len)-1))
+
 #ifdef CCEH_PROFILE_TIME
 timeval start_time, end_time;
 uint64_t t1 = 0, t2 = 0, t3 = 0;
