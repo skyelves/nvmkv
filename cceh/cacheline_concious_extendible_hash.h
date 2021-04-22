@@ -18,7 +18,7 @@
 #define CAS(_p, _u, _v)  (__atomic_compare_exchange_n (_p, _u, _v, false, __ATOMIC_ACQUIRE, __ATOMIC_ACQUIRE))
 #define CCEH_BUCKET_SIZE 8
 #define CCEH_BUCKET_MASK_LEN 8
-#define CCEH_MAX_BUCKET_NUM (2<<CCEH_BUCKET_MASK_LEN)
+#define CCEH_MAX_BUCKET_NUM (1<<CCEH_BUCKET_MASK_LEN)
 
 //#define CCEH_PROFILE_TIME 1
 //#define CCEH_PROFILE_LOAD_FACTOR 1
