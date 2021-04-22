@@ -15,8 +15,8 @@ uint64_t ht_bucket_num = 0;
 uint64_t ht_dir_num = 0;
 #endif
 
-#define GET_DIR_NUM(key, key_len, depth)  ((key>>(key_len-depth))&(((uint64_t)1<<depth)-1))
-//#define GET_DIR_NUM(key, key_len, depth)  ((key>>(key_len-depth))&0xffff)
+#define GET_SEG_NUM(key, key_len, depth)  ((key>>(key_len-depth))&(((uint64_t)1<<depth)-1))
+#define GET_BUCKET_NUM(key, bucket_mask_len) ((key)&(((uint64_t)1<<bucket_mask_len)-1))
 
 inline void mfence(void) {
     asm volatile("mfence":: :"memory");
@@ -39,22 +39,8 @@ ht_key_value *new_ht_key_value(uint64_t key, uint64_t value) {
     return _new_key_value;
 }
 
-ht_bucket::ht_bucket() {}
-
-ht_bucket::ht_bucket(int _depth) {
-    depth = _depth;
-}
-
-inline void ht_bucket::init(int _depth) {
-    depth = _depth;
-}
-
-void ht_bucket::set_depth(int _depth) {
-    depth = _depth;
-}
-
 uint64_t ht_bucket::get(uint64_t key) {
-    for (int i = 0; i < BUCKET_SIZE; ++i) {
+    for (int i = 0; i < HT_BUCKET_SIZE; ++i) {
         if (key == counter[i].key) {
             return counter[i].value;
         }
@@ -62,17 +48,17 @@ uint64_t ht_bucket::get(uint64_t key) {
     return 0;
 }
 
-int ht_bucket::find_place(uint64_t _key, uint64_t _key_len) {
+int ht_bucket::find_place(uint64_t _key, uint64_t _key_len, uint64_t _depth) {
     // full: return -1
     // exists or not full: return index or empty counter
     int res = -1;
-    for (int i = 0; i < BUCKET_SIZE; ++i) {
+    for (int i = 0; i < HT_BUCKET_SIZE; ++i) {
         if (_key == counter[i].key) {
             return i;
         } else if ((res == -1) && counter[i].key == 0 && counter[i].value == 0) {
             res = i;
         } else if ((res == -1) &&
-                   (GET_DIR_NUM(_key, _key_len, depth) != GET_DIR_NUM(counter[i].key, _key_len, depth))) {
+                   (GET_SEG_NUM(_key, _key_len, _depth) != GET_SEG_NUM(counter[i].key, _key_len, _depth))) {
             res = i;
         }
     }
@@ -84,28 +70,40 @@ ht_bucket *new_ht_bucket(int _depth) {
     ht_bucket_num++;
 #endif
     ht_bucket *_new_bucket = static_cast<ht_bucket *>(fast_alloc(sizeof(ht_bucket)));
-    _new_bucket->init(_depth);
     return _new_bucket;
 }
 
-hashtree_node::hashtree_node() {
-    dir = static_cast<ht_bucket **>(fast_alloc(sizeof(ht_bucket *) * dir_size));
-    for (int i = 0; i < dir_size; ++i) {
-        dir[i] = new_ht_bucket();
-    }
+ht_segment::ht_segment() {
+    depth = 0;
+    bucket = static_cast<ht_bucket *>(fast_alloc(sizeof(ht_bucket) * HT_MAX_BUCKET_NUM));
 }
 
-hashtree_node::hashtree_node(int _global_depth, int _key_len) {
-    global_depth = _global_depth;
-    key_len = _key_len;
+ht_segment::~ht_segment() {}
+
+void ht_segment::init(uint64_t _depth) {
+    depth = _depth;
+    bucket = static_cast<ht_bucket *>(fast_alloc(sizeof(ht_bucket) * HT_MAX_BUCKET_NUM));
+}
+
+ht_segment *new_ht_segment(uint64_t _depth) {
+    ht_segment *_new_ht_segment = static_cast<ht_segment *>(fast_alloc(sizeof(ht_segment)));
+    _new_ht_segment->init(_depth);
+    return _new_ht_segment;
+}
+
+hashtree_node::hashtree_node() {
+    type = 0;
+    global_depth = 0;
+    key_len = 16;
     dir_size = pow(2, global_depth);
-    dir = static_cast<ht_bucket **>(fast_alloc(sizeof(ht_bucket *) * dir_size));
+    dir = static_cast<ht_segment **>(fast_alloc(sizeof(ht_segment *) * dir_size));
     for (int i = 0; i < dir_size; ++i) {
-        dir[i] = new_ht_bucket(_global_depth);
+        dir[i] = new_ht_segment();
     }
 }
 
 hashtree_node::~hashtree_node() {
+
 }
 
 void hashtree_node::init(uint32_t _global_depth, int _key_len) {
@@ -113,11 +111,9 @@ void hashtree_node::init(uint32_t _global_depth, int _key_len) {
     global_depth = _global_depth;
     key_len = _key_len;
     dir_size = pow(2, global_depth);
-//    dir = new bucket *[dir_size];
-    dir = static_cast<ht_bucket **>(fast_alloc(sizeof(ht_bucket *) * dir_size));
+    dir = static_cast<ht_segment **>(fast_alloc(sizeof(ht_segment *) * dir_size));
     for (int i = 0; i < dir_size; ++i) {
-//        dir[i] = new bucket(_global_depth);
-        dir[i] = new_ht_bucket(_global_depth);
+        dir[i] = new_ht_segment(_global_depth);
     }
 #ifdef HT_PROFILE_LOAD_FACTOR
     ht_dir_num += dir_size;
@@ -126,20 +122,22 @@ void hashtree_node::init(uint32_t _global_depth, int _key_len) {
 
 void hashtree_node::put(uint64_t key, uint64_t value) {
     // value should not be 0
-    uint64_t index = GET_DIR_NUM(key, key_len, global_depth);
-    ht_bucket *tmp_bucket = dir[index];
-    int bucket_index = tmp_bucket->find_place(key, key_len);
+    uint64_t dir_index = GET_SEG_NUM(key, key_len, global_depth);
+    ht_segment *tmp_seg = dir[dir_index];
+    uint64_t seg_index = GET_BUCKET_NUM(key, HT_BUCKET_MASK_LEN);
+    ht_bucket *tmp_bucket = &(tmp_seg->bucket[seg_index]);
+    int bucket_index = tmp_bucket->find_place(key, key_len, tmp_seg->depth);
     if (bucket_index == -1) {
         //condition: full
-        if (likely(tmp_bucket->depth < global_depth)) {
+        if (likely(tmp_seg->depth < global_depth)) {
 #ifdef HT_PROFILE_TIME
             gettimeofday(&start_time, NULL);
 #endif
-            ht_bucket *new_bucket = new_ht_bucket(tmp_bucket->depth + 1);
+            ht_segment *new_seg = new_ht_segment(tmp_seg->depth + 1);
             //set dir [left,right)
-            int64_t left = index, mid = index, right = index + 1;
-            for (int i = index + 1; i < dir_size; ++i) {
-                if (likely(dir[i] != tmp_bucket)) {
+            int64_t left = dir_index, mid = dir_index, right = dir_index + 1;
+            for (int i = dir_index + 1; i < dir_size; ++i) {
+                if (likely(dir[i] != tmp_seg)) {
                     right = i;
                     break;
                 } else if (unlikely(i == (dir_size - 1))) {
@@ -147,8 +145,8 @@ void hashtree_node::put(uint64_t key, uint64_t value) {
                     break;
                 }
             }
-            for (int i = index - 1; i >= 0; --i) {
-                if (likely(dir[i] != tmp_bucket)) {
+            for (int i = dir_index - 1; i >= 0; --i) {
+                if (likely(dir[i] != tmp_seg)) {
                     left = i + 1;
                     break;
                 } else if (unlikely(i == 0)) {
@@ -159,31 +157,37 @@ void hashtree_node::put(uint64_t key, uint64_t value) {
             mid = (left + right) / 2;
 
             //migrate previous data to the new bucket
-            uint64_t bucket_cnt = 0;
-            for (int i = 0; i < BUCKET_SIZE; ++i) {
-                uint64_t tmp_key = tmp_bucket->counter[i].key;
-                uint64_t tmp_value = tmp_bucket->counter[i].value;
-                index = GET_DIR_NUM(tmp_key, key_len, global_depth);
-                if (index >= mid) {
-                    ht_bucket *dst_bucket = new_bucket;
-                    dst_bucket->counter[bucket_cnt].key = tmp_key;
-                    dst_bucket->counter[bucket_cnt].value = tmp_value;
-                    bucket_cnt++;
+            for (int i = 0; i < HT_MAX_BUCKET_NUM; ++i) {
+                uint64_t bucket_cnt = 0;
+                for (int j = 0; j < HT_BUCKET_SIZE; ++j) {
+                    bool tmp_type = tmp_seg->bucket[i].counter[j].type;
+                    uint64_t tmp_key = tmp_seg->bucket[i].counter[j].key;
+                    uint64_t tmp_value = tmp_seg->bucket[i].counter[j].value;
+                    dir_index = GET_SEG_NUM(tmp_key, key_len, global_depth);
+                    if (dir_index >= mid) {
+                        ht_segment *dst_seg = new_seg;
+                        seg_index = i;
+                        ht_bucket *dst_bucket = &(dst_seg->bucket[seg_index]);
+                        dst_bucket->counter[bucket_cnt].value = tmp_value;
+                        dst_bucket->counter[bucket_cnt].key = tmp_key;
+                        dst_bucket->counter[bucket_cnt].type = tmp_type;
+                        bucket_cnt++;
+                    }
                 }
             }
             mfence();
-            clflush((char *) new_bucket, sizeof(ht_bucket));
+            clflush((char *) new_seg, sizeof(ht_segment));
 
             // set dir[mid, right) to the new bucket
             for (int i = right - 1; i >= mid; --i) {
-                dir[i] = new_bucket;
+                dir[i] = new_seg;
                 mfence();
-                clflush((char *) dir[i], sizeof(ht_bucket *));
+                clflush((char *) dir[i], sizeof(ht_segment *));
             }
 
-            tmp_bucket->depth = tmp_bucket->depth + 1;
+            tmp_seg->depth = tmp_seg->depth + 1;
             mfence();
-            clflush((char *) &(tmp_bucket->depth), sizeof(tmp_bucket->depth));
+            clflush((char *) &(tmp_seg->depth), sizeof(tmp_seg->depth));
 #ifdef HT_PROFILE_TIME
             gettimeofday(&end_time, NULL);
             t2 += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
@@ -201,29 +205,36 @@ void hashtree_node::put(uint64_t key, uint64_t value) {
             global_depth += 1;
             dir_size *= 2;
             //set dir
-            ht_bucket **new_dir = static_cast<ht_bucket **>(fast_alloc(sizeof(ht_bucket *) * dir_size));
+            ht_segment **new_dir = static_cast<ht_segment **>(fast_alloc(sizeof(ht_segment *) * dir_size));
             for (int i = 0; i < dir_size; ++i) {
                 new_dir[i] = dir[i / 2];
             }
-            clflush((char *) new_dir, sizeof(ht_bucket *) * dir_size);
-            ht_bucket *new_bucket = new_ht_bucket(global_depth);
-            new_dir[index * 2 + 1] = new_bucket;
+            ht_segment *new_seg = new_ht_segment(global_depth);
+            new_dir[dir_index * 2 + 1] = new_seg;
             //migrate previous data
-            uint64_t bucket_cnt = 0;
-            uint64_t new_index = 0;
-            for (int i = 0; i < BUCKET_SIZE; ++i) {
-                uint64_t tmp_key = tmp_bucket->counter[i].key;
-                int64_t tmp_value = tmp_bucket->counter[i].value;
-                new_index = GET_DIR_NUM(tmp_key, key_len, global_depth);
-                if ((index * 2 + 1) == new_index) {
-                    ht_bucket *dst_bucket = new_bucket;
-                    dst_bucket->counter[bucket_cnt].key = tmp_key;
-                    dst_bucket->counter[bucket_cnt].value = tmp_value;
-                    bucket_cnt++;
+            for (int i = 0; i < HT_MAX_BUCKET_NUM; ++i) {
+                uint64_t bucket_cnt = 0;
+                uint64_t new_dir_index = 0;
+                for (int j = 0; j < HT_BUCKET_SIZE; ++j) {
+                    bool tmp_type = tmp_seg->bucket[i].counter[j].type;
+                    uint64_t tmp_key = tmp_seg->bucket[i].counter[j].key;
+                    uint64_t tmp_value = tmp_seg->bucket[i].counter[j].value;
+                    new_dir_index = GET_SEG_NUM(tmp_key, key_len, global_depth);
+                    if ((dir_index * 2 + 1) == new_dir_index) {
+                        ht_segment *dst_seg = new_seg;
+                        seg_index = i;
+                        ht_bucket *dst_bucket = &(dst_seg->bucket[seg_index]);
+                        dst_bucket->counter[bucket_cnt].key = tmp_key;
+                        dst_bucket->counter[bucket_cnt].value = tmp_value;
+                        dst_bucket->counter[bucket_cnt].type = tmp_type;
+                        bucket_cnt++;
+                    }
                 }
             }
             mfence();
-            clflush((char *) new_bucket, sizeof(ht_bucket));
+
+            clflush((char *) new_seg, sizeof(ht_segment));
+            clflush((char *) new_dir, sizeof(ht_segment *) * dir_size);
 
             dir = new_dir;
             mfence();
@@ -261,8 +272,11 @@ void hashtree_node::put(uint64_t key, uint64_t value) {
 }
 
 uint64_t hashtree_node::get(uint64_t key) {
-    uint64_t index = GET_DIR_NUM(key, key_len, global_depth);
-    return dir[index]->get(key);
+    uint64_t dir_index = GET_SEG_NUM(key, key_len, global_depth);
+    ht_segment *tmp_seg = dir[dir_index];
+    uint64_t seg_index = GET_BUCKET_NUM(key, HT_BUCKET_MASK_LEN);
+    ht_bucket *tmp_bucket = &(tmp_seg->bucket[seg_index]);
+    return tmp_bucket->get(key);
 }
 
 hashtree_node *new_hashtree_node(int _global_depth, int _key_len) {
