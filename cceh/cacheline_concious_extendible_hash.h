@@ -21,7 +21,7 @@
 #define CCEH_MAX_BUCKET_NUM (2<<CCEH_BUCKET_MASK_LEN)
 
 //#define CCEH_PROFILE_TIME 1
-//#define CCEH_PROF ILE_LOAD_FACTOR 1
+//#define CCEH_PROFILE_LOAD_FACTOR 1
 
 #ifdef CCEH_PROFILE_TIME
 extern timeval start_time, end_time;
