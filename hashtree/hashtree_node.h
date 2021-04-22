@@ -19,7 +19,7 @@
 #define HT_MAX_BUCKET_NUM (2<<HT_BUCKET_MASK_LEN)
 
 //#define HT_PROFILE_TIME 1
-//#define HT_PROFILE_LOAD_FACTOR 1
+#define HT_PROFILE_LOAD_FACTOR 1
 
 #ifdef HT_PROFILE_TIME
 extern timeval start_time, end_time;
@@ -27,7 +27,7 @@ extern uint64_t t1, t2, t3;
 #endif
 
 #ifdef HT_PROFILE_LOAD_FACTOR
-extern uint64_t ht_bucket_num;
+extern uint64_t ht_seg_num;
 extern uint64_t ht_dir_num;
 #endif
 

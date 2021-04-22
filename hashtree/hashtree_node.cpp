@@ -11,7 +11,7 @@ uint64_t t1, t2, t3;
 #endif
 
 #ifdef HT_PROFILE_LOAD_FACTOR
-uint64_t ht_bucket_num = 0;
+uint64_t ht_seg_num = 0;
 uint64_t ht_dir_num = 0;
 #endif
 
@@ -66,9 +66,6 @@ int ht_bucket::find_place(uint64_t _key, uint64_t _key_len, uint64_t _depth) {
 }
 
 ht_bucket *new_ht_bucket(int _depth) {
-#ifdef HT_PROFILE_LOAD_FACTOR
-    ht_bucket_num++;
-#endif
     ht_bucket *_new_bucket = static_cast<ht_bucket *>(fast_alloc(sizeof(ht_bucket)));
     return _new_bucket;
 }
@@ -83,6 +80,9 @@ ht_segment::~ht_segment() {}
 void ht_segment::init(uint64_t _depth) {
     depth = _depth;
     bucket = static_cast<ht_bucket *>(fast_alloc(sizeof(ht_bucket) * HT_MAX_BUCKET_NUM));
+#ifdef HT_PROFILE_LOAD_FACTOR
+    ht_seg_num++;
+#endif
 }
 
 ht_segment *new_ht_segment(uint64_t _depth) {
@@ -263,11 +263,11 @@ void hashtree_node::put(uint64_t key, uint64_t value) {
             mfence();
             clflush((char *) &(tmp_bucket->counter[bucket_index].key), 16);
         }
-    }
 #ifdef HT_PROFILE_TIME
-    gettimeofday(&end_time, NULL);
-    t1 += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+        gettimeofday(&end_time, NULL);
+        t1 += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
 #endif
+    }
     return;
 }
 
