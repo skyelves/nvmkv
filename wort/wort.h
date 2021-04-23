@@ -85,7 +85,7 @@ wort_tree *new_wort_tree();
  * @return NULL if the item was newly inserted, otherwise
  * the old value pointer is returned.
  */
-void* wort_put(wort_tree *t, const unsigned long key, int key_len, void *value);
+void* wort_put(wort_tree *t, const unsigned long key, int key_len, void *value, int value_len = 8);
 
 /**
  * Searches for a value in the wort tree

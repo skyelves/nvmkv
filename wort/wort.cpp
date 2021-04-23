@@ -407,9 +407,12 @@ static void *recursive_insert(wort_node *n, wort_node **ref, const unsigned long
  * @return NULL if the item was newly inserted, otherwise
  * the old value pointer is returned.
  */
-void *wort_put(wort_tree *t, const unsigned long key, int key_len, void *value) {
+void *wort_put(wort_tree *t, const unsigned long key, int key_len, void *value, int value_len) {
     int old_val = 0;
-    void *old = recursive_insert(t->root, &t->root, key, key_len, value, 0, &old_val);
+    void *value_allocated = fast_alloc(value_len);
+    memcpy(value_allocated, value, value_len);
+    flush_buffer(value_allocated, value_len, true);
+    void *old = recursive_insert(t->root, &t->root, key, key_len, value_allocated, 0, &old_val);
     if (!old_val) t->size++;
     return old;
 }
