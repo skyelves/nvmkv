@@ -14,23 +14,23 @@
 #include <byteswap.h>
 #endif
 
-#define NODE4		1
-#define NODE16		2
-#define NODE48		3
-#define NODE256		4
+#define NODE4        1
+#define NODE16        2
+#define NODE48        3
+#define NODE256        4
 
-#define WOART_BITS_PER_LONG		64
-#define CACHE_LINE_SIZE 	64
+#define WOART_BITS_PER_LONG        64
+#define CACHE_LINE_SIZE    64
 
 /* If you want to change the number of entries,
  * change the values of WOART_NODE_BITS & WOART_MAX_DEPTH */
-#define WOART_NODE_BITS			8
-#define WOART_MAX_DEPTH			7
-#define WOART_NUM_NODE_ENTRIES 	(0x1UL << WOART_NODE_BITS)
-#define WOART_LOW_BIT_MASK		((0x1UL << WOART_NODE_BITS) - 1)
+#define WOART_NODE_BITS            8
+#define WOART_MAX_DEPTH            7
+#define WOART_NUM_NODE_ENTRIES    (0x1UL << WOART_NODE_BITS)
+#define WOART_LOW_BIT_MASK        ((0x1UL << WOART_NODE_BITS) - 1)
 
-#define WOART_MAX_PREFIX_LEN		6
-#define WOART_MAX_HEIGHT			(WOART_MAX_DEPTH + 1)
+#define WOART_MAX_PREFIX_LEN        6
+#define WOART_MAX_HEIGHT            (WOART_MAX_DEPTH + 1)
 
 #if defined(__GNUC__) && !defined(__clang__)
 # if __STDC_VERSION__ >= 199901L && 402 == (__GNUC__ * 100 + __GNUC_MINOR__)
@@ -43,16 +43,14 @@
 # endif
 #endif
 
-static inline unsigned long __ffs(unsigned long word)
-{
+static inline unsigned long __ffs(unsigned long word) {
     asm("rep; bsf %1,%0"
     : "=r" (word)
     : "rm" (word));
     return word;
 }
 
-static inline unsigned long ffz(unsigned long word)
-{
+static inline unsigned long ffz(unsigned long word) {
     asm("rep; bsf %1,%0"
     : "=r" (word)
     : "r" (~word));
@@ -174,7 +172,7 @@ woart_tree *new_woart_tree();
  * @return NULL if the item was newly inserted, otherwise
  * the old value pointer is returned.
  */
-void* woart_put(woart_tree *t, const unsigned long key, int key_len, void *value);
+void *woart_put(woart_tree *t, const unsigned long key, int key_len, void *value, int value_len = 8);
 
 /**
  * Searches for a value in the woart tree
@@ -184,6 +182,6 @@ void* woart_put(woart_tree *t, const unsigned long key, int key_len, void *value
  * @return NULL if the item was not found, otherwise
  * the value pointer is returned.
  */
-void* woart_get(const woart_tree *t, const unsigned long key, int key_len);
+void *woart_get(const woart_tree *t, const unsigned long key, int key_len);
 
 #endif //NVMKV_WOwoart_H

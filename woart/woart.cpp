@@ -747,8 +747,11 @@ static void *recursive_insert(woart_node *n, woart_node **ref, const unsigned lo
  * @return NULL if the item was newly inserted, otherwise
  * the old value pointer is returned.
  */
-void *woart_put(woart_tree *t, const unsigned long key, int key_len, void *value) {
+void *woart_put(woart_tree *t, const unsigned long key, int key_len, void *value, int value_len) {
     int old_val = 0;
+    void *value_allocated = fast_alloc(value_len);
+    memcpy(value_allocated, value, value_len);
+    flush_buffer(value_allocated, value_len, true);
     void *old = recursive_insert(t->root, &t->root, key, key_len, value, 0, &old_val);
     if (!old_val) t->size++;
     return old;
