@@ -7,6 +7,8 @@
 
 #include <cstdint>
 #include <sys/time.h>
+#include <vector>
+#include <map>
 #include <math.h>
 #include <cstdint>
 #include "../fastalloc/fastalloc.h"
@@ -31,6 +33,7 @@ extern uint64_t ht_seg_num;
 extern uint64_t ht_dir_num;
 #endif
 
+// in fact, it's better to use two kv pair in internal nodes and leaf nodes
 class ht_key_value {
 public:
     bool type = 1;

@@ -26,11 +26,18 @@ public:
 
     void init(int _span = 8, int _init_depth = 4);
 
+    //support variable values, for convenience, we set v to 8 byte
     void crash_consistent_put(hashtree_node *_node, uint64_t k, uint64_t v, uint64_t layer);
 
     void put(uint64_t k, uint64_t v);
 
     uint64_t get(uint64_t k);
+
+    vector<ht_key_value> all_subtree_kv(hashtree_node *tmp);
+
+    vector<ht_key_value> node_range_query(hashtree_node *tmp, uint64_t left, uint64_t right, uint64_t layer);
+
+    vector<ht_key_value> range_query(uint64_t left, uint64_t right);
 };
 
 hashtree *new_hashtree(int _span = 8, int _init_depth = 4);

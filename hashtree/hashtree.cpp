@@ -4,7 +4,6 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <vector>
 #include <stdlib.h>
 #include "hashtree.h"
 
@@ -13,6 +12,9 @@
  * key [______|___________|____________]
  */
 #define GET_SUB_KEY(key, begin, len)  (((key)>>(64-(begin)-(len)))&(((uint64_t)1<<(len))-1))
+#define GET_SEG_NUM(key, key_len, depth)  ((key>>(key_len-depth))&(((uint64_t)1<<depth)-1))
+#define GET_BUCKET_NUM(key, bucket_mask_len) ((key)&(((uint64_t)1<<bucket_mask_len)-1))
+
 
 inline void mfence(void) {
     asm volatile("mfence":: :"memory");
@@ -165,7 +167,7 @@ uint64_t hashtree::get(uint64_t k) {
     for (int i = 0, j = 0; i < 64; i += span_test[j], j++) {
         uint64_t sub_key = GET_SUB_KEY(k, i, span_test[j]);
         next = tmp->get(sub_key);
-        get_access++;
+//        get_access++;
         if (next == 0) {
             //not exists
             return 0;
@@ -182,3 +184,171 @@ uint64_t hashtree::get(uint64_t k) {
     return ((ht_key_value *) next)->value;
 }
 
+vector<ht_key_value> hashtree::all_subtree_kv(hashtree_node *tmp) {
+    vector<ht_key_value> res;
+    //bfs may perform better
+    for (int i = 0; i < tmp->dir_size; ++i) {
+        ht_segment *tmp_seg = tmp->dir[i];
+        for (int j = 0; j < HT_MAX_BUCKET_NUM; ++j) {
+            ht_bucket *tmp_bucket = &(tmp_seg->bucket[j]);
+            for (int k = 0; k < HT_BUCKET_SIZE; ++k) {
+                if (((bool *) tmp_bucket->counter[k].value)[0] == 1) {
+                    res.push_back(*((ht_key_value *) tmp_bucket->counter[k].value));
+                } else {
+                    vector<ht_key_value> tmp_res = all_subtree_kv(
+                            (hashtree_node *) tmp_bucket->counter[k].value);
+                    res.insert(res.end(), tmp_res.begin(), tmp_res.end());
+                }
+            }
+        }
+    }
+    return res;
+}
+
+vector<ht_key_value> hashtree::node_range_query(hashtree_node *tmp, uint64_t left, uint64_t right, uint64_t layer) {
+    vector<ht_key_value> res;
+    int i = 0, j = 0;
+    for (j = 0; j < layer; ++j) {
+        i += span_test[j];
+    }
+
+    uint64_t sub_left = GET_SUB_KEY(left, i, span_test[j]);
+    uint64_t sub_right = GET_SUB_KEY(right, i, span_test[j]);
+    uint64_t left_index = GET_SEG_NUM(sub_left, span_test[j], tmp->global_depth);
+    uint64_t right_index = GET_SEG_NUM(sub_right, span_test[j], tmp->global_depth);
+    ht_segment *left_seg = tmp->dir[left_index];
+    ht_segment *right_seg = tmp->dir[right_index];
+    if (left_seg != right_seg) {
+        ht_segment *tmp_seg;
+        //add somes keys in left seg
+        tmp_seg = left_seg;
+        for (int k = 0; k < HT_MAX_BUCKET_NUM; ++k) {
+            ht_bucket *tmp_bucket = &(tmp_seg->bucket[k]);
+            for (int l = 0; l < HT_BUCKET_SIZE; ++l) {
+                if (tmp_bucket->counter[l].key == sub_left && tmp_bucket->counter[l].value != 0) {
+                    if (((bool *) tmp_bucket->counter[l].value)[0] == 1) {
+                        res.push_back(*((ht_key_value *) tmp_bucket->counter[l].value));
+                    } else {
+                        vector<ht_key_value> tmp_res = node_range_query(
+                                (hashtree_node *) tmp_bucket->counter[l].value, left, 0xffffffffffffffff, j + 1);
+                        res.insert(res.end(), tmp_res.begin(), tmp_res.end());
+                    }
+                } else if (tmp_bucket->counter[l].key > sub_left) {
+                    if (((bool *) tmp_bucket->counter[l].value)[0] == 1) {
+                        res.push_back(*((ht_key_value *) tmp_bucket->counter[l].value));
+                    } else {
+                        vector<ht_key_value> tmp_res = all_subtree_kv(
+                                (hashtree_node *) tmp_bucket->counter[l].value);
+                        res.insert(res.end(), tmp_res.begin(), tmp_res.end());
+                    }
+                }
+            }
+        }
+
+        //add interal segs all keys
+        for (int k = left_index + 1; k < right_index; ++k) {
+            if (tmp->dir[k] != tmp_seg)
+                tmp_seg = tmp->dir[k];
+            else
+                continue;
+            if (tmp_seg != left_seg && tmp_seg != right_seg) {
+                for (int l = 0; l < HT_MAX_BUCKET_NUM; ++l) {
+                    ht_bucket *tmp_bucket = &(tmp_seg->bucket[l]);
+                    for (int m = 0; m < HT_BUCKET_SIZE; ++m) {
+                        if (tmp_bucket->counter[m].key != 0 && tmp_bucket->counter[m].value != 0) {
+                            if (((bool *) tmp_bucket->counter[m].value)[0] == 1) {
+                                res.push_back(*((ht_key_value *) tmp_bucket->counter[m].value));
+                            } else {
+                                vector<ht_key_value> tmp_res = all_subtree_kv(
+                                        (hashtree_node *) tmp_bucket->counter[m].value);
+                                res.insert(res.end(), tmp_res.begin(), tmp_res.end());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        //add some keys in right seg
+        tmp_seg = right_seg;
+        for (int k = 0; k < HT_MAX_BUCKET_NUM; ++k) {
+            ht_bucket *tmp_bucket = &(tmp_seg->bucket[k]);
+            for (int l = 0; l < HT_BUCKET_SIZE; ++l) {
+                if (tmp_bucket->counter[l].key == sub_right && tmp_bucket->counter[l].value != 0) {
+                    if (((bool *) tmp_bucket->counter[l].value)[0] == 1) {
+                        res.push_back(*((ht_key_value *) tmp_bucket->counter[l].value));
+                    } else {
+                        vector<ht_key_value> tmp_res = node_range_query(
+                                (hashtree_node *) tmp_bucket->counter[l].value, 0, right, j + 1);
+                        res.insert(res.end(), tmp_res.begin(), tmp_res.end());
+                    }
+                } else if (tmp_bucket->counter[l].key < sub_right) {
+                    if (((bool *) tmp_bucket->counter[l].value)[0] == 1) {
+                        res.push_back(*((ht_key_value *) tmp_bucket->counter[l].value));
+                    } else {
+                        vector<ht_key_value> tmp_res = all_subtree_kv(
+                                (hashtree_node *) tmp_bucket->counter[l].value);
+                        res.insert(res.end(), tmp_res.begin(), tmp_res.end());
+                    }
+                }
+            }
+        }
+
+    } else {
+        //left segment == right segment
+        ht_segment *tmp_seg = left_seg;
+        if (sub_left == sub_right) {
+            for (int k = 0; k < HT_MAX_BUCKET_NUM; ++k) {
+                ht_bucket *tmp_bucket = &(tmp_seg->bucket[k]);
+                for (int l = 0; l < HT_BUCKET_SIZE; ++l) {
+                    if (tmp_bucket->counter[l].key == sub_left && tmp_bucket->counter[l].value != 0) {
+                        if (((bool *) tmp_bucket->counter[l].value)[0] == 1) {
+                            res.push_back(*((ht_key_value *) tmp_bucket->counter[l].value));
+                        } else {
+                            vector<ht_key_value> tmp_res = node_range_query(
+                                    (hashtree_node *) tmp_bucket->counter[l].value, left, right, j + 1);
+                            res.insert(res.end(), tmp_res.begin(), tmp_res.end());
+                        }
+                    }
+                }
+            }
+        } else {
+            for (int k = 0; k < HT_MAX_BUCKET_NUM; ++k) {
+                ht_bucket *tmp_bucket = &(tmp_seg->bucket[k]);
+                for (int l = 0; l < HT_BUCKET_SIZE; ++l) {
+                    if (tmp_bucket->counter[l].key == sub_left && tmp_bucket->counter[l].value != 0) {
+                        if (((bool *) tmp_bucket->counter[l].value)[0] == 1) {
+                            res.push_back(*((ht_key_value *) tmp_bucket->counter[l].value));
+                        } else {
+                            vector<ht_key_value> tmp_res = node_range_query(
+                                    (hashtree_node *) tmp_bucket->counter[l].value, left, 0xffffffffffffffff, j + 1);
+                            res.insert(res.end(), tmp_res.begin(), tmp_res.end());
+                        }
+                    } else if (tmp_bucket->counter[l].key == sub_right && tmp_bucket->counter[l].value != 0) {
+                        if (((bool *) tmp_bucket->counter[l].value)[0] == 1) {
+                            res.push_back(*((ht_key_value *) tmp_bucket->counter[l].value));
+                        } else {
+                            vector<ht_key_value> tmp_res = node_range_query(
+                                    (hashtree_node *) tmp_bucket->counter[l].value, 0, right, j + 1);
+                            res.insert(res.end(), tmp_res.begin(), tmp_res.end());
+                        }
+                    } else if (tmp_bucket->counter[l].key > sub_left && tmp_bucket->counter[l].key < sub_right) {
+                        if (((bool *) tmp_bucket->counter[l].value)[0] == 1) {
+                            res.push_back(*((ht_key_value *) tmp_bucket->counter[l].value));
+                        } else {
+                            vector<ht_key_value> tmp_res = all_subtree_kv(
+                                    (hashtree_node *) tmp_bucket->counter[l].value);
+                            res.insert(res.end(), tmp_res.begin(), tmp_res.end());
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return res;
+}
+
+vector<ht_key_value> hashtree::range_query(uint64_t left, uint64_t right) {
+    vector<ht_key_value> res = node_range_query(root, left, right, 0);
+    return res;
+}
