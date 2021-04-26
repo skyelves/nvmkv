@@ -82,7 +82,7 @@ void *putFunc(void *arg) {
 }
 
 void speedTest() {
-    out.open("/home/wangke/nvmkv/res.txt");
+    out.open("/home/wangke/nvmkv/res.txt", ios::app);
     mykey = new uint64_t[testNum];
     rng r;
     rng_init(&r, 1, 2);
@@ -152,8 +152,8 @@ void correctnessTest() {
     for (int i = 0; i < testNum; ++i) {
         mykey[i] = rng_next(&r);
         mm[mykey[i]] = i + 1;
-        ht->put(mykey[i], i + 1);
-//        ht->crash_consistent_put(NULL, mykey[i], i + 1, 0);
+//        cceh->put(mykey[i], i + 1);
+        ht->crash_consistent_put(NULL, mykey[i], i + 1, 0);
 //        for (int j = 0; j < testNum; ++j) {
 //            int64_t res = cceh->get(mykey[j]);
 //            if (res != mm[mykey[j]]) {
@@ -177,7 +177,7 @@ void correctnessTest() {
 }
 
 void profile() {
-    out.open("/Users/wangke/Desktop/cceh_profile.csv");
+    out.open("/Users/wangke/Desktop/ht_profile.csv");
     mykey = new uint64_t[testNum];
     rng r;
     rng_init(&r, 1, 2);
@@ -188,13 +188,13 @@ void profile() {
     timeval start, ends;
     gettimeofday(&start, NULL);
     for (int i = 0; i < testNum; ++i) {
-        cceh->put(mykey[i], value);
+//        cceh->put(mykey[i], value);
+        ht->crash_consistent_put(NULL, mykey[i], i + 1, 0);
         if (i % 10000 == 0) {
-//            out << i << ", " << cceh->dir_size << endl;
-//            cout << cceh_seg_num << endl;
-//            out << i << ", " << (double) i / (cceh_seg_num * CCEH_BUCKET_SIZE * CCEH_MAX_BUCKET_NUM) << endl;
-//            out << i << ", " << ht_dir_num << endl;
-//            out << i << ", " << (double) i / (ht_bucket_num * BUCKET_SIZE) << endl;
+//            out << i << ", " << cceh->dir_size << ", "
+//                << (double) i / (cceh_seg_num * CCEH_BUCKET_SIZE * CCEH_MAX_BUCKET_NUM) << endl;
+            out << i << ", " << ht_dir_num << ", " << ht_seg_num << ", "
+                << (double) i / (ht_seg_num * HT_MAX_BUCKET_NUM * HT_BUCKET_SIZE) << endl;
         }
     }
     gettimeofday(&ends, NULL);
@@ -202,6 +202,18 @@ void profile() {
 //    out << t1 << endl << t2 << endl << t3 << endl;
 //    out << timeCost << endl;
     out.close();
+}
+
+void range_query_correctness_test() {
+    vector<ht_key_value> res;
+    for (int i = 0; i < 100000; i+=30) {
+        ht->crash_consistent_put(NULL, i + 1, i + 1, 0);
+    }
+    res = ht->range_query(1000, 10000);
+    for (int i = 0; i < res.size(); ++i) {
+        cout << res[i].key << ", " << res[i].value << endl;
+    }
+    cout<<res.size()<<endl;
 }
 
 
@@ -216,9 +228,10 @@ int main(int argc, char *argv[]) {
     cceh = new_cceh();
 //    mt = new_mass_tree();
 //    bt = new_blink_tree(numThread);
-    speedTest();
+//    speedTest();
 //    correctnessTest();
 //    profile();
+    range_query_correctness_test();
 //    cout << ht->node_cnt << endl;
 //    cout << ht->get_access << endl;
     fast_free();
