@@ -41,10 +41,17 @@ int numThread = 1;
 int test_algorithms_num = 10;
 bool test_case[10] = {1, // ht
                       0, // art
-                      1, // wort
-                      1, // woart
-                      1, // cacheline_concious_extendible_hash
+                      0, // wort
+                      0, // woart
+                      0, // cacheline_concious_extendible_hash
                       0};
+
+bool range_query_test_case[10] = {
+        1, // ht
+        0, // wort
+        0, // woart
+        0
+};
 
 blink_tree *bt;
 mass_tree *mt;
@@ -140,6 +147,9 @@ void speedTest() {
     // query speed for cceh
     Time_BODY(test_case[4], "cceh get ", { cceh->get(mykey[i]); })
 
+    //range query speed for ht
+    Time_BODY(range_query_test_case[0], "hash tree range query ", { ht->range_query(mykey[i], mykey[i] + 10000); })
+
     out.close();
 }
 
@@ -205,15 +215,20 @@ void profile() {
 }
 
 void range_query_correctness_test() {
+    mykey = new uint64_t[testNum];
+    rng r;
+    rng_init(&r, 1, 2);
+    for (int i = 0; i < testNum; ++i) {
+        mykey[i] = rng_next(&r);
+    }
     vector<ht_key_value> res;
-    for (int i = 0; i < 100000; i+=30) {
-        ht->crash_consistent_put(NULL, i + 1, i + 1, 0);
+    for (int i = 0; i < testNum; i++) {
+        ht->crash_consistent_put(NULL, mykey[i], 1, 0);
     }
-    res = ht->range_query(1000, 10000);
-    for (int i = 0; i < res.size(); ++i) {
-        cout << res[i].key << ", " << res[i].value << endl;
+    for (int i = 0; i < testNum; ++i) {
+        res = ht->range_query(mykey[i], mykey[i] + 10000);
+        cout << res.size() << endl;
     }
-    cout<<res.size()<<endl;
 }
 
 
@@ -228,10 +243,10 @@ int main(int argc, char *argv[]) {
     cceh = new_cceh();
 //    mt = new_mass_tree();
 //    bt = new_blink_tree(numThread);
-//    speedTest();
+    speedTest();
 //    correctnessTest();
 //    profile();
-    range_query_correctness_test();
+//    range_query_correctness_test();
 //    cout << ht->node_cnt << endl;
 //    cout << ht->get_access << endl;
     fast_free();
