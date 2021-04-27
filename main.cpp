@@ -148,7 +148,7 @@ void speedTest() {
     Time_BODY(test_case[4], "cceh get ", { cceh->get(mykey[i]); })
 
     //range query speed for ht
-    Time_BODY(range_query_test_case[0], "hash tree range query ", { ht->range_query(mykey[i], mykey[i] + 10000); })
+    Time_BODY(range_query_test_case[0], "hash tree range query ", { ht->scan(mykey[i], mykey[i] + 10000); })
 
     out.close();
 }
@@ -226,7 +226,7 @@ void range_query_correctness_test() {
         ht->crash_consistent_put(NULL, mykey[i], 1, 0);
     }
     for (int i = 0; i < testNum; ++i) {
-        res = ht->range_query(mykey[i], mykey[i] + 10000);
+        res = ht->scan(mykey[i], mykey[i] + 10000);
         cout << res.size() << endl;
     }
 }
