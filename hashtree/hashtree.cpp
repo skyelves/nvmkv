@@ -205,7 +205,7 @@ vector<ht_key_value> hashtree::all_subtree_kv(hashtree_node *tmp) {
     return res;
 }
 
-vector<ht_key_value> hashtree::node_range_query(hashtree_node *tmp, uint64_t left, uint64_t right, uint64_t layer) {
+vector<ht_key_value> hashtree::node_scan(hashtree_node *tmp, uint64_t left, uint64_t right, uint64_t layer) {
     vector<ht_key_value> res;
     int i = 0, j = 0;
     for (j = 0; j < layer; ++j) {
@@ -229,7 +229,7 @@ vector<ht_key_value> hashtree::node_range_query(hashtree_node *tmp, uint64_t lef
                     if (((bool *) tmp_bucket->counter[l].value)[0] == 1) {
                         res.push_back(*((ht_key_value *) tmp_bucket->counter[l].value));
                     } else {
-                        vector<ht_key_value> tmp_res = node_range_query(
+                        vector<ht_key_value> tmp_res = node_scan(
                                 (hashtree_node *) tmp_bucket->counter[l].value, left, 0xffffffffffffffff, j + 1);
                         res.insert(res.end(), tmp_res.begin(), tmp_res.end());
                     }
@@ -278,7 +278,7 @@ vector<ht_key_value> hashtree::node_range_query(hashtree_node *tmp, uint64_t lef
                     if (((bool *) tmp_bucket->counter[l].value)[0] == 1) {
                         res.push_back(*((ht_key_value *) tmp_bucket->counter[l].value));
                     } else {
-                        vector<ht_key_value> tmp_res = node_range_query(
+                        vector<ht_key_value> tmp_res = node_scan(
                                 (hashtree_node *) tmp_bucket->counter[l].value, 0, right, j + 1);
                         res.insert(res.end(), tmp_res.begin(), tmp_res.end());
                     }
@@ -305,7 +305,7 @@ vector<ht_key_value> hashtree::node_range_query(hashtree_node *tmp, uint64_t lef
                         if (((bool *) tmp_bucket->counter[l].value)[0] == 1) {
                             res.push_back(*((ht_key_value *) tmp_bucket->counter[l].value));
                         } else {
-                            vector<ht_key_value> tmp_res = node_range_query(
+                            vector<ht_key_value> tmp_res = node_scan(
                                     (hashtree_node *) tmp_bucket->counter[l].value, left, right, j + 1);
                             res.insert(res.end(), tmp_res.begin(), tmp_res.end());
                         }
@@ -320,7 +320,7 @@ vector<ht_key_value> hashtree::node_range_query(hashtree_node *tmp, uint64_t lef
                         if (((bool *) tmp_bucket->counter[l].value)[0] == 1) {
                             res.push_back(*((ht_key_value *) tmp_bucket->counter[l].value));
                         } else {
-                            vector<ht_key_value> tmp_res = node_range_query(
+                            vector<ht_key_value> tmp_res = node_scan(
                                     (hashtree_node *) tmp_bucket->counter[l].value, left, 0xffffffffffffffff, j + 1);
                             res.insert(res.end(), tmp_res.begin(), tmp_res.end());
                         }
@@ -328,7 +328,7 @@ vector<ht_key_value> hashtree::node_range_query(hashtree_node *tmp, uint64_t lef
                         if (((bool *) tmp_bucket->counter[l].value)[0] == 1) {
                             res.push_back(*((ht_key_value *) tmp_bucket->counter[l].value));
                         } else {
-                            vector<ht_key_value> tmp_res = node_range_query(
+                            vector<ht_key_value> tmp_res = node_scan(
                                     (hashtree_node *) tmp_bucket->counter[l].value, 0, right, j + 1);
                             res.insert(res.end(), tmp_res.begin(), tmp_res.end());
                         }
@@ -348,7 +348,7 @@ vector<ht_key_value> hashtree::node_range_query(hashtree_node *tmp, uint64_t lef
     return res;
 }
 
-vector<ht_key_value> hashtree::range_query(uint64_t left, uint64_t right) {
-    vector<ht_key_value> res = node_range_query(root, left, right, 0);
+vector<ht_key_value> hashtree::scan(uint64_t left, uint64_t right) {
+    vector<ht_key_value> res = node_scan(root, left, right, 0);
     return res;
 }

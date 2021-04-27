@@ -35,9 +35,9 @@ public:
 
     vector<ht_key_value> all_subtree_kv(hashtree_node *tmp);
 
-    vector<ht_key_value> node_range_query(hashtree_node *tmp, uint64_t left, uint64_t right, uint64_t layer);
+    vector<ht_key_value> node_scan(hashtree_node *tmp, uint64_t left, uint64_t right, uint64_t layer);
 
-    vector<ht_key_value> range_query(uint64_t left, uint64_t right);
+    vector<ht_key_value> scan(uint64_t left, uint64_t right);
 };
 
 hashtree *new_hashtree(int _span = 8, int _init_depth = 4);
