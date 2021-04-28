@@ -464,20 +464,20 @@ vector<wort_key_value> wort_node_scan(wort_node *n, uint64_t left, uint64_t righ
         if (tmp->pwortial_len) {
             int max_cmp = min(min(tmp->pwortial_len, WORT_MAX_PREFIX_LEN), WORT_MAX_HEIGHT - depth);
             for (int idx = 0; idx < max_cmp; idx++) {
-                if (n->pwortial[idx] > get_index(left, depth + idx)) {
+                if (tmp->pwortial[idx] > get_index(left, depth + idx)) {
                     break;
-                } else if (n->pwortial[idx] < get_index(left, depth + idx)) {
+                } else if (tmp->pwortial[idx] < get_index(left, depth + idx)) {
                     return res;
                 }
             }
             for (int idx = 0; idx < max_cmp; idx++) {
-                if (n->pwortial[idx] < get_index(right, depth + idx)) {
+                if (tmp->pwortial[idx] < get_index(right, depth + idx)) {
                     break;
-                } else if (n->pwortial[idx] > get_index(left, depth + idx)) {
+                } else if (tmp->pwortial[idx] > get_index(left, depth + idx)) {
                     return res;
                 }
             }
-            depth = depth + n->pwortial_len;
+            depth = depth + tmp->pwortial_len;
         }
         // Recursively search
         unsigned char left_index = get_index(left, depth);
