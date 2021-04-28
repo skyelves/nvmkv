@@ -417,7 +417,7 @@ void *wort_put(wort_tree *t, const unsigned long key, int key_len, void *value, 
     return old;
 }
 
-vector<wort_key_value> all_subtree_kv(wort_node *n) {
+vector<wort_key_value> wort_all_subtree_kv(wort_node *n) {
     vector<wort_key_value> res;
     if (n == NULL)
         return res;
@@ -435,14 +435,14 @@ vector<wort_key_value> all_subtree_kv(wort_node *n) {
         for (int i = 0; i < 16; ++i) {
             child = find_child(tmp, i);
             wort_node *next = (child) ? *child : NULL;
-            vector<wort_key_value> tmp_res = all_subtree_kv(next);
+            vector<wort_key_value> tmp_res = wort_all_subtree_kv(next);
             res.insert(res.end(), tmp_res.begin(), tmp_res.end());
         }
     }
     return res;
 }
 
-vector<wort_key_value> node_scan(wort_node *n, uint64_t left, uint64_t right, uint64_t depth, int key_len) {
+vector<wort_key_value> wort_node_scan(wort_node *n, uint64_t left, uint64_t right, uint64_t depth, int key_len) {
     //depth first search
     vector<wort_key_value> res;
     if (n == NULL)
@@ -486,24 +486,24 @@ vector<wort_key_value> node_scan(wort_node *n, uint64_t left, uint64_t right, ui
         if (left_index != right_index) {
             child = find_child(tmp, left_index);
             wort_node *next = (child) ? *child : NULL;
-            vector<wort_key_value> tmp_res = node_scan(next, left, 0xffffffffffffffff, depth + 1);
+            vector<wort_key_value> tmp_res = wort_node_scan(next, left, 0xffffffffffffffff, depth + 1);
             res.insert(res.end(), tmp_res.begin(), tmp_res.end());
             child = find_child(tmp, right_index);
             next = (child) ? *child : NULL;
-            tmp_res = node_scan(next, 0, right, depth + 1);
+            tmp_res = wort_node_scan(next, 0, right, depth + 1);
             res.insert(res.end(), tmp_res.begin(), tmp_res.end());
 
         } else {
             child = find_child(tmp, left_index);
             wort_node *next = (child) ? *child : NULL;
-            vector<wort_key_value> tmp_res = node_scan(next, left, right, depth + 1);
+            vector<wort_key_value> tmp_res = wort_node_scan(next, left, right, depth + 1);
             res.insert(res.end(), tmp_res.begin(), tmp_res.end());
         }
 
         for (int i = left_index + 1; i < right_index; ++i) {
             child = find_child(tmp, i);
             wort_node *next = (child) ? *child : NULL;
-            vector<wort_key_value> tmp_res = all_subtree_kv(next);
+            vector<wort_key_value> tmp_res = wort_all_subtree_kv(next);
             res.insert(res.end(), tmp_res.begin(), tmp_res.end());
         }
     }
@@ -511,6 +511,6 @@ vector<wort_key_value> node_scan(wort_node *n, uint64_t left, uint64_t right, ui
 }
 
 vector<wort_key_value> wort_scan(const wort_tree *t, uint64_t left, uint64_t right, int key_len) {
-    vector<wort_key_value> res = node_scan(t->root, left, right, 0);
+    vector<wort_key_value> res = wort_node_scan(t->root, left, right, 0);
     return res;
 }
