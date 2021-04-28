@@ -69,7 +69,7 @@ int wort_tree_init(wort_tree *t) {
 }
 
 wort_tree *new_wort_tree() {
-    wort_tree *_new_wort_tree = new wort_tree;
+    wort_tree *_new_wort_tree = static_cast<wort_tree *>(fast_alloc(sizeof(wort_tree)));
     wort_tree_init(_new_wort_tree);
     return _new_wort_tree;
 }
@@ -415,4 +415,102 @@ void *wort_put(wort_tree *t, const unsigned long key, int key_len, void *value, 
     void *old = recursive_insert(t->root, &t->root, key, key_len, value_allocated, 0, &old_val);
     if (!old_val) t->size++;
     return old;
+}
+
+vector<wort_key_value> all_subtree_kv(wort_node *n) {
+    vector<wort_key_value> res;
+    if (n == NULL)
+        return res;
+    wort_node *tmp = n;
+    wort_node **child;
+    if (IS_LEAF(tmp)) {
+        tmp = (wort_node *) LEAF_RAW(tmp);
+        wort_key_value tmp_kv;
+        tmp_kv.key = ((wort_leaf *) tmp)->key;
+        tmp_kv.value = *(uint64_t *) (((wort_leaf *) tmp)->value);
+        res.push_back(tmp_kv);
+        return res;
+    } else {
+        // Recursively search
+        for (int i = 0; i < 16; ++i) {
+            child = find_child(tmp, i);
+            wort_node *next = (child) ? *child : NULL;
+            vector<wort_key_value> tmp_res = all_subtree_kv(next);
+            res.insert(res.end(), tmp_res.begin(), tmp_res.end());
+        }
+    }
+    return res;
+}
+
+vector<wort_key_value> node_scan(wort_node *n, uint64_t left, uint64_t right, uint64_t depth, int key_len) {
+    //depth first search
+    vector<wort_key_value> res;
+    if (n == NULL)
+        return res;
+    wort_node *tmp = n;
+    wort_node **child;
+    if (IS_LEAF(tmp)) {
+        tmp = (wort_node *) LEAF_RAW(tmp);
+        // Check if the expanded path matches
+        uint64_t tmp_key = ((wort_leaf *) tmp)->key;
+        if (tmp_key >= left && tmp_key <= right) {
+            wort_key_value tmp_kv;
+            tmp_kv.key = tmp_key;
+            tmp_kv.value = *(uint64_t *) (((wort_leaf *) tmp)->value);
+            res.push_back(tmp_kv);
+            return res;
+        }
+    } else {
+        if (tmp->pwortial_len) {
+            int max_cmp = min(min(tmp->pwortial_len, WORT_MAX_PREFIX_LEN), WORT_MAX_HEIGHT - depth);
+            for (int idx = 0; idx < max_cmp; idx++) {
+                if (n->pwortial[idx] > get_index(left, depth + idx)) {
+                    break;
+                } else if (n->pwortial[idx] < get_index(left, depth + idx)) {
+                    return res;
+                }
+            }
+            for (int idx = 0; idx < max_cmp; idx++) {
+                if (n->pwortial[idx] < get_index(right, depth + idx)) {
+                    break;
+                } else if (n->pwortial[idx] > get_index(left, depth + idx)) {
+                    return res;
+                }
+            }
+            depth = depth + n->pwortial_len;
+        }
+        // Recursively search
+        unsigned char left_index = get_index(left, depth);
+        unsigned char right_index = get_index(right, depth);
+
+        if (left_index != right_index) {
+            child = find_child(tmp, left_index);
+            wort_node *next = (child) ? *child : NULL;
+            vector<wort_key_value> tmp_res = node_scan(next, left, 0xffffffffffffffff, depth + 1);
+            res.insert(res.end(), tmp_res.begin(), tmp_res.end());
+            child = find_child(tmp, right_index);
+            next = (child) ? *child : NULL;
+            tmp_res = node_scan(next, 0, right, depth + 1);
+            res.insert(res.end(), tmp_res.begin(), tmp_res.end());
+
+        } else {
+            child = find_child(tmp, left_index);
+            wort_node *next = (child) ? *child : NULL;
+            vector<wort_key_value> tmp_res = node_scan(next, left, right, depth + 1);
+            res.insert(res.end(), tmp_res.begin(), tmp_res.end());
+        }
+
+        for (int i = left_index + 1; i < right_index; ++i) {
+            child = find_child(tmp, i);
+            wort_node *next = (child) ? *child : NULL;
+            vector<wort_key_value> tmp_res = all_subtree_kv(next);
+            res.insert(res.end(), tmp_res.begin(), tmp_res.end());
+        }
+    }
+    return res;
+}
+
+vector<wort_key_value> wort_scan(const wort_tree *t, uint64_t left, uint64_t right, int key_len) {
+    vector<wort_key_value> res = node_scan(t->root, left, right, 0);
+    return res;
 }

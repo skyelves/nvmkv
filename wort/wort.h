@@ -7,17 +7,18 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <vector>
 #include "../fastalloc/fastalloc.h"
 
 /* If you want to change the number of entries,
  * change the values of WORT_NODE_BITS & WORT_MAX_DEPTH */
-#define WORT_NODE_BITS			4
-#define WORT_MAX_DEPTH			15
-#define WORT_NUM_NODE_ENTRIES 	(0x1UL << WORT_NODE_BITS)
-#define WORT_LOW_BIT_MASK		((0x1UL << WORT_NODE_BITS) - 1)
+#define WORT_NODE_BITS            4
+#define WORT_MAX_DEPTH            15
+#define WORT_NUM_NODE_ENTRIES    (0x1UL << WORT_NODE_BITS)
+#define WORT_LOW_BIT_MASK        ((0x1UL << WORT_NODE_BITS) - 1)
 
-#define WORT_MAX_PREFIX_LEN		6
-#define WORT_MAX_HEIGHT			(WORT_MAX_DEPTH + 1)
+#define WORT_MAX_PREFIX_LEN        6
+#define WORT_MAX_HEIGHT            (WORT_MAX_DEPTH + 1)
 
 #if defined(__GNUC__) && !defined(__clang__)
 # if __STDC_VERSION__ >= 199901L && 402 == (__GNUC__ * 100 + __GNUC_MINOR__)
@@ -31,6 +32,11 @@
 #endif
 
 typedef int(*wort_callback)(void *data, const unsigned char *key, uint32_t key_len, void *value);
+
+struct wort_key_value {
+    uint64_t key;
+    uint64_t value;
+};
 
 /**
  * This struct is included as pwort
@@ -85,7 +91,7 @@ wort_tree *new_wort_tree();
  * @return NULL if the item was newly inserted, otherwise
  * the old value pointer is returned.
  */
-void* wort_put(wort_tree *t, const unsigned long key, int key_len, void *value, int value_len = 8);
+void *wort_put(wort_tree *t, const unsigned long key, int key_len, void *value, int value_len = 8);
 
 /**
  * Searches for a value in the wort tree
@@ -95,7 +101,12 @@ void* wort_put(wort_tree *t, const unsigned long key, int key_len, void *value, 
  * @return NULL if the item was not found, otherwise
  * the value pointer is returned.
  */
-void* wort_get(const wort_tree *t, const unsigned long key, int key_len);
+void *wort_get(const wort_tree *t, const unsigned long key, int key_len);
 
+vector<wort_key_value> all_subtree_kv(wort_node *n);
+
+vector<wort_key_value> node_scan(wort_node *n, uint64_t left, uint64_t right, uint64_t depth, int key_len = 8);
+
+vector<wort_key_value> wort_scan(const wort_tree *t, uint64_t left, uint64_t right, int key_len = 8);
 
 #endif //NVMKV_WORT_H
