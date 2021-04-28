@@ -39,17 +39,17 @@ int testNum = 100000;
 int numThread = 1;
 
 int test_algorithms_num = 10;
-bool test_case[10] = {1, // ht
+bool test_case[10] = {0, // ht
                       0, // art
                       0, // wort
-                      0, // woart
+                      1, // woart
                       0, // cacheline_concious_extendible_hash
                       0};
 
 bool range_query_test_case[10] = {
-        1, // ht
+        0, // ht
         0, // wort
-        0, // woart
+        1, // woart
         0
 };
 
@@ -150,6 +150,12 @@ void speedTest() {
     //range query speed for ht
     Time_BODY(range_query_test_case[0], "hash tree range query ", { ht->scan(mykey[i], mykey[i] + 10000); })
 
+    //range query speed for wort
+    Time_BODY(range_query_test_case[1], "wort range query ", { wort_scan(wort, mykey[i], mykey[i] + 10000); })
+
+    //range query speed for woart
+    Time_BODY(range_query_test_case[2], "woart tree range query ", { woart_scan(woart, mykey[i], mykey[i] + 10000); })
+
     out.close();
 }
 
@@ -159,11 +165,13 @@ void correctnessTest() {
     rng r;
     rng_init(&r, 1, 2);
 
+    uint64_t value = 1;
     for (int i = 0; i < testNum; ++i) {
         mykey[i] = rng_next(&r);
         mm[mykey[i]] = i + 1;
+        wort_put(wort, mykey[i], 8, &mm[mykey[i]]);
 //        cceh->put(mykey[i], i + 1);
-        ht->crash_consistent_put(NULL, mykey[i], i + 1, 0);
+//        ht->crash_consistent_put(NULL, mykey[i], i + 1, 0);
 //        for (int j = 0; j < testNum; ++j) {
 //            int64_t res = cceh->get(mykey[j]);
 //            if (res != mm[mykey[j]]) {
@@ -176,7 +184,8 @@ void correctnessTest() {
 
     int64_t res = 0;
     for (int i = 0; i < testNum; ++i) {
-        res = ht->get(mykey[i]);
+        res = *(int64_t *) wort_get(wort, mykey[i], 8);
+//        res = ht->get(mykey[i]);
         if (res != mm[mykey[i]]) {
             cout << i << ", " << mykey[i] << ", " << res << ", " << mm[mykey[i]] << endl;
 //            return;
@@ -221,14 +230,23 @@ void range_query_correctness_test() {
     for (int i = 0; i < testNum; ++i) {
         mykey[i] = rng_next(&r);
     }
-    vector<ht_key_value> res;
+//    vector<ht_key_value> res;
+    vector<woart_key_value> res;
+    uint64_t value = 1;
     for (int i = 0; i < testNum; i++) {
-        ht->crash_consistent_put(NULL, mykey[i], 1, 0);
+        woart_put(woart, i + 1, 8, &value);
+//        ht->crash_consistent_put(NULL, mykey[i], 1, 0);
     }
-    for (int i = 0; i < testNum; ++i) {
-        res = ht->scan(mykey[i], mykey[i] + 10000);
-        cout << res.size() << endl;
+//    for (int i = 0; i < testNum; ++i) {
+////        res = ht->scan(mykey[i], mykey[i] + 10000);
+//        res = wort_scan(wort, mykey[i], mykey[i] + 10000);
+//        cout << res.size() << endl;
+//    }
+    res = woart_scan(woart, 1, 10000);
+    for (int i = 0; i < res.size(); ++i) {
+        cout << res[i].key << ", " << res[i].value << endl;
     }
+    cout << res.size() << endl;
 }
 
 
