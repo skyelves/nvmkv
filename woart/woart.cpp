@@ -756,3 +756,101 @@ void *woart_put(woart_tree *t, const unsigned long key, int key_len, void *value
     if (!old_val) t->size++;
     return old;
 }
+
+vector<woart_key_value> woart_all_subtree_kv(woart_node *n) {
+    vector<woart_key_value> res;
+    if (n == NULL)
+        return res;
+    woart_node *tmp = n;
+    woart_node **child;
+    if (IS_LEAF(tmp)) {
+        tmp = (woart_node *) LEAF_RAW(tmp);
+        woart_key_value tmp_kv;
+        tmp_kv.key = ((woart_leaf *) tmp)->key;
+        tmp_kv.value = *(uint64_t *) (((woart_leaf *) tmp)->value);
+        res.push_back(tmp_kv);
+        return res;
+    } else {
+        // Recursively search
+        for (int i = 0; i < 256; ++i) {
+            child = find_child(tmp, i);
+            woart_node *next = (child) ? *child : NULL;
+            vector<woart_key_value> tmp_res = woart_all_subtree_kv(next);
+            res.insert(res.end(), tmp_res.begin(), tmp_res.end());
+        }
+    }
+    return res;
+}
+
+vector<woart_key_value> woart_node_scan(woart_node *n, uint64_t left, uint64_t right, uint64_t depth, int key_len) {
+    //depth first search
+    vector<woart_key_value> res;
+    if (n == NULL)
+        return res;
+    woart_node *tmp = n;
+    woart_node **child;
+    if (IS_LEAF(tmp)) {
+        tmp = (woart_node *) LEAF_RAW(tmp);
+        // Check if the expanded path matches
+        uint64_t tmp_key = ((woart_leaf *) tmp)->key;
+        if (tmp_key >= left && tmp_key <= right) {
+            woart_key_value tmp_kv;
+            tmp_kv.key = tmp_key;
+            tmp_kv.value = *(uint64_t *) (((woart_leaf *) tmp)->value);
+            res.push_back(tmp_kv);
+            return res;
+        }
+    } else {
+        if (tmp->path.pwoartial_len) {
+            int max_cmp = min(min(tmp->path.pwoartial_len, WOART_MAX_PREFIX_LEN), WOART_MAX_HEIGHT - depth);
+            for (int idx = 0; idx < max_cmp; idx++) {
+                if (tmp->path.pwoartial[idx] > get_index(left, depth + idx)) {
+                    break;
+                } else if (tmp->path.pwoartial[idx] < get_index(left, depth + idx)) {
+                    return res;
+                }
+            }
+            for (int idx = 0; idx < max_cmp; idx++) {
+                if (tmp->path.pwoartial[idx] < get_index(right, depth + idx)) {
+                    break;
+                } else if (tmp->path.pwoartial[idx] > get_index(left, depth + idx)) {
+                    return res;
+                }
+            }
+            depth = depth + tmp->path.pwoartial_len;
+        }
+        // Recursively search
+        unsigned char left_index = get_index(left, depth);
+        unsigned char right_index = get_index(right, depth);
+
+        if (left_index != right_index) {
+            child = find_child(tmp, left_index);
+            woart_node *next = (child) ? *child : NULL;
+            vector<woart_key_value> tmp_res = woart_node_scan(next, left, 0xffffffffffffffff, depth + 1);
+            res.insert(res.end(), tmp_res.begin(), tmp_res.end());
+            child = find_child(tmp, right_index);
+            next = (child) ? *child : NULL;
+            tmp_res = woart_node_scan(next, 0, right, depth + 1);
+            res.insert(res.end(), tmp_res.begin(), tmp_res.end());
+
+        } else {
+            child = find_child(tmp, left_index);
+            woart_node *next = (child) ? *child : NULL;
+            vector<woart_key_value> tmp_res = woart_node_scan(next, left, right, depth + 1);
+            res.insert(res.end(), tmp_res.begin(), tmp_res.end());
+        }
+
+        for (int i = left_index + 1; i < right_index; ++i) {
+            child = find_child(tmp, i);
+            woart_node *next = (child) ? *child : NULL;
+            vector<woart_key_value> tmp_res = woart_all_subtree_kv(next);
+            res.insert(res.end(), tmp_res.begin(), tmp_res.end());
+        }
+    }
+    return res;
+}
+
+vector<woart_key_value> woart_scan(const woart_tree *t, uint64_t left, uint64_t right, int key_len) {
+    vector<woart_key_value> res = woart_node_scan(t->root, left, right, 0);
+    return res;
+}
