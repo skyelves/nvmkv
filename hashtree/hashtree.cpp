@@ -282,7 +282,7 @@ vector<ht_key_value> hashtree::node_scan(hashtree_node *tmp, uint64_t left, uint
                                 (hashtree_node *) tmp_bucket->counter[l].value, 0, right, j + 1);
                         res.insert(res.end(), tmp_res.begin(), tmp_res.end());
                     }
-                } else if (tmp_bucket->counter[l].key < sub_right) {
+                } else if (tmp_bucket->counter[l].key < sub_right && tmp_bucket->counter[l].value != 0) {
                     if (((bool *) tmp_bucket->counter[l].value)[0] == 1) {
                         res.push_back(*((ht_key_value *) tmp_bucket->counter[l].value));
                     } else {
