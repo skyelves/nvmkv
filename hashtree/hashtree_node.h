@@ -21,7 +21,7 @@
 #define HT_MAX_BUCKET_NUM (1<<HT_BUCKET_MASK_LEN)
 
 //#define HT_PROFILE_TIME 1
-#define HT_PROFILE_LOAD_FACTOR 1
+//#define HT_PROFILE_LOAD_FACTOR 1
 
 #ifdef HT_PROFILE_TIME
 extern timeval start_time, end_time;
@@ -58,6 +58,7 @@ class ht_segment {
 public:
     uint64_t depth = 0;
     ht_bucket *bucket;
+//    ht_bucket bucket[HT_MAX_BUCKET_NUM];
 
     ht_segment();
 
