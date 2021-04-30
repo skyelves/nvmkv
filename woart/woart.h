@@ -191,9 +191,10 @@ void *woart_put(woart_tree *t, const unsigned long key, int key_len, void *value
  */
 void *woart_get(const woart_tree *t, const unsigned long key, int key_len);
 
-vector<woart_key_value> woart_all_subtree_kv(woart_node *n);
+void woart_all_subtree_kv(woart_node *n, vector<woart_key_value> &res);
 
-vector<woart_key_value> woart_node_scan(woart_node *n, uint64_t left, uint64_t right, uint64_t depth, int key_len = 8);
+void woart_node_scan(woart_node *n, uint64_t left, uint64_t right, uint64_t depth, vector<woart_key_value> &res,
+                     int key_len = 8);
 
 
 vector<woart_key_value> woart_scan(const woart_tree *t, uint64_t left, uint64_t right, int key_len = 8);

@@ -757,10 +757,9 @@ void *woart_put(woart_tree *t, const unsigned long key, int key_len, void *value
     return old;
 }
 
-vector<woart_key_value> woart_all_subtree_kv(woart_node *n) {
-    vector<woart_key_value> res;
+void woart_all_subtree_kv(woart_node *n, vector<woart_key_value> &res) {
     if (n == NULL)
-        return res;
+        return;
     woart_node *tmp = n;
     woart_node **child;
     if (IS_LEAF(tmp)) {
@@ -769,24 +768,21 @@ vector<woart_key_value> woart_all_subtree_kv(woart_node *n) {
         tmp_kv.key = ((woart_leaf *) tmp)->key;
         tmp_kv.value = *(uint64_t *) (((woart_leaf *) tmp)->value);
         res.push_back(tmp_kv);
-        return res;
     } else {
         // Recursively search
         for (int i = 0; i < 256; ++i) {
             child = find_child(tmp, i);
             woart_node *next = (child) ? *child : NULL;
-            vector<woart_key_value> tmp_res = woart_all_subtree_kv(next);
-            res.insert(res.end(), tmp_res.begin(), tmp_res.end());
+            woart_all_subtree_kv(next, res);
         }
     }
-    return res;
 }
 
-vector<woart_key_value> woart_node_scan(woart_node *n, uint64_t left, uint64_t right, uint64_t depth, int key_len) {
+void woart_node_scan(woart_node *n, uint64_t left, uint64_t right, uint64_t depth, vector<woart_key_value> &res,
+                     int key_len) {
     //depth first search
-    vector<woart_key_value> res;
     if (n == NULL)
-        return res;
+        return;
     woart_node *tmp = n;
     woart_node **child;
     if (IS_LEAF(tmp)) {
@@ -798,7 +794,7 @@ vector<woart_key_value> woart_node_scan(woart_node *n, uint64_t left, uint64_t r
             tmp_kv.key = tmp_key;
             tmp_kv.value = *(uint64_t *) (((woart_leaf *) tmp)->value);
             res.push_back(tmp_kv);
-            return res;
+            return;
         }
     } else {
         if (tmp->path.pwoartial_len) {
@@ -807,14 +803,14 @@ vector<woart_key_value> woart_node_scan(woart_node *n, uint64_t left, uint64_t r
                 if (tmp->path.pwoartial[idx] > get_index(left, depth + idx)) {
                     break;
                 } else if (tmp->path.pwoartial[idx] < get_index(left, depth + idx)) {
-                    return res;
+                    return;
                 }
             }
             for (int idx = 0; idx < max_cmp; idx++) {
                 if (tmp->path.pwoartial[idx] < get_index(right, depth + idx)) {
                     break;
                 } else if (tmp->path.pwoartial[idx] > get_index(left, depth + idx)) {
-                    return res;
+                    return;
                 }
             }
             depth = depth + tmp->path.pwoartial_len;
@@ -826,31 +822,27 @@ vector<woart_key_value> woart_node_scan(woart_node *n, uint64_t left, uint64_t r
         if (left_index != right_index) {
             child = find_child(tmp, left_index);
             woart_node *next = (child) ? *child : NULL;
-            vector<woart_key_value> tmp_res = woart_node_scan(next, left, 0xffffffffffffffff, depth + 1);
-            res.insert(res.end(), tmp_res.begin(), tmp_res.end());
+            woart_node_scan(next, left, 0xffffffffffffffff, depth + 1, res);
             child = find_child(tmp, right_index);
             next = (child) ? *child : NULL;
-            tmp_res = woart_node_scan(next, 0, right, depth + 1);
-            res.insert(res.end(), tmp_res.begin(), tmp_res.end());
+            woart_node_scan(next, 0, right, depth + 1, res);
 
         } else {
             child = find_child(tmp, left_index);
             woart_node *next = (child) ? *child : NULL;
-            vector<woart_key_value> tmp_res = woart_node_scan(next, left, right, depth + 1);
-            res.insert(res.end(), tmp_res.begin(), tmp_res.end());
+            woart_node_scan(next, left, right, depth + 1, res);
         }
 
         for (int i = left_index + 1; i < right_index; ++i) {
             child = find_child(tmp, i);
             woart_node *next = (child) ? *child : NULL;
-            vector<woart_key_value> tmp_res = woart_all_subtree_kv(next);
-            res.insert(res.end(), tmp_res.begin(), tmp_res.end());
+            woart_all_subtree_kv(next, res);
         }
     }
-    return res;
 }
 
 vector<woart_key_value> woart_scan(const woart_tree *t, uint64_t left, uint64_t right, int key_len) {
-    vector<woart_key_value> res = woart_node_scan(t->root, left, right, 0);
+    vector<woart_key_value> res;
+    woart_node_scan(t->root, left, right, 0, res);
     return res;
 }
