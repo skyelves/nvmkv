@@ -103,9 +103,10 @@ void *wort_put(wort_tree *t, const unsigned long key, int key_len, void *value, 
  */
 void *wort_get(const wort_tree *t, const unsigned long key, int key_len);
 
-vector<wort_key_value> wort_all_subtree_kv(wort_node *n);
+void wort_all_subtree_kv(wort_node *n, vector<wort_key_value> &res);
 
-vector<wort_key_value> wort_node_scan(wort_node *n, uint64_t left, uint64_t right, uint64_t depth, int key_len = 8);
+void wort_node_scan(wort_node *n, uint64_t left, uint64_t right, uint64_t depth, vector<wort_key_value> &res,
+                    int key_len = 8);
 
 vector<wort_key_value> wort_scan(const wort_tree *t, uint64_t left, uint64_t right, int key_len = 8);
 
