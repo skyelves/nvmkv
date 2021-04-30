@@ -33,9 +33,9 @@ public:
 
     uint64_t get(uint64_t k);
 
-    vector<ht_key_value> all_subtree_kv(hashtree_node *tmp);
+    void all_subtree_kv(hashtree_node *tmp, vector<ht_key_value> &res);
 
-    vector<ht_key_value> node_scan(hashtree_node *tmp, uint64_t left, uint64_t right, uint64_t layer);
+    void node_scan(hashtree_node *tmp, uint64_t left, uint64_t right, uint64_t layer, vector<ht_key_value> &res);
 
     vector<ht_key_value> scan(uint64_t left, uint64_t right);
 };
