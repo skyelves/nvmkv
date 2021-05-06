@@ -259,9 +259,10 @@ void hashtree_node::put(uint64_t key, uint64_t value) {
             // there is a place to insert
             tmp_bucket->counter[bucket_index].value = value;
             mfence();
+            clflush((char *) &(tmp_bucket->counter[bucket_index].value), 8);
             tmp_bucket->counter[bucket_index].key = key;
             mfence();
-            clflush((char *) &(tmp_bucket->counter[bucket_index].key), 16);
+            clflush((char *) &(tmp_bucket->counter[bucket_index].key), 8);
         }
 #ifdef HT_PROFILE_TIME
         gettimeofday(&end_time, NULL);
