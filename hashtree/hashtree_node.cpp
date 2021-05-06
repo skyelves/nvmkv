@@ -175,18 +175,15 @@ void hashtree_node::put(uint64_t key, uint64_t value) {
                     }
                 }
             }
-            mfence();
             clflush((char *) new_seg, sizeof(ht_segment));
 
             // set dir[mid, right) to the new bucket
             for (int i = right - 1; i >= mid; --i) {
                 dir[i] = new_seg;
-                mfence();
                 clflush((char *) dir[i], sizeof(ht_segment *));
             }
 
             tmp_seg->depth = tmp_seg->depth + 1;
-            mfence();
             clflush((char *) &(tmp_seg->depth), sizeof(tmp_seg->depth));
 #ifdef HT_PROFILE_TIME
             gettimeofday(&end_time, NULL);
@@ -231,13 +228,11 @@ void hashtree_node::put(uint64_t key, uint64_t value) {
                     }
                 }
             }
-            mfence();
 
             clflush((char *) new_seg, sizeof(ht_segment));
             clflush((char *) new_dir, sizeof(ht_segment *) * dir_size);
 
             dir = new_dir;
-            mfence();
             clflush((char *) dir, sizeof(dir));
 #ifdef HT_PROFILE_TIME
             gettimeofday(&end_time, NULL);
@@ -253,16 +248,14 @@ void hashtree_node::put(uint64_t key, uint64_t value) {
         if (unlikely(tmp_bucket->counter[bucket_index].key == key)) {
             //key exists
             tmp_bucket->counter[bucket_index].value = value;
-            mfence();
             clflush((char *) &(tmp_bucket->counter[bucket_index].value), 8);
         } else {
             // there is a place to insert
             tmp_bucket->counter[bucket_index].value = value;
-            mfence();
-            clflush((char *) &(tmp_bucket->counter[bucket_index].value), 8);
             tmp_bucket->counter[bucket_index].key = key;
-            mfence();
-            clflush((char *) &(tmp_bucket->counter[bucket_index].key), 8);
+            // Here we clflush 16bytes rather than two 8 bytes because all counter are set to 0.
+            // If crash after key flushed, then the value is 0. When we return the value, we would find that the key is not inserted.
+            clflush((char *) &(tmp_bucket->counter[bucket_index].key), 16);
         }
 #ifdef HT_PROFILE_TIME
         gettimeofday(&end_time, NULL);

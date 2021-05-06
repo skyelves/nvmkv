@@ -83,7 +83,6 @@ void hashtree::crash_consistent_put(hashtree_node *_node, uint64_t k, uint64_t v
         if (next == 0) {
             //not exists
             ht_key_value *kv = new_ht_key_value(k, v);
-            mfence();
             clflush((char *) kv, sizeof(ht_key_value));
             tmp->put(sub_key, (uint64_t) kv);//crash consistency operations
             return;
@@ -94,7 +93,6 @@ void hashtree::crash_consistent_put(hashtree_node *_node, uint64_t k, uint64_t v
                 if (unlikely(k == pre_k)) {
                     //same key, update the value
                     ((ht_key_value *) next)->value = v;
-                    mfence();
                     clflush((char *) &(((ht_key_value *) next)->value), 8);
                     return;
                 } else {
@@ -119,7 +117,6 @@ void hashtree::put(uint64_t k, uint64_t v) {
     hashtree_node *tmp = root;
 
     ht_key_value *kv = new_ht_key_value(k, v);
-    mfence();
     clflush((char *) kv, sizeof(ht_key_value));
 
     uint64_t sub_key;
@@ -137,7 +134,6 @@ void hashtree::put(uint64_t k, uint64_t v) {
                 if (unlikely(k == pre_k)) {
                     //same key, update the value
                     ((ht_key_value *) next)->value = v;
-                    mfence();
                     clflush((char *) &(((ht_key_value *) next)->value), 8);
                     return;
                 } else {
