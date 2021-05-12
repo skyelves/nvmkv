@@ -155,21 +155,18 @@ void cacheline_concious_extendible_hash::put(Key_t key, Value_t value) {
                     }
                 }
             }
-            mfence();
             clflush((char *) new_seg, sizeof(cceh_segment));
 
 
             //set dir[mid, right) to the new segment
             for (int i = right - 1; i >= mid; --i) {
                 dir[i] = new_seg;
-                mfence();
 
                 clflush((char *) dir[i], sizeof(cceh_segment *));
 
             }
 
             tmp_seg->depth = tmp_seg->depth + 1;
-            mfence();
 
             clflush((char *) &(tmp_seg->depth), sizeof(tmp_seg->depth));
 #ifdef CCEH_PROFILE_TIME
@@ -213,13 +210,11 @@ void cacheline_concious_extendible_hash::put(Key_t key, Value_t value) {
                     }
                 }
             }
-            mfence();
 
             clflush((char *) new_seg, sizeof(cceh_segment));
             clflush((char *) new_dir, sizeof(cceh_segment *) * dir_size);
 
             dir = new_dir;
-            mfence();
             clflush((char *) dir, sizeof(dir));
 
 #ifdef CCEH_PROFILE_TIME
@@ -237,7 +232,6 @@ void cacheline_concious_extendible_hash::put(Key_t key, Value_t value) {
         if (unlikely(tmp_bucket->kv[bucket_index].key == key)) {
             //key exists
             tmp_bucket->kv[bucket_index].value = value;
-            mfence();
             clflush((char *) &(tmp_bucket->kv[bucket_index].value), 8);
 
         } else {
@@ -245,7 +239,6 @@ void cacheline_concious_extendible_hash::put(Key_t key, Value_t value) {
             tmp_bucket->kv[bucket_index].value = value;
             mfence();
             tmp_bucket->kv[bucket_index].key = key;
-            mfence();
             clflush((char *) &(tmp_bucket->kv[bucket_index].key), 16);
         }
 #ifdef CCEH_PROFILE_TIME
