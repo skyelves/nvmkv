@@ -45,6 +45,8 @@ stdint.h
 -
 stdbool.h
 -
+vector
+-
 ../fastalloc/fastalloc.h
 /Users/wangke/CLionProjects/nvmkv/fastalloc/fastalloc.h
 

@@ -39,17 +39,17 @@ int testNum = 100000;
 int numThread = 1;
 
 int test_algorithms_num = 10;
-bool test_case[10] = {0, // ht
+bool test_case[10] = {1, // ht
                       0, // art
-                      0, // wort
+                      1, // wort
                       1, // woart
-                      0, // cacheline_concious_extendible_hash
+                      1, // cacheline_concious_extendible_hash
                       0};
 
 bool range_query_test_case[10] = {
         0, // ht
         0, // wort
-        1, // woart
+        0, // woart
         0
 };
 
@@ -95,6 +95,8 @@ void speedTest() {
     rng_init(&r, 1, 2);
     for (int i = 0; i < testNum; ++i) {
         mykey[i] = rng_next(&r);
+//        mykey[i] = rng_next(&r) % 0xffffffff00000000;
+//        mykey[i] = rng_next(&r) % testNum;
     }
     uint64_t value = 1;
 //    timeval start, ends;
@@ -148,13 +150,13 @@ void speedTest() {
     Time_BODY(test_case[4], "cceh get ", { cceh->get(mykey[i]); })
 
     //range query speed for ht
-    Time_BODY(range_query_test_case[0], "hash tree range query ", { ht->scan(mykey[i], mykey[i] + 10000); })
+    Time_BODY(range_query_test_case[0], "hash tree range query ", { ht->scan(mykey[i], mykey[i] + 10240); })
 
     //range query speed for wort
-    Time_BODY(range_query_test_case[1], "wort range query ", { wort_scan(wort, mykey[i], mykey[i] + 10000); })
+    Time_BODY(range_query_test_case[1], "wort range query ", { wort_scan(wort, mykey[i], mykey[i] + 10240); })
 
     //range query speed for woart
-    Time_BODY(range_query_test_case[2], "woart tree range query ", { woart_scan(woart, mykey[i], mykey[i] + 10000); })
+    Time_BODY(range_query_test_case[2], "woart tree range query ", { woart_scan(woart, mykey[i], mykey[i] + 10240); })
 
     out.close();
 }
@@ -212,8 +214,8 @@ void profile() {
         if (i % 10000 == 0) {
 //            out << i << ", " << cceh->dir_size << ", "
 //                << (double) i / (cceh_seg_num * CCEH_BUCKET_SIZE * CCEH_MAX_BUCKET_NUM) << endl;
-            out << i << ", " << ht_dir_num << ", " << ht_seg_num << ", "
-                << (double) i / (ht_seg_num * HT_MAX_BUCKET_NUM * HT_BUCKET_SIZE) << endl;
+//            out << i << ", " << ht_dir_num << ", " << ht_seg_num << ", "
+//                << (double) i / (ht_seg_num * HT_MAX_BUCKET_NUM * HT_BUCKET_SIZE) << endl;
         }
     }
     gettimeofday(&ends, NULL);
@@ -232,16 +234,20 @@ void range_query_correctness_test() {
     }
 //    vector<ht_key_value> res;
     vector<woart_key_value> res;
+//    vector<wort_key_value> res;
     uint64_t value = 1;
-    for (int i = 0; i < testNum; i++) {
+    for (int i = 0; i < testNum; i += 30) {
         woart_put(woart, i + 1, 8, &value);
-//        ht->crash_consistent_put(NULL, mykey[i], 1, 0);
+//        wort_put(wort, i + 1, 8, &value);
+//        ht->crash_consistent_put(NULL, i+1, 1, 0);
     }
 //    for (int i = 0; i < testNum; ++i) {
 ////        res = ht->scan(mykey[i], mykey[i] + 10000);
 //        res = wort_scan(wort, mykey[i], mykey[i] + 10000);
 //        cout << res.size() << endl;
 //    }
+//    res = wort_scan(wort, 1, 10000);
+//    res =  ht->scan(1, 10000);
     res = woart_scan(woart, 1, 10000);
     for (int i = 0; i < res.size(); ++i) {
         cout << res[i].key << ", " << res[i].value << endl;
