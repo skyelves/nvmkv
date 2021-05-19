@@ -14,9 +14,10 @@ add_subdirectory(art)
 add_subdirectory(wort)
 add_subdirectory(woart)
 add_subdirectory(cceh)
+add_subdirectory(fastfair)
 
 add_executable(nvmkv main.cpp)
 #target_link_libraries(nvmkv PRIVATE nvmkv-blink nvmkv-cart nvmkv-mass nvmkv-rng vmmalloc)
 target_link_libraries(nvmkv PRIVATE nvmkv-blink nvmkv-mass
         nvmkv-rng nvmkv-ht nvmkv-murmur nvmkv-bobhash32
-        nvmkv-art nvmkv-wort nvmkv-woart nvmkv-cceh)
+        nvmkv-art nvmkv-wort nvmkv-woart nvmkv-cceh nvmkv-fastfair)

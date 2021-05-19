@@ -4,6 +4,14 @@
 
 #include "fastfair.h"
 
+ff_key_value::ff_key_value() {
+
+}
+
+ff_key_value::ff_key_value(uint64_t _key, uint64_t _value) : key(_key), value(_value) {
+
+}
+
 fastfair *new_fastfair() {
     fastfair *new_ff = static_cast<fastfair *>(fast_alloc(sizeof(fastfair)));
     new_ff->init();
@@ -147,9 +155,8 @@ void fastfair::fastfair_delete_internal(uint64_t key, char *ptr, uint32_t level,
     }
 }
 
-// Function to search keys from "min" to "max"
-void fastfair::scan(uint64_t min, uint64_t max,
-                    unsigned long *buf) {
+void fastfair::_scan(uint64_t min, uint64_t max,
+                     vector<ff_key_value> &buf) {
     page *p = (page *) root;
 
     while (p) {
@@ -163,6 +170,14 @@ void fastfair::scan(uint64_t min, uint64_t max,
             break;
         }
     }
+}
+
+// Function to search keys from "min" to "max"
+vector<ff_key_value> fastfair::scan(uint64_t min, uint64_t max) {
+    vector<ff_key_value> res;
+
+    _scan(min, max, res);
+    return res;
 }
 
 void fastfair::printAll() {

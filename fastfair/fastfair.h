@@ -42,6 +42,16 @@ inline void clflush(char *data, int len) {
     mfence();
 }
 
+class ff_key_value {
+public:
+    uint64_t key;
+    uint64_t value;
+
+    ff_key_value();
+
+    ff_key_value(uint64_t _key, uint64_t _value);
+};
+
 class page;
 
 class fastfair {
@@ -69,8 +79,9 @@ public:
 
     char *get(uint64_t key);
 
-    void scan(uint64_t min, uint64_t max,
-              unsigned long *buf);
+    void _scan(uint64_t min, uint64_t max, vector<ff_key_value> &buf);
+
+    vector<ff_key_value> scan(uint64_t min, uint64_t max);
 
     void printAll();
 
@@ -559,7 +570,7 @@ public:
 
     // Search keys with linear search
     void linear_search_range(uint64_t min, uint64_t max,
-                             unsigned long *buf) {
+                             vector<ff_key_value> &buf) {
         int i, off = 0;
         uint8_t previous_switch_counter;
         page *current = this;
@@ -579,7 +590,9 @@ public:
                             if ((tmp_ptr = current->records[0].ptr) != NULL) {
                                 if (tmp_key == current->records[0].key) {
                                     if (tmp_ptr) {
-                                        buf[off++] = (unsigned long) tmp_ptr;
+//                                        buf[off++] = (unsigned long) tmp_ptr;
+                                        ff_key_value tmp(tmp_key, *(uint64_t *) tmp_ptr);
+                                        buf.push_back(tmp);
                                     }
                                 }
                             }
@@ -593,8 +606,10 @@ public:
                                 if ((tmp_ptr = current->records[i].ptr) !=
                                     current->records[i - 1].ptr) {
                                     if (tmp_key == current->records[i].key) {
-                                        if (tmp_ptr)
-                                            buf[off++] = (unsigned long) tmp_ptr;
+                                        if (tmp_ptr) {
+                                            ff_key_value tmp(tmp_key, *(uint64_t *) tmp_ptr);
+                                            buf.push_back(tmp);
+                                        }
                                     }
                                 }
                             } else
@@ -608,8 +623,10 @@ public:
                                 if ((tmp_ptr = current->records[i].ptr) !=
                                     current->records[i - 1].ptr) {
                                     if (tmp_key == current->records[i].key) {
-                                        if (tmp_ptr)
-                                            buf[off++] = (unsigned long) tmp_ptr;
+                                        if (tmp_ptr) {
+                                            ff_key_value tmp(tmp_key, *(uint64_t *) tmp_ptr);
+                                            buf.push_back(tmp);
+                                        }
                                     }
                                 }
                             } else
@@ -622,7 +639,8 @@ public:
                             if ((tmp_ptr = current->records[0].ptr) != NULL) {
                                 if (tmp_key == current->records[0].key) {
                                     if (tmp_ptr) {
-                                        buf[off++] = (unsigned long) tmp_ptr;
+                                        ff_key_value tmp(tmp_key, *(uint64_t *) tmp_ptr);
+                                        buf.push_back(tmp);
                                     }
                                 }
                             }
