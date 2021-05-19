@@ -1,0 +1,5 @@
+set(FASTFAIR_SOURCES fastfair.cpp fastfair.h)
+
+add_library(nvmkv-fastfair STATIC ${FASTFAIR_SOURCES})
+
+target_link_libraries(nvmkv-fastfair PUBLIC nvmkv-fastalloc)
