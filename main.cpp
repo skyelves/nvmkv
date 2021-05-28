@@ -15,6 +15,7 @@
 #include "woart/woart.h"
 #include "cceh/cacheline_concious_extendible_hash.h"
 #include "fastfair/fastfair.h"
+#include "roart/roart.h"
 
 using namespace std;
 
@@ -40,19 +41,21 @@ int testNum = 100000;
 int numThread = 1;
 
 int test_algorithms_num = 10;
-bool test_case[10] = {1, // ht
+bool test_case[10] = {0, // ht
                       0, // art
                       0, // wort
                       0, // woart
                       0, // cacheline_concious_extendible_hash
-                      1, // fast&fair
+                      0, // fast&fair
+                      1, // roart
                       0};
 
 bool range_query_test_case[10] = {
-        1, // ht
+        0, // ht
         0, // wort
         0, // woart
-        1, // fast&fair
+        0, // fast&fair
+        0, // roart
         0
 };
 
@@ -64,6 +67,7 @@ wort_tree *wort;
 woart_tree *woart;
 cacheline_concious_extendible_hash *cceh;
 fastfair *ff;
+ROART *roart;
 
 uint64_t *mykey;
 
@@ -182,9 +186,11 @@ void correctnessTest() {
 
     uint64_t value = 1;
     for (int i = 0; i < testNum; ++i) {
-        mykey[i] = rng_next(&r);
+//        mykey[i] = rng_next(&r);
+        mykey[i] = i + 1;
         mm[mykey[i]] = i + 1;
-        ff->put(mykey[i], (char *) &mm[mykey[i]]);
+        roart->insert(mykey[i], i + 1);
+//        ff->put(mykey[i], (char *) &mm[mykey[i]]);
 //        wort_put(wort, mykey[i], 8, &mm[mykey[i]]);
 //        cceh->put(mykey[i], i + 1);
 //        ht->crash_consistent_put(NULL, mykey[i], i + 1, 0);
@@ -200,7 +206,8 @@ void correctnessTest() {
 
     int64_t res = 0;
     for (int i = 0; i < testNum; ++i) {
-        res = *(int64_t *) ff->get(mykey[i]);
+        res = roart->lookup(mykey[i]);
+//        res = *(int64_t *) ff->get(mykey[i]);
 //        res = *(int64_t *) wort_get(wort, mykey[i], 8);
 //        res = ht->get(mykey[i]);
         if (res != mm[mykey[i]]) {
@@ -285,10 +292,11 @@ int main(int argc, char *argv[]) {
     woart = new_woart_tree();
     cceh = new_cceh();
     ff = new_fastfair();
+    roart = new_roart();
 //    mt = new_mass_tree();
 //    bt = new_blink_tree(numThread);
-    speedTest();
-//    correctnessTest();
+//    speedTest();
+    correctnessTest();
 //    profile();
 //    range_query_correctness_test();
 //    cout << ht->node_cnt << endl;
