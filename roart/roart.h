@@ -65,15 +65,17 @@ public:
     void rebuild(std::vector<std::pair<uint64_t, size_t>> &rs,
                  uint64_t start_addr, uint64_t end_addr, int thread_id);
 
-    uint64_t lookup(uint64_t key);
+    uint64_t get(uint64_t key);
 
     OperationResults update(const ROART_KEY *k) const;
 
-    bool lookupRange(const ROART_KEY *start, const ROART_KEY *end, const ROART_KEY *continueKey,
+    bool lookupRange(const ROART_KEY *start, const ROART_KEY *end, ROART_KEY *continueKey,
                      ROART_Leaf *result[], std::size_t resultLen,
                      std::size_t &resultCount) const;
 
-    OperationResults insert(uint64_t key, uint64_t value);
+    vector<ROART_KEY> scan(uint64_t min, uint64_t max);
+
+    OperationResults put(uint64_t key, uint64_t value);
 
     OperationResults remove(const ROART_KEY *k);
 

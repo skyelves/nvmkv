@@ -18,7 +18,7 @@ inline void clflush(char *data, size_t len) {
 }
 
 ROART::ROART() {
-    std::cout << "[P-ART]\tnew P-ART\n";
+//    std::cout << "[P-ART]\tnew P-ART\n";
 
     //    Epoch_Mgr * epoch_mgr = new Epoch_Mgr();
 #ifdef ARTPMDK
@@ -48,7 +48,7 @@ ROART::ROART() {
     root = new(fast_alloc(sizeof(N256))) N256(0, {});
     clflush((char *) root, sizeof(N256));
     //        N::clflush((char *)root, sizeof(N256), true, true);
-    std::cout << "[P-ART]\tfirst create a P-ART\n";
+//    std::cout << "[P-ART]\tfirst create a P-ART\n";
 
 
 #endif
@@ -63,7 +63,7 @@ ROART::~ROART() {
 
 #ifdef LEAF_ARRAY
 
-uint64_t ROART::lookup(uint64_t key) {
+uint64_t ROART::get(uint64_t key) {
     // enter a new epoch
     ROART_KEY *k = new ROART_KEY(key, sizeof(uint64_t), 0);
     bool need_restart;
@@ -126,7 +126,7 @@ uint64_t ROART::lookup(uint64_t key) {
 }
 
 #else
-uint64_t ROART::lookup(uint64_t key) {
+uint64_t ROART::get(uint64_t key) {
     // enter a new epoch
     ROART_KEY *k = new ROART_KEY(key, sizeof(uint64_t), 0);
     N *node = root;
@@ -272,7 +272,7 @@ typename ROART::OperationResults ROART::update(const ROART_KEY *k) const {
 
 #ifdef LEAF_ARRAY
 
-bool ROART::lookupRange(const ROART_KEY *start, const ROART_KEY *end, const ROART_KEY *continueKey,
+bool ROART::lookupRange(const ROART_KEY *start, const ROART_KEY *end, ROART_KEY *continueKey,
                         ROART_Leaf *result[], std::size_t resultSize,
                         std::size_t &resultsFound) const {
     if (!N::key_key_lt(start, end)) {
@@ -714,8 +714,21 @@ restart:
 }
 #endif
 
+vector<ROART_KEY> ROART::scan(uint64_t min, uint64_t max) {
+    vector<ROART_KEY> res;
+    ROART_KEY *start, *end, *continue_key;
+    size_t res_cnt = 0;
+    size_t res_len = 10000;
+    start = new ROART_KEY(min, sizeof(uint64_t), 0);
+    end = new ROART_KEY(max, sizeof(uint64_t), 0);
+    continue_key = NULL;
+    ROART_Leaf **result = new ROART_Leaf *[res_len];
+    lookupRange(start, end, continue_key, result, res_len, res_cnt);
+    cout << res_cnt << endl;
+}
 
-typename ROART::OperationResults ROART::insert(uint64_t key, uint64_t value) {
+
+typename ROART::OperationResults ROART::put(uint64_t key, uint64_t value) {
 
     ROART_KEY *k;
     k = new ROART_KEY(key, sizeof(uint64_t), value);
