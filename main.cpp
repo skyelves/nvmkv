@@ -102,9 +102,9 @@ void speedTest() {
     rng r;
     rng_init(&r, 1, 2);
     for (int i = 0; i < testNum; ++i) {
-//        mykey[i] = rng_next(&r);
-//        mykey[i] = rng_next(&r) % 0xffffffff00000000;
-        mykey[i] = rng_next(&r) % testNum;
+        mykey[i] = rng_next(&r);
+//        mykey[i] = rng_next(&r) & 0xffffffff00000000;
+//        mykey[i] = rng_next(&r) % testNum;
     }
     uint64_t value = 1;
 //    timeval start, ends;
@@ -145,6 +145,9 @@ void speedTest() {
     // insert speed for fast&fair
     Time_BODY(test_case[5], "fast&fair put ", { ff->put(mykey[i], (char *) &value); })
 
+    // insert speed for fast&fair
+    Time_BODY(test_case[6], "roart put ", { roart->put(mykey[i], value); })
+
     // query speed for ht
     Time_BODY(test_case[0], "hash tree get ", { ht->get(mykey[i]); })
 
@@ -162,6 +165,9 @@ void speedTest() {
 
     // query speed for fast&fair
     Time_BODY(test_case[5], "fast&fair get ", { ff->get(mykey[i]); })
+
+    // query speed for fast&fair
+    Time_BODY(test_case[6], "roart get ", { roart->get(mykey[i]); })
 
     //range query speed for ht
     Time_BODY(range_query_test_case[0], "hash tree range query ", { ht->scan(mykey[i], mykey[i] + 1024); })
@@ -189,7 +195,7 @@ void correctnessTest() {
 //        mykey[i] = rng_next(&r);
         mykey[i] = i + 1;
         mm[mykey[i]] = i + 1;
-        roart->insert(mykey[i], i + 1);
+        roart->put(mykey[i], i + 1);
 //        ff->put(mykey[i], (char *) &mm[mykey[i]]);
 //        wort_put(wort, mykey[i], 8, &mm[mykey[i]]);
 //        cceh->put(mykey[i], i + 1);
@@ -206,7 +212,7 @@ void correctnessTest() {
 
     int64_t res = 0;
     for (int i = 0; i < testNum; ++i) {
-        res = roart->lookup(mykey[i]);
+        res = roart->get(mykey[i]);
 //        res = *(int64_t *) ff->get(mykey[i]);
 //        res = *(int64_t *) wort_get(wort, mykey[i], 8);
 //        res = ht->get(mykey[i]);
@@ -259,8 +265,9 @@ void range_query_correctness_test() {
 //    vector<woart_key_value> res;
 //    vector<wort_key_value> res;
     uint64_t value = 1;
-    for (int i = 0; i < testNum; i += 30) {
-        ff->put(i + 1, (char *) &value);
+    for (int i = 0; i < testNum; i += 1) {
+        roart->put(i + 1, i + 1);
+//        ff->put(i + 1, (char *) &value);
 //        woart_put(woart, i + 1, 8, &value);
 //        wort_put(wort, i + 1, 8, &value);
 //        ht->crash_consistent_put(NULL, i+1, 1, 0);
@@ -273,12 +280,13 @@ void range_query_correctness_test() {
 //    res = wort_scan(wort, 1, 10000);
 //    res =  ht->scan(1, 10000);
 //    res = woart_scan(woart, 1, 10000);
-    res = ff->scan(1, 10000);
-
-    for (int i = 0; i < res.size(); ++i) {
-        cout << res[i].key << ", " << res[i].value << endl;
-    }
-    cout << res.size() << endl;
+//    res = ff->scan(1, 10000);
+//
+//    for (int i = 0; i < res.size(); ++i) {
+//        cout << res[i].key << ", " << res[i].value << endl;
+//    }
+//    cout << res.size() << endl;
+    roart->scan(1, 10000);
 }
 
 
@@ -295,8 +303,8 @@ int main(int argc, char *argv[]) {
     roart = new_roart();
 //    mt = new_mass_tree();
 //    bt = new_blink_tree(numThread);
-//    speedTest();
-    correctnessTest();
+//    correctnessTest();
+    speedTest();
 //    profile();
 //    range_query_correctness_test();
 //    cout << ht->node_cnt << endl;
