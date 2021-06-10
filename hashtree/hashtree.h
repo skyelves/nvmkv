@@ -41,6 +41,7 @@ public:
 
     void update(uint64_t k, uint64_t v);
 
+    uint64_t del(uint64_t k);
 };
 
 hashtree *new_hashtree(int _span = 8, int _init_depth = 4);

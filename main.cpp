@@ -210,12 +210,17 @@ void correctnessTest() {
 //        }
     }
 
-    for (int i = 0; i < testNum; ++i) {
-        mm[mykey[i]] = i + 2;
-        ht->update(mykey[i], i + 2);
-    }
-
     int64_t res = 0;
+//    for (int i = 0; i < testNum; ++i) {
+//        mm[mykey[i]] = i + 2;
+//        ht->update(mykey[i], i + 2);
+//        res = ht->del(mykey[i]);
+//        if (res != mm[mykey[i]]) {
+//            cout << i << ", " << mykey[i] << ", " << res << ", " << mm[mykey[i]] << endl;
+//            return;
+//        }
+//    }
+
     for (int i = 0; i < testNum; ++i) {
 //        res = roart->get(mykey[i]);
 //        res = *(int64_t *) ff->get(mykey[i]);

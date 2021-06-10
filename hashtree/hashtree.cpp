@@ -354,3 +354,32 @@ void hashtree::update(uint64_t k, uint64_t v) {
         }
     }
 }
+
+uint64_t hashtree::del(uint64_t k) {
+    hashtree_node *tmp = root;
+
+    uint64_t sub_key;
+
+    for (int i = 0, j = 0; i < 64; i += span_test[j], j++) {
+        sub_key = GET_SUB_KEY(k, i, span_test[j]);
+        uint64_t next = tmp->get(sub_key);
+        if (next == 0) {
+            //not exists
+            return 0;
+        } else {
+            if (((bool *) next)[0]) {
+                uint64_t pre_k = ((ht_key_value *) next)->key;
+                if (k == pre_k) {
+                    //same key, update the value
+                    uint64_t res = ((ht_key_value *) next)->value;
+                    ((ht_key_value *) next)->value = 0;
+                    clflush((char *) &(((ht_key_value *) next)->value), 8);
+                    return res;
+                }
+            } else {
+                // next is next extendible hash
+                tmp = (hashtree_node *) next;
+            }
+        }
+    }
+}
