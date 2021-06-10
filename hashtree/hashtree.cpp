@@ -326,3 +326,31 @@ vector<ht_key_value> hashtree::scan(uint64_t left, uint64_t right) {
     node_scan(root, left, right, 0, res);
     return res;
 }
+
+void hashtree::update(uint64_t k, uint64_t v) {
+    hashtree_node *tmp = root;
+
+    uint64_t sub_key;
+
+    for (int i = 0, j = 0; i < 64; i += span_test[j], j++) {
+        sub_key = GET_SUB_KEY(k, i, span_test[j]);
+        uint64_t next = tmp->get(sub_key);
+        if (next == 0) {
+            //not exists
+            return;
+        } else {
+            if (((bool *) next)[0]) {
+                uint64_t pre_k = ((ht_key_value *) next)->key;
+                if (k == pre_k) {
+                    //same key, update the value
+                    ((ht_key_value *) next)->value = v;
+                    clflush((char *) &(((ht_key_value *) next)->value), 8);
+                    return;
+                }
+            } else {
+                // next is next extendible hash
+                tmp = (hashtree_node *) next;
+            }
+        }
+    }
+}

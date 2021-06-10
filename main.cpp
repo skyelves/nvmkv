@@ -192,14 +192,14 @@ void correctnessTest() {
 
     uint64_t value = 1;
     for (int i = 0; i < testNum; ++i) {
-//        mykey[i] = rng_next(&r);
-        mykey[i] = i + 1;
+        mykey[i] = rng_next(&r);
+//        mykey[i] = i + 1;
         mm[mykey[i]] = i + 1;
-        roart->put(mykey[i], i + 1);
+//        roart->put(mykey[i], i + 1);
 //        ff->put(mykey[i], (char *) &mm[mykey[i]]);
 //        wort_put(wort, mykey[i], 8, &mm[mykey[i]]);
 //        cceh->put(mykey[i], i + 1);
-//        ht->crash_consistent_put(NULL, mykey[i], i + 1, 0);
+        ht->crash_consistent_put(NULL, mykey[i], i + 1, 0);
 //        for (int j = 0; j < testNum; ++j) {
 //            int64_t res = cceh->get(mykey[j]);
 //            if (res != mm[mykey[j]]) {
@@ -210,12 +210,17 @@ void correctnessTest() {
 //        }
     }
 
+    for (int i = 0; i < testNum; ++i) {
+        mm[mykey[i]] = i + 2;
+        ht->update(mykey[i], i + 2);
+    }
+
     int64_t res = 0;
     for (int i = 0; i < testNum; ++i) {
-        res = roart->get(mykey[i]);
+//        res = roart->get(mykey[i]);
 //        res = *(int64_t *) ff->get(mykey[i]);
 //        res = *(int64_t *) wort_get(wort, mykey[i], 8);
-//        res = ht->get(mykey[i]);
+        res = ht->get(mykey[i]);
         if (res != mm[mykey[i]]) {
             cout << i << ", " << mykey[i] << ", " << res << ", " << mm[mykey[i]] << endl;
 //            return;
@@ -303,8 +308,8 @@ int main(int argc, char *argv[]) {
     roart = new_roart();
 //    mt = new_mass_tree();
 //    bt = new_blink_tree(numThread);
-//    correctnessTest();
-    speedTest();
+    correctnessTest();
+//    speedTest();
 //    profile();
 //    range_query_correctness_test();
 //    cout << ht->node_cnt << endl;
