@@ -72,9 +72,9 @@ ht_segment *new_ht_segment(uint64_t _depth = 0);
 class hashtree_node {
 public:
     bool type = 0;
+    int key_len = 16;
     uint64_t global_depth = 0;
     uint64_t dir_size = 1;
-    int key_len = 16;
     ht_segment **dir = NULL;
 
     hashtree_node();
