@@ -217,6 +217,8 @@ void cacheline_concious_extendible_hash::put(Key_t key, Value_t value) {
             dir = new_dir;
             clflush((char *) dir, sizeof(dir));
 
+            tmp_seg->depth = tmp_seg->depth + 1;
+            clflush((char *) &(tmp_seg->depth), sizeof(tmp_seg->depth));
 #ifdef CCEH_PROFILE_TIME
             gettimeofday(&end_time, NULL);
             t3+=(end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
