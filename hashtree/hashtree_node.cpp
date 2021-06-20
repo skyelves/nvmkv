@@ -135,26 +135,31 @@ void hashtree_node::put(uint64_t key, uint64_t value) {
 #endif
             ht_segment *new_seg = new_ht_segment(tmp_seg->depth + 1);
             //set dir [left,right)
-            int64_t left = dir_index, mid = dir_index, right = dir_index + 1;
-            for (int i = dir_index + 1; i < dir_size; ++i) {
-                if (likely(dir[i] != tmp_seg)) {
-                    right = i;
-                    break;
-                } else if (unlikely(i == (dir_size - 1))) {
-                    right = dir_size;
-                    break;
-                }
-            }
-            for (int i = dir_index - 1; i >= 0; --i) {
-                if (likely(dir[i] != tmp_seg)) {
-                    left = i + 1;
-                    break;
-                } else if (unlikely(i == 0)) {
-                    left = 0;
-                    break;
-                }
-            }
-            mid = (left + right) / 2;
+//            int64_t left = dir_index, mid = dir_index, right = dir_index + 1;
+//            for (int i = dir_index + 1; i < dir_size; ++i) {
+//                if (likely(dir[i] != tmp_seg)) {
+//                    right = i;
+//                    break;
+//                } else if (unlikely(i == (dir_size - 1))) {
+//                    right = dir_size;
+//                    break;
+//                }
+//            }
+//            for (int i = dir_index - 1; i >= 0; --i) {
+//                if (likely(dir[i] != tmp_seg)) {
+//                    left = i + 1;
+//                    break;
+//                } else if (unlikely(i == 0)) {
+//                    left = 0;
+//                    break;
+//                }
+//            }
+//            mid = (left + right) / 2;
+
+            int64_t stride = pow(2, global_depth - tmp_seg->depth);
+            int64_t left = dir_index - dir_index % stride;
+            int64_t mid = left + stride / 2, right = left + stride;
+
 
             //migrate previous data to the new bucket
             for (int i = 0; i < HT_MAX_BUCKET_NUM; ++i) {
@@ -182,6 +187,7 @@ void hashtree_node::put(uint64_t key, uint64_t value) {
                 dir[i] = new_seg;
                 clflush((char *) dir[i], sizeof(ht_segment *));
             }
+//            clflush((char *) dir[right - 1], sizeof(ht_segment *));
 
             tmp_seg->depth = tmp_seg->depth + 1;
             clflush((char *) &(tmp_seg->depth), sizeof(tmp_seg->depth));
@@ -234,6 +240,9 @@ void hashtree_node::put(uint64_t key, uint64_t value) {
 
             dir = new_dir;
             clflush((char *) dir, sizeof(dir));
+
+            tmp_seg->depth = tmp_seg->depth + 1;
+            clflush((char *) &(tmp_seg->depth), sizeof(tmp_seg->depth));
 #ifdef HT_PROFILE_TIME
             gettimeofday(&end_time, NULL);
             t3 += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
@@ -252,6 +261,7 @@ void hashtree_node::put(uint64_t key, uint64_t value) {
         } else {
             // there is a place to insert
             tmp_bucket->counter[bucket_index].value = value;
+            mfence();
             tmp_bucket->counter[bucket_index].key = key;
             // Here we clflush 16bytes rather than two 8 bytes because all counter are set to 0.
             // If crash after key flushed, then the value is 0. When we return the value, we would find that the key is not inserted.
