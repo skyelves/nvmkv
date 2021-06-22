@@ -1,3 +1,4 @@
+#include<atomic>
 #include <iostream>
 #include <fstream>
 #include <unistd.h>
@@ -5,7 +6,6 @@
 #include <map>
 #include <string.h>
 #include <sys/time.h>
-#include <pthread.h>
 #include "blink/blink_tree.h"
 #include "mass/mass_tree.h"
 #include "hashtree/hashtree.h"
@@ -16,6 +16,7 @@
 #include "cceh/cacheline_concious_extendible_hash.h"
 #include "fastfair/fastfair.h"
 #include "roart/roart.h"
+#include "concurrencyhashtree/concurrency_hashtree.h"
 
 using namespace std;
 
@@ -41,13 +42,13 @@ int testNum = 100000;
 int numThread = 1;
 
 int test_algorithms_num = 10;
-bool test_case[10] = {0, // ht
+bool test_case[10] = {1, // ht
                       0, // art
-                      0, // wort
-                      0, // woart
-                      0, // cacheline_concious_extendible_hash
-                      0, // fast&fair
-                      1, // roart
+                      1, // wort
+                      1, // woart
+                      1, // cacheline_concious_extendible_hash
+                      1, // fast&fair
+                      0, // roart
                       0};
 
 bool range_query_test_case[10] = {
@@ -69,7 +70,13 @@ cacheline_concious_extendible_hash *cceh;
 fastfair *ff;
 ROART *roart;
 
+
+
+thread** threads;
+
 uint64_t *mykey;
+
+std::mutex mtx;
 
 void *putFunc(void *arg) {
     rng r;
@@ -300,21 +307,81 @@ void range_query_correctness_test() {
 }
 
 
+
+void *concurrency_put_with_thread(int threadNum,concurrencyhashtree *cht){
+    
+    try{
+        timeval start, ends;                                                                    
+        gettimeofday(&start, NULL);    
+
+        // mtx.try_lock();  
+        // cout<<threadNum<<endl<<(uint64_t)(cht->root)<<endl;
+        // mtx.unlock();
+        for (int i = 0; i < testNum; ++i) {                                                     
+              cht->crash_consistent_put(NULL, 900, 1, 0);
+        }
+        
+        gettimeofday(&ends, NULL);                                                              
+        double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
+        double throughPut = (double) testNum / timeCost;  
+
+        mtx.try_lock();                  
+        cout << "concurrnecy hash tree put "+to_string(threadNum)<<" " << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;        
+        cout << "concurrnecy hash tree put "+to_string(threadNum)<<" " << "ThroughPut: " << throughPut << " Mops" << endl;           
+        mtx.unlock();
+    }catch(const char* msg){
+        cout<<msg<<endl;
+    }
+    
+}
+
+void concurrencyTest(concurrencyhashtree *cht){
+    // mykey = new uint64_t[testNum];
+    // rng r;
+    // rng_init(&r, 1, 2);
+    // for (int i = 0; i < testNum; ++i) {
+    //     mykey[i] = rng_next(&r);
+    // }
+
+    try{
+        // concurrency_put_with_thread(1);
+        for(int i=0;i<numThread;i++){
+            threads[i]  = new std::thread(concurrency_put_with_thread,i,cht);     
+        }
+        // concurrency_put_with_thread((void*)1);
+    }catch( const char* error){
+        cout<<error<<endl;
+    }
+    // out.close();
+
+}
+
 int main(int argc, char *argv[]) {
     sscanf(argv[1], "%d", &numThread);
     sscanf(argv[2], "%d", &testNum);
     init_fast_allocator();
-    ht = new_hashtree(64, 0);
-    art = new_art_tree();
-    wort = new_wort_tree();
-    woart = new_woart_tree();
-    cceh = new_cceh();
-    ff = new_fastfair();
-    roart = new_roart();
+    // ht = new_hashtree(64, 0);
+    // art = new_art_tree();
+    // wort = new_wort_tree();
+    // woart = new_woart_tree();
+    // cceh = new_cceh();
+    // ff = new_fastfair();
+    // roart = new_roart();
+    concurrencyhashtree *cht = new_concurrency_hashtree(64, 0);
+
 //    mt = new_mass_tree();
 //    bt = new_blink_tree(numThread);
-    correctnessTest();
+    // correctnessTest();
 //    speedTest();
+
+
+// build for cocurrencyTest
+    threads = new thread* [numThread];
+    try{
+        concurrencyTest(cht);
+    }catch(void*){
+        fast_free();
+    }
 //    profile();
 //    range_query_correctness_test();
 //    cout << ht->node_cnt << endl;
