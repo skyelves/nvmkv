@@ -41,13 +41,13 @@ int testNum = 100000;
 int numThread = 1;
 
 int test_algorithms_num = 10;
-bool test_case[10] = {0, // ht
+bool test_case[10] = {1, // ht
                       0, // art
                       0, // wort
                       0, // woart
-                      0, // cacheline_concious_extendible_hash
+                      1, // cacheline_concious_extendible_hash
                       0, // fast&fair
-                      1, // roart
+                      0, // roart
                       0};
 
 bool range_query_test_case[10] = {
@@ -299,6 +299,31 @@ void range_query_correctness_test() {
     roart->scan(1, 10000);
 }
 
+void test_key_len() {
+
+    for (int key_len = 16; key_len <= 64; key_len += 4) {
+        cceh = new_cceh(0, key_len);
+        //generate skewed data set
+        mykey = new uint64_t[testNum];
+        rng r;
+        rng_init(&r, 1, 2);
+        for (int i = 0; i < testNum; ++i) {
+            mykey[i] = (rng_next(&r) % testNum) % (1 << (key_len - 1));
+        }
+        uint64_t value = 1;
+
+        timeval start, ends;
+        gettimeofday(&start, NULL);
+        for (int i = 0; i < testNum; ++i) {
+            cceh->put(mykey[i], value);
+        }
+        gettimeofday(&ends, NULL);
+        double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
+        double throughPut = (double) testNum / timeCost;
+        cout << key_len << " ," << throughPut << endl;
+    }
+}
+
 
 int main(int argc, char *argv[]) {
     sscanf(argv[1], "%d", &numThread);
@@ -311,9 +336,10 @@ int main(int argc, char *argv[]) {
     cceh = new_cceh();
     ff = new_fastfair();
     roart = new_roart();
+    test_key_len();
 //    mt = new_mass_tree();
 //    bt = new_blink_tree(numThread);
-    correctnessTest();
+//    correctnessTest();
 //    speedTest();
 //    profile();
 //    range_query_correctness_test();
