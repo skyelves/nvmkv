@@ -45,7 +45,7 @@ class cceh_bucket {
 public:
     cceh_key_value kv[CCEH_BUCKET_SIZE];
 
-    int find_place(Key_t key, uint64_t depth);
+    int find_place(Key_t key, uint64_t depth, uint64_t key_len = 64);
 
     Value_t get(Key_t key);
 };

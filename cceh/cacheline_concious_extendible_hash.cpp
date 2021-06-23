@@ -27,14 +27,14 @@ inline void clflush(char *data, size_t len) {
     mfence();
 }
 
-int cceh_bucket::find_place(Key_t key, uint64_t depth) {
+int cceh_bucket::find_place(Key_t key, uint64_t depth, uint64_t key_len) {
     int res = -1;
     for (int i = 0; i < CCEH_BUCKET_SIZE; ++i) {
         if (key == kv[i].key) {
             return i;
         } else if ((res == -1) && kv[i].key == 0 && kv[i].value == 0) {
             res = i;
-        } else if ((res == -1) && ((GET_SEG_NUM(key, 64, depth)) != (GET_SEG_NUM(kv[i].key, 64, depth)))) {
+        } else if ((res == -1) && ((GET_SEG_NUM(key, key_len, depth)) != (GET_SEG_NUM(kv[i].key, key_len, depth)))) {
             res = i;
         }
     }
@@ -106,7 +106,7 @@ void cacheline_concious_extendible_hash::put(Key_t key, Value_t value) {
     cceh_segment *tmp_seg = dir[dir_index];
     uint64_t seg_index = GET_BUCKET_NUM(key, CCEH_BUCKET_MASK_LEN);
     cceh_bucket *tmp_bucket = &(tmp_seg->bucket[seg_index]);
-    int bucket_index = tmp_bucket->find_place(key, tmp_seg->depth);
+    int bucket_index = tmp_bucket->find_place(key, tmp_seg->depth, key_len);
     if (bucket_index == -1) {
         //condition: full
         if (likely(tmp_seg->depth < global_depth)) {
