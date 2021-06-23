@@ -44,17 +44,10 @@ int numThread = 1;
 int test_algorithms_num = 10;
 bool test_case[10] = {1, // ht
                       0, // art
-<<<<<<< HEAD
                       0, // wort
                       0, // woart
                       1, // cacheline_concious_extendible_hash
                       0, // fast&fair
-=======
-                      1, // wort
-                      1, // woart
-                      1, // cacheline_concious_extendible_hash
-                      1, // fast&fair
->>>>>>> 29dbdbd9cd53db369183b9d87000fb592e036ff9
                       0, // roart
                       0};
 
