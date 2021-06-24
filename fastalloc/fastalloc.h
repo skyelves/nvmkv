@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <fcntl.h>
 #include <string>
+#include <atomic>
 #include <sys/mman.h>
 
 #ifndef NVMKV_FASTALLOC_H
@@ -20,10 +21,14 @@
 
 #define likely(x)   (__builtin_expect(!!(x), 1))
 #define unlikely(x) (__builtin_expect(!!(x), 0))
+#define cas(_p, _u, _v)  (__atomic_compare_exchange_n (_p, _u, _v, false, __ATOMIC_ACQUIRE, __ATOMIC_ACQUIRE))
 
 using namespace std;
 
 class fastalloc {
+
+public:
+
     char *dram[100];
     char *dram_curr = NULL;
     uint64_t dram_left = 0;
@@ -34,17 +39,31 @@ class fastalloc {
     uint64_t nvm_left = 0;
     uint64_t nvm_cnt = 0;
 
-public:
     fastalloc();
 
-    void init();
+    virtual void init();
 
-    void *alloc(uint64_t size, bool _on_nvm = false);
+    virtual void *alloc(uint64_t size, bool _on_nvm = false);
 
-    void free();
+    virtual void free();
 };
 
-void init_fast_allocator();
+
+class concurrency_fastalloc :public fastalloc {
+
+    public:
+
+        atomic<bool> mtx = false;
+
+        void * alloc(uint64_t size, bool _on_nvm = false);
+
+        void lock();
+        
+        void free_lock();
+
+};
+
+void init_fast_allocator(bool isMultiThread);
 
 void *fast_alloc(uint64_t size, bool _on_nvm = false);
 

@@ -1,4 +1,4 @@
-// created by 杨冠群 2021.6.18
+// created by 杨冠群 2021-6-18
 
 #ifndef NVMKV_CONCURRENCY_HASHTREE_H
 #define NVMKV_CONCURRENCY_HASHTREE_H
