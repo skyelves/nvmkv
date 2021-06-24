@@ -165,7 +165,7 @@ void hashtree_node::put(uint64_t key, uint64_t value) {
             for (int i = 0; i < HT_MAX_BUCKET_NUM; ++i) {
                 uint64_t bucket_cnt = 0;
                 for (int j = 0; j < HT_BUCKET_SIZE; ++j) {
-                    bool tmp_type = tmp_seg->bucket[i].counter[j].type;
+//                    bool tmp_type = tmp_seg->bucket[i].counter[j].type;
                     uint64_t tmp_key = tmp_seg->bucket[i].counter[j].key;
                     uint64_t tmp_value = tmp_seg->bucket[i].counter[j].value;
                     dir_index = GET_SEG_NUM(tmp_key, key_len, global_depth);
@@ -175,7 +175,7 @@ void hashtree_node::put(uint64_t key, uint64_t value) {
                         ht_bucket *dst_bucket = &(dst_seg->bucket[seg_index]);
                         dst_bucket->counter[bucket_cnt].value = tmp_value;
                         dst_bucket->counter[bucket_cnt].key = tmp_key;
-                        dst_bucket->counter[bucket_cnt].type = tmp_type;
+//                        dst_bucket->counter[bucket_cnt].type = tmp_type;
                         bucket_cnt++;
                     }
                 }
@@ -219,7 +219,7 @@ void hashtree_node::put(uint64_t key, uint64_t value) {
                 uint64_t bucket_cnt = 0;
                 uint64_t new_dir_index = 0;
                 for (int j = 0; j < HT_BUCKET_SIZE; ++j) {
-                    bool tmp_type = tmp_seg->bucket[i].counter[j].type;
+//                    bool tmp_type = tmp_seg->bucket[i].counter[j].type;
                     uint64_t tmp_key = tmp_seg->bucket[i].counter[j].key;
                     uint64_t tmp_value = tmp_seg->bucket[i].counter[j].value;
                     new_dir_index = GET_SEG_NUM(tmp_key, key_len, global_depth);
@@ -229,7 +229,7 @@ void hashtree_node::put(uint64_t key, uint64_t value) {
                         ht_bucket *dst_bucket = &(dst_seg->bucket[seg_index]);
                         dst_bucket->counter[bucket_cnt].key = tmp_key;
                         dst_bucket->counter[bucket_cnt].value = tmp_value;
-                        dst_bucket->counter[bucket_cnt].type = tmp_type;
+//                        dst_bucket->counter[bucket_cnt].type = tmp_type;
                         bucket_cnt++;
                     }
                 }
