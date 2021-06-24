@@ -116,6 +116,8 @@ public:
     void put(uint64_t key,
              uint64_t value);//value is limited to non-zero number, zero is used to define empty counter in bucket
 
+    bool put_with_read_lock(uint64_t key, uint64_t value);
+
     uint64_t get(uint64_t key);
 
     bool read_lock();

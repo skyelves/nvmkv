@@ -228,14 +228,6 @@ void concurrency_hashtree_node::put(uint64_t key, uint64_t value) {
         goto RETRY;
     }
 
-    // double check 
-    uint64_t  check_dir_index = GET_SEG_NUM(key, key_len, global_depth);
-    if(tmp_seg!=dir[check_dir_index]){
-        tmp_seg->free_read_lock();
-        free_read_lock();
-        std::this_thread::yield();
-        goto RETRY;
-    }
 
     uint64_t seg_index = GET_BUCKET_NUM(key, HT_BUCKET_MASK_LEN);
     concurrency_ht_bucket *tmp_bucket = &(tmp_seg->bucket[seg_index]);
@@ -459,6 +451,230 @@ void concurrency_hashtree_node::put(uint64_t key, uint64_t value) {
     }
     return;
 }
+
+bool concurrency_hashtree_node::put_with_read_lock(uint64_t key, uint64_t value) {
+
+    uint64_t dir_index = GET_SEG_NUM(key, key_len, global_depth);
+    concurrency_ht_segment *tmp_seg = dir[dir_index];
+    uint64_t seg_index = GET_BUCKET_NUM(key, HT_BUCKET_MASK_LEN);
+    concurrency_ht_bucket *tmp_bucket = &(tmp_seg->bucket[seg_index]);
+    int bucket_index = tmp_bucket->find_place(key, key_len, tmp_seg->depth);
+    if (bucket_index == -1) {
+        //condition: full
+        if (likely(tmp_seg->depth < global_depth)) {
+#ifdef HT_PROFILE_TIME
+            gettimeofday(&start_time, NULL);
+#endif
+            uint64_t old_depth = tmp_seg->depth;
+            // free seg read lock
+            tmp_seg->free_read_lock();
+
+            // get seg write lock
+            if(!tmp_seg->write_lock()){
+                tmp_bucket->free_read_lock();
+                free_read_lock();
+                std::this_thread::yield();
+                return false;
+            }
+            
+            // double check
+            if(tmp_seg->depth!=old_depth){
+                tmp_bucket->free_read_lock();
+                tmp_seg->free_write_lock();
+                free_read_lock();
+                std::this_thread::yield();
+               return false;
+            }
+
+            concurrency_ht_segment *new_seg = new_concurrency_ht_segment(tmp_seg->depth + 1);
+            //set dir [left,right)
+            int64_t left = dir_index, mid = dir_index, right = dir_index + 1;
+            for (int i = dir_index + 1; i < dir_size; ++i) {
+                if (likely(dir[i] != tmp_seg)) {
+                    right = i;
+                    break;
+                } else if (unlikely(i == (dir_size - 1))) {
+                    right = dir_size;
+                    break;
+                }
+            }
+            for (int i = dir_index - 1; i >= 0; --i) {
+                if (likely(dir[i] != tmp_seg)) {
+                    left = i + 1;
+                    break;
+                } else if (unlikely(i == 0)) {
+                    left = 0;
+                    break;
+                }
+            }
+            mid = (left + right) / 2;
+
+            //migrate previous data to the new bucket
+            for (int i = 0; i < HT_MAX_BUCKET_NUM; ++i) {
+                uint64_t bucket_cnt = 0;
+                for (int j = 0; j < HT_BUCKET_SIZE; ++j) {
+                    bool tmp_type = tmp_seg->bucket[i].counter[j].type;
+                    uint64_t tmp_key = tmp_seg->bucket[i].counter[j].key;
+                    uint64_t tmp_value = tmp_seg->bucket[i].counter[j].value;
+                    dir_index = GET_SEG_NUM(tmp_key, key_len, global_depth);
+                    if (dir_index >= mid) {
+                        concurrency_ht_segment *dst_seg = new_seg;
+                        seg_index = i;
+                        concurrency_ht_bucket *dst_bucket = &(dst_seg->bucket[seg_index]);
+                        dst_bucket->counter[bucket_cnt].value = tmp_value;
+                        dst_bucket->counter[bucket_cnt].key = tmp_key;
+                        dst_bucket->counter[bucket_cnt].type = tmp_type;
+                        bucket_cnt++;
+                    }
+                }
+            }
+            clflush((char *) new_seg, sizeof(concurrency_ht_segment));
+          
+            // set dir[mid, right) to the new bucket
+            for (int i = right - 1; i >= mid; --i) {
+                dir[i] = new_seg;
+                clflush((char *) dir[i], sizeof(concurrency_ht_segment *));
+            }
+
+            tmp_seg->depth = tmp_seg->depth + 1;
+            clflush((char *) &(tmp_seg->depth), sizeof(tmp_seg->depth));
+
+            tmp_bucket->free_read_lock();
+            tmp_seg->free_write_lock();
+            free_read_lock();
+
+#ifdef HT_PROFILE_TIME
+            gettimeofday(&end_time, NULL);
+            t2 += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
+            
+            return false;
+        } else {
+            //condition: tmp_bucket->depth == global_depth
+#ifdef HT_PROFILE_TIME
+            gettimeofday(&start_time, NULL);
+#endif
+#ifdef HT_PROFILE_LOAD_FACTOR
+            ht_dir_num += dir_size;
+#endif
+
+            concurrency_ht_segment ** old_dir = dir;
+            free_read_lock();
+
+            if(!write_lock()){
+                tmp_bucket->free_read_lock();
+                tmp_seg->free_read_lock();
+                std::this_thread::yield();
+                return false;
+            }
+
+            if(old_dir!=dir){
+                tmp_bucket->free_read_lock();
+                tmp_seg->free_read_lock();
+                free_write_lock();
+                std::this_thread::yield();
+                return false;
+            }
+   
+            global_depth += 1;
+            dir_size *= 2;
+            //set dir
+            concurrency_ht_segment **new_dir = static_cast<concurrency_ht_segment **>(fast_alloc(sizeof(concurrency_ht_segment *) * dir_size));
+            for (int i = 0; i < dir_size; ++i) {
+                new_dir[i] = dir[i / 2];
+            }
+            concurrency_ht_segment *new_seg = new_concurrency_ht_segment(global_depth);
+            new_dir[dir_index * 2 + 1] = new_seg;
+            //migrate previous data
+            for (int i = 0; i < HT_MAX_BUCKET_NUM; ++i) {
+                uint64_t bucket_cnt = 0;
+                uint64_t new_dir_index = 0;
+                for (int j = 0; j < HT_BUCKET_SIZE; ++j) {
+                    bool tmp_type = tmp_seg->bucket[i].counter[j].type;
+                    uint64_t tmp_key = tmp_seg->bucket[i].counter[j].key;
+                    uint64_t tmp_value = tmp_seg->bucket[i].counter[j].value;
+                    new_dir_index = GET_SEG_NUM(tmp_key, key_len, global_depth);
+                    if ((dir_index * 2 + 1) == new_dir_index) {
+                        concurrency_ht_segment *dst_seg = new_seg;
+                        seg_index = i;
+                        concurrency_ht_bucket *dst_bucket = &(dst_seg->bucket[seg_index]);
+                        dst_bucket->counter[bucket_cnt].key = tmp_key;
+                        dst_bucket->counter[bucket_cnt].value = tmp_value;
+                        dst_bucket->counter[bucket_cnt].type = tmp_type;
+                        bucket_cnt++;
+                    }
+                }
+            }
+
+            clflush((char *) new_seg, sizeof(concurrency_ht_segment));
+            clflush((char *) new_dir, sizeof(concurrency_ht_segment *) * dir_size);
+
+            dir = new_dir;
+            clflush((char *) dir, sizeof(dir));
+
+            tmp_bucket->free_read_lock();
+            tmp_seg->free_read_lock();
+            free_write_lock();
+
+#ifdef HT_PROFILE_TIME
+            gettimeofday(&end_time, NULL);
+            t3 += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
+            return false;
+        }
+    } else {
+#ifdef HT_PROFILE_TIME
+        gettimeofday(&start_time, NULL);
+#endif
+
+        uint64_t old_value = tmp_bucket->counter[bucket_index].value;
+        // free bucket read lock
+        tmp_bucket->free_read_lock();
+  
+        if(!tmp_bucket->write_lock()){
+            tmp_seg->free_read_lock();
+            free_read_lock();
+            std::this_thread::yield();
+            return false;
+        }
+
+        if(tmp_bucket->counter[bucket_index].value!=old_value){
+            tmp_bucket->free_write_lock();
+            tmp_seg->free_read_lock();
+            free_read_lock();
+            std::this_thread::yield();
+            return false;
+        }
+       
+        if (unlikely(tmp_bucket->counter[bucket_index].key == key)) {
+            //key exists
+            tmp_bucket->counter[bucket_index].value = value;
+
+            clflush((char *) &(tmp_bucket->counter[bucket_index].value), 8);
+
+            tmp_bucket->free_write_lock();
+        } else {
+            // there is a place to insert
+            tmp_bucket->counter[bucket_index].value = value;
+            tmp_bucket->counter[bucket_index].key = key;
+            // Here we clflush 16bytes rather than two 8 bytes because all counter are set to 0.
+            // If crash after key flushed, then the value is 0. When we return the value, we would find that the key is not inserted.
+            clflush((char *) &(tmp_bucket->counter[bucket_index].key), 16);
+            
+            tmp_bucket->free_write_lock();
+        }
+
+        tmp_seg->free_read_lock();
+        free_read_lock();
+
+#ifdef HT_PROFILE_TIME
+        gettimeofday(&end_time, NULL);
+        t1 += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
+    }
+    return true;
+}
+
 
 uint64_t concurrency_hashtree_node::get(uint64_t key) {
 
