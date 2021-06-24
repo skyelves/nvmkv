@@ -318,30 +318,36 @@ void *concurrency_put_with_thread(int threadNum){
 }
 
 void concurrencyTest(){
+     mykey = new uint64_t[testNum];
+        rng r;
+        rng_init(&r, 1, 2);
+        for (int i = 0; i < testNum; ++i) {
+            mykey[i] = rng_next(&r);
+     }
 
-    mykey = new uint64_t[testNum];
-    rng r;
-    rng_init(&r, 1, 2);
-    for (int i = 0; i < testNum; ++i) {
-        mykey[i] = rng_next(&r);
+    for( int i =1;i<=8;i*=2){
+        numThread = i;
+        init_fast_allocator(true);
+        cht = new_concurrency_hashtree(64, 0);
+
+        timeval start, ends;                                                                    
+        gettimeofday(&start, NULL);    
+
+        for(int i=0;i<numThread;i++){
+            threads[i]  = new std::thread(concurrency_put_with_thread,i);     
+        }
+
+        for(int i=0;i<numThread;i++){
+            threads[i]->join();
+        }
+
+        gettimeofday(&ends, NULL);                                                              
+        double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
+        double throughPut = (double) testNum / timeCost;  
+        cout << "concurrency hash tree put " << testNum << " kv pais with "<<numThread<<" threads in " << timeCost / 1000000 << " s" << endl;        
+        cout << "concurrency hash tree" << "ThroughPut: " << throughPut << " Mops" << endl;   
+        fast_free();
     }
-
-    timeval start, ends;                                                                    
-    gettimeofday(&start, NULL);    
-
-    for(int i=0;i<numThread;i++){
-        threads[i]  = new std::thread(concurrency_put_with_thread,i);     
-    }
-
-    for(int i=0;i<numThread;i++){
-        threads[i]->join();
-    }
-
-    gettimeofday(&ends, NULL);                                                              
-    double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
-    double throughPut = (double) testNum / timeCost;  
-    cout << "concurrency hash tree put " << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;        
-    cout << "concurrency hash tree" << "ThroughPut: " << throughPut << " Mops" << endl;   
 }
 
 int main(int argc, char *argv[]) {
@@ -355,7 +361,7 @@ int main(int argc, char *argv[]) {
     // cceh = new_cceh();
     // ff = new_fastfair();
     // roart = new_roart();
-    cht = new_concurrency_hashtree(64, 0);
+    
 
 //    mt = new_mass_tree();
 //    bt = new_blink_tree(numThread);
@@ -364,7 +370,7 @@ int main(int argc, char *argv[]) {
 
 
 // build for cocurrencyTest
-    threads = new thread* [numThread];
+    threads = new thread* [64];
     // try{
 
     concurrencyTest();
@@ -376,6 +382,6 @@ int main(int argc, char *argv[]) {
 //    range_query_correctness_test();
 //    cout << ht->node_cnt << endl;
 //    cout << ht->get_access << endl;
-    fast_free();
+    // fast_free();
     return 0;
 }
