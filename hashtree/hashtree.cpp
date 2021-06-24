@@ -11,9 +11,9 @@
  *         begin  len
  * key [______|___________|____________]
  */
-#define GET_SUB_KEY(key, begin, len)  (((key)>>(64-(begin)-(len)))&(((uint64_t)1<<(len))-1))
-#define GET_SEG_NUM(key, key_len, depth)  ((key>>(key_len-depth))&(((uint64_t)1<<depth)-1))
-#define GET_BUCKET_NUM(key, bucket_mask_len) ((key)&(((uint64_t)1<<bucket_mask_len)-1))
+#define GET_SUB_KEY(key, begin, len)  (((key)>>(64-(begin)-(len)))&((0x1ull<<(len))-1))
+#define GET_SEG_NUM(key, key_len, depth)  ((key>>(key_len-depth))&((0x1ull<<depth)-1))
+#define GET_BUCKET_NUM(key, bucket_mask_len) ((key)&((0x1ull<<bucket_mask_len)-1))
 
 
 inline void mfence(void) {
@@ -52,7 +52,7 @@ void hashtree::init(int _span, int _init_depth) {
     span_test[0] = 32;
     span_test[1] = 16;
     span_test[2] = 16;
-    span_test[3] = 8;
+    span_test[3] = 16;
     init_depth = _init_depth;
     root = new_hashtree_node(init_depth, span_test[0]);
 //    root = new_extendible_hash(init_depth, span);

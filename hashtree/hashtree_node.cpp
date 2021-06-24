@@ -15,8 +15,8 @@ uint64_t ht_seg_num = 0;
 uint64_t ht_dir_num = 0;
 #endif
 
-#define GET_SEG_NUM(key, key_len, depth)  ((key>>(key_len-depth))&(((uint64_t)1<<depth)-1))
-#define GET_BUCKET_NUM(key, bucket_mask_len) ((key)&(((uint64_t)1<<bucket_mask_len)-1))
+#define GET_SEG_NUM(key, key_len, depth)  ((key>>(key_len-depth))&((0x1ull<<depth)-1))
+#define GET_BUCKET_NUM(key, bucket_mask_len) ((key)&((0x1ull<<bucket_mask_len)-1))
 
 inline void mfence(void) {
     asm volatile("mfence":: :"memory");
