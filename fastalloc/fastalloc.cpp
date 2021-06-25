@@ -33,7 +33,7 @@ void *fastalloc::alloc(uint64_t size, bool _on_nvm) {
     if (_on_nvm) {
         if (unlikely(size > nvm_left)) {
 #ifdef __linux__
-            string nvm_filename = "/aepmount/test";
+            string nvm_filename = "/mnt/aep/test";
             nvm_filename = nvm_filename + to_string(nvm_cnt);
             int nvm_fd = open(nvm_filename.c_str(), O_CREAT | O_RDWR, 0644);
             if (posix_fallocate(nvm_fd, 0, ALLOC_SIZE) < 0)
