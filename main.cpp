@@ -325,48 +325,48 @@ void concurrencyTest(){
         mykey[i] = rng_next(&r);
      }
 
-    // for( int i =1;i<=8;i*=2){
-    numThread = 8;
-    init_fast_allocator(true);
-    cht = new_concurrency_hashtree(64, 0);
+    for( int i =1;i<=32;i*=2){
+        numThread = 8;
+        init_fast_allocator(true);
+        cht = new_concurrency_hashtree(64, 0);
 
-    timeval start, ends;                                                                    
-    gettimeofday(&start, NULL);    
+        timeval start, ends;                                                                    
+        gettimeofday(&start, NULL);    
 
-    for(int i=0;i<numThread;i++){
-        threads[i]  = new std::thread(concurrency_put_with_thread,i);     
-    }
+        for(int i=0;i<numThread;i++){
+            threads[i]  = new std::thread(concurrency_put_with_thread,i);     
+        }
 
-    for(int i=0;i<numThread;i++){
-        threads[i]->join();
-    }
+        for(int i=0;i<numThread;i++){
+            threads[i]->join();
+        }
 
-    gettimeofday(&ends, NULL);                                                              
-    double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
-    double throughPut = (double) testNum / timeCost;  
-    cout << "concurrency hash tree put " << testNum << " kv pais with "<<numThread<<" threads in " << timeCost / 1000000 << " s" << endl;        
-    cout << "concurrency hash tree" << "ThroughPut: " << throughPut << " Mops" << endl;  
+        gettimeofday(&ends, NULL);                                                              
+        double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
+        double throughPut = (double) testNum / timeCost;  
+        cout << "concurrency hash tree put " << testNum << " kv pais with "<<numThread<<" threads in " << timeCost / 1000000 << " s" << endl;        
+        cout << "concurrency hash tree" << "ThroughPut: " << throughPut << " Mops" << endl;  
 
-    int failed = 0;
-    vector<uint64_t> failed_key;
-    for(int i=0;i<testNum;i++){
-        int res = cht->get(mykey[i]);
-        if(res!=1){
-            failed++;
-            cout<<"failed : "<<i<< " key : "<< mykey[i]<<" value: "<< res <<endl;
+        int failed = 0;
+        vector<uint64_t> failed_key;
+        for(int i=0;i<testNum;i++){
+            int res = cht->get(mykey[i]);
+            if(res!=1){
+                failed++;
+                cout<<"failed : "<<i<< " key : "<< mykey[i]<<" value: "<< res <<endl;
 
-            cht->crash_consistent_put(NULL,mykey[i],1,0);
-            if(cht->get(mykey[i])!=1){
-                cout<<"still wrong!"<<endl;
-            }else{
-                cout<<"fixed"<<endl;
+                cht->crash_consistent_put(NULL,mykey[i],1,0);
+                if(cht->get(mykey[i])!=1){
+                    cout<<"still wrong!"<<endl;
+                }else{
+                    cout<<"fixed"<<endl;
+                }
             }
         }
+
+
+        fast_free();
     }
-
-
-    fast_free();
-    // }
 }
 
 int main(int argc, char *argv[]) {
