@@ -134,7 +134,14 @@ void concurrencyhashtree::crash_consistent_put(concurrency_hashtree_node *_node,
                 uint64_t pre_k = ((concurrency_ht_key_value *) next)->key;
 
                 tmp_bucket->free_read_lock();
-                tmp_bucket->write_lock();
+
+                if(!tmp_bucket->write_lock()){
+                    tmp_seg->free_read_lock();
+                    tmp->free_read_lock();
+                    std::this_thread::yield();
+                    goto GET_RETRY;
+                }
+
 
                 if(tmp_bucket->counter[pos].value!=next){
                     tmp_bucket->free_write_lock();
