@@ -14,7 +14,11 @@
 #define NVMKV_FASTALLOC_H
 
 #define ALLOC_SIZE ((size_t)4<<30) // 4GB
+#define CONCURRENCY_ALLOC_SIZE ((size_t)4<<30)  
 #define CACHELINESIZE (64)
+
+
+#define ALLOCATORNUM 64
 
 #define MAP_SYNC 0x080000 /* perform synchronous page faults for the mapping */
 #define MAP_SHARED_VALIDATE 0x03    /* share + validate extension flags */
@@ -29,6 +33,7 @@ class fastalloc {
 
 public:
 
+    bool is_used = false;
     char *dram[100];
     char *dram_curr = NULL;
     uint64_t dram_left = 0;
@@ -55,6 +60,8 @@ class concurrency_fastalloc :public fastalloc {
 
         atomic<bool> mtx = false;
 
+        void init();
+
         void * alloc(uint64_t size, bool _on_nvm = false);
 
         void lock();
@@ -65,7 +72,11 @@ class concurrency_fastalloc :public fastalloc {
 
 void init_fast_allocator(bool isMultiThread);
 
+void concurrency_init_fast_allocator();
+
 void *fast_alloc(uint64_t size, bool _on_nvm = false);
+
+void *concurrency_fast_alloc(uint64_t size, bool _on_nvm = false);
 
 void fast_free();
 

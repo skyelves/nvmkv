@@ -49,7 +49,7 @@ concurrencyhashtree::~concurrencyhashtree() {
 
 void concurrencyhashtree::init(int _span, int _init_depth) {
     span = _span;
-    span_test[0] = 32;
+    span_test[0] = 63;
     span_test[1] = 16;
     span_test[2] = 16;
     span_test[3] = 8;
@@ -61,7 +61,7 @@ void concurrencyhashtree::init(int _span, int _init_depth) {
 
 concurrencyhashtree *new_concurrency_hashtree(int _span, int _init_depth) {
 //    hashtree *_new_hash_tree = new hashtree(_span, _init_depth);
-    concurrencyhashtree *_new_hash_tree = static_cast<concurrencyhashtree *>(fast_alloc(sizeof(concurrencyhashtree)));
+    concurrencyhashtree *_new_hash_tree = static_cast<concurrencyhashtree *>(concurrency_fast_alloc(sizeof(concurrencyhashtree)));
     _new_hash_tree->init(_span, _init_depth);
     return _new_hash_tree;
 }

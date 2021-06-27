@@ -1,4 +1,4 @@
-#include<atomic>
+#include <atomic>
 #include <iostream>
 #include <fstream>
 #include <unistd.h>
@@ -14,6 +14,7 @@
 #include "wort/wort.h"
 #include "woart/woart.h"
 #include "cceh/cacheline_concious_extendible_hash.h"
+#include "cceh/concurrency_cceh.h"
 #include "fastfair/fastfair.h"
 #include "roart/roart.h"
 #include "concurrencyhashtree/concurrency_hashtree.h"
@@ -73,7 +74,7 @@ fastfair *ff;
 ROART *roart;
 
 concurrencyhashtree * cht;
-
+concurrency_cceh *con_cceh;
 
 thread** threads;
 
@@ -312,9 +313,15 @@ void range_query_correctness_test() {
 
 
 void *concurrency_put_with_thread(int threadNum){
-        for (int i = threadNum*(testNum/numThread); i < (threadNum+1)*(testNum/numThread); ++i) {                                                     
-              cht->crash_consistent_put(NULL,mykey[i], 1, 0);
-        }
+    for (int i = threadNum*(testNum/numThread); i < (threadNum+1)*(testNum/numThread); ++i) {                                                     
+            cht->crash_consistent_put(NULL,mykey[i], 1, 0);
+    }
+}
+
+void *concurrency_cceh_put(int threadNum){
+    for (int i = threadNum*(testNum/numThread); i < (threadNum+1)*(testNum/numThread); ++i) {                                                     
+            con_cceh->put(mykey[i], 1);
+    }
 }
 
 void concurrencyTest(){
@@ -325,11 +332,13 @@ void concurrencyTest(){
         mykey[i] = rng_next(&r);
      }
 
-    for( int i =1;i<=32;i*=2){
-        numThread = 8;
+    for( int i =1;i<=16;i*=2){
         init_fast_allocator(true);
+        numThread = i;
         cht = new_concurrency_hashtree(64, 0);
 
+
+        // con_cceh = new_concurrency_cceh();
         timeval start, ends;                                                                    
         gettimeofday(&start, NULL);    
 
@@ -363,8 +372,36 @@ void concurrencyTest(){
                 }
             }
         }
+        // for(int i=0;i<numThread;i++){
+        //     threads[i]  = new std::thread(concurrency_cceh_put,i);     
+        // }
+
+        // for(int i=0;i<numThread;i++){
+        //     threads[i]->join();
+        // }
+
+        // gettimeofday(&ends, NULL);                                                              
+        // double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
+        // double throughPut = (double) testNum / timeCost;  
+        // cout << "concurrency CCEH put " << testNum << " kv pais with "<<numThread<<" threads in " << timeCost / 1000000 << " s" << endl;        
+        // cout << "concurrency CCEH" << "ThroughPut: " << throughPut << " Mops" << endl;  
 
 
+        //  int failed = 0;
+        // for(int i=0;i<testNum;i++){
+        //     int res = con_cceh->get(mykey[i]);
+        //     if(res!=1){
+        //         failed++;
+        //         cout<<"failed : "<<i<< " key : "<< mykey[i]<<" value: "<< res <<endl;
+
+        //         con_cceh->put(mykey[i],1);
+        //         if(con_cceh->get(mykey[i])!=1){
+        //             cout<<"still wrong!"<<endl;
+        //         }else{
+        //             cout<<"fixed"<<endl;
+        //         }
+        //     }
+        // }
         fast_free();
     }
 }
@@ -372,7 +409,7 @@ void concurrencyTest(){
 int main(int argc, char *argv[]) {
     sscanf(argv[1], "%d", &numThread);
     sscanf(argv[2], "%d", &testNum);
-    init_fast_allocator(true);
+    // init_fast_allocator(true);
     // ht = new_hashtree(64, 0);
     // art = new_art_tree();
     // wort = new_wort_tree();

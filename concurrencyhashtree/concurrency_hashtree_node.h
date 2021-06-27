@@ -12,6 +12,7 @@
 #include <math.h>
 #include <cstdint>
 #include <thread>
+#include <atomic>
 #include "../fastalloc/fastalloc.h"
 
 #define likely(x)   (__builtin_expect(!!(x), 1))
@@ -74,6 +75,8 @@ public:
     int64_t depth = 0;
     concurrency_ht_bucket *bucket;
     int64_t lock_meta = 0;
+    atomic<uint64_t> version = 0; 
+
 //    ht_bucket bucket[HT_MAX_BUCKET_NUM];
 
     concurrency_ht_segment();
@@ -106,6 +109,8 @@ public:
     int key_len = 16;
     concurrency_ht_segment **dir = NULL;
     int64_t lock_meta = 0;
+
+    atomic<uint64_t> version = 0;
 
     concurrency_hashtree_node();
 

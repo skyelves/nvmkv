@@ -11,7 +11,7 @@ private:
     int init_depth = 4; //represent extendible hash initial global depth
 //    extendible_hash *root = NULL;
 public:
-    uint64_t span_test[4] = {32, 16, 8, 8};
+    uint64_t span_test[4] = {63, 16, 8, 8};
     int node_cnt = 0;
     uint64_t get_access = 0;
     concurrency_hashtree_node *root = NULL;

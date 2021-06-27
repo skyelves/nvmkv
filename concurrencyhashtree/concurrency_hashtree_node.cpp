@@ -32,7 +32,7 @@ inline void clflush(char *data, size_t len) {
 }
 
 concurrency_ht_key_value *new_concurrency_ht_key_value(uint64_t key, uint64_t value) {
-    concurrency_ht_key_value *_new_key_value = static_cast<concurrency_ht_key_value *>(fast_alloc(sizeof(concurrency_ht_key_value)));
+    concurrency_ht_key_value *_new_key_value = static_cast<concurrency_ht_key_value *>(concurrency_fast_alloc(sizeof(concurrency_ht_key_value)));
     _new_key_value->type = 1;
     _new_key_value->key = key;
     _new_key_value->value = value;
@@ -66,7 +66,7 @@ int concurrency_ht_bucket::find_place(uint64_t _key, uint64_t _key_len, uint64_t
 }
 
 concurrency_ht_bucket *new_concurrency_ht_bucket(int _depth) {
-    concurrency_ht_bucket *_new_bucket = static_cast<concurrency_ht_bucket *>(fast_alloc(sizeof(concurrency_ht_bucket)));
+    concurrency_ht_bucket *_new_bucket = static_cast<concurrency_ht_bucket *>(concurrency_fast_alloc(sizeof(concurrency_ht_bucket)));
     return _new_bucket;
 }
 
@@ -110,29 +110,26 @@ void concurrency_ht_bucket::free_read_lock(){
 }
 
 void concurrency_ht_bucket::free_write_lock(){
-    int64_t val = lock_meta;
-    while(!cas(&lock_meta, &val, 0)){
-        val = lock_meta;
-    }
+    lock_meta = 0;
 }
 
 concurrency_ht_segment::concurrency_ht_segment() {
     depth = 0;
-    bucket = static_cast<concurrency_ht_bucket *>(fast_alloc(sizeof(concurrency_ht_bucket) * HT_MAX_BUCKET_NUM));
+    bucket = static_cast<concurrency_ht_bucket *>(concurrency_fast_alloc(sizeof(concurrency_ht_bucket) * HT_MAX_BUCKET_NUM));
 }
 
 concurrency_ht_segment::~concurrency_ht_segment() {}
 
 void concurrency_ht_segment::init(uint64_t _depth) {
     depth = _depth;
-    bucket = static_cast<concurrency_ht_bucket *>(fast_alloc(sizeof(concurrency_ht_bucket) * HT_MAX_BUCKET_NUM));
+    bucket = static_cast<concurrency_ht_bucket *>(concurrency_fast_alloc(sizeof(concurrency_ht_bucket) * HT_MAX_BUCKET_NUM));
 #ifdef HT_PROFILE_LOAD_FACTOR
     ht_seg_num++;
 #endif
 }
 
 concurrency_ht_segment *new_concurrency_ht_segment(uint64_t _depth) {
-    concurrency_ht_segment *_new_ht_segment = static_cast<concurrency_ht_segment *>(fast_alloc(sizeof(concurrency_ht_segment)));
+    concurrency_ht_segment *_new_ht_segment = static_cast<concurrency_ht_segment *>(concurrency_fast_alloc(sizeof(concurrency_ht_segment)));
     _new_ht_segment->init(_depth);
     return _new_ht_segment;
 }
@@ -184,7 +181,7 @@ concurrency_hashtree_node::concurrency_hashtree_node() {
     global_depth = 0;
     key_len = 16;
     dir_size = pow(2, global_depth);
-    dir = static_cast<concurrency_ht_segment **>(fast_alloc(sizeof(concurrency_ht_segment *) * dir_size));
+    dir = static_cast<concurrency_ht_segment **>(concurrency_fast_alloc(sizeof(concurrency_ht_segment *) * dir_size));
     for (int i = 0; i < dir_size; ++i) {
         dir[i] = new_concurrency_ht_segment();
     }
@@ -199,7 +196,7 @@ void concurrency_hashtree_node::init(uint32_t _global_depth, int _key_len) {
     global_depth = _global_depth;
     key_len = _key_len;
     dir_size = pow(2, global_depth);
-    dir = static_cast<concurrency_ht_segment **>(fast_alloc(sizeof(concurrency_ht_segment *) * dir_size));
+    dir = static_cast<concurrency_ht_segment **>(concurrency_fast_alloc(sizeof(concurrency_ht_segment *) * dir_size));
     for (int i = 0; i < dir_size; ++i) {
         dir[i] = new_concurrency_ht_segment(_global_depth);
     }
@@ -253,7 +250,6 @@ void concurrency_hashtree_node::put(uint64_t key, uint64_t value) {
             // get seg write lock
             if(!tmp_seg->write_lock()){
                 tmp_bucket->free_read_lock();
-                tmp_seg->free_write_lock();
                 free_read_lock();
                 std::this_thread::yield();
                 goto RETRY;
@@ -339,7 +335,6 @@ void concurrency_hashtree_node::put(uint64_t key, uint64_t value) {
 #ifdef HT_PROFILE_LOAD_FACTOR
             ht_dir_num += dir_size;
 #endif
-
             concurrency_ht_segment ** old_dir = dir;
             free_read_lock();
 
@@ -360,7 +355,7 @@ void concurrency_hashtree_node::put(uint64_t key, uint64_t value) {
             global_depth += 1;
             dir_size *= 2;
             //set dir
-            concurrency_ht_segment **new_dir = static_cast<concurrency_ht_segment **>(fast_alloc(sizeof(concurrency_ht_segment *) * dir_size));
+            concurrency_ht_segment **new_dir = static_cast<concurrency_ht_segment **>(concurrency_fast_alloc(sizeof(concurrency_ht_segment *) * dir_size));
             for (int i = 0; i < dir_size; ++i) {
                 new_dir[i] = dir[i / 2];
             }
@@ -486,6 +481,8 @@ bool concurrency_hashtree_node::put_with_read_lock(uint64_t key, uint64_t value)
                return false;
             }
 
+            // uint64_t current_version = tmp_seg->version.load();
+
             concurrency_ht_segment *new_seg = new_concurrency_ht_segment(tmp_seg->depth + 1);
             //set dir [left,right)
             int64_t left = dir_index, mid = dir_index, right = dir_index + 1;
@@ -529,7 +526,27 @@ bool concurrency_hashtree_node::put_with_read_lock(uint64_t key, uint64_t value)
                 }
             }
             clflush((char *) new_seg, sizeof(concurrency_ht_segment));
-          
+
+
+            // tmp_seg->free_read_lock();
+
+            // // get seg write lock
+            // if(!tmp_seg->write_lock()){
+            //     tmp_bucket->free_read_lock();
+            //     free_read_lock();
+            //     std::this_thread::yield();
+            //     return false;
+            // }
+            
+            // // version check
+            // if(current_version!=tmp_seg->version){
+            //     tmp_bucket->free_read_lock();
+            //     tmp_seg->free_write_lock();
+            //     free_read_lock();
+            //     std::this_thread::yield();
+            //    return false;
+            // }
+
             // set dir[mid, right) to the new bucket
             for (int i = right - 1; i >= mid; --i) {
                 dir[i] = new_seg;
@@ -558,7 +575,10 @@ bool concurrency_hashtree_node::put_with_read_lock(uint64_t key, uint64_t value)
             ht_dir_num += dir_size;
 #endif
 
-            concurrency_ht_segment ** old_dir = dir;
+            // uint64_t current_version = tmp_seg->version.load();
+
+            concurrency_ht_segment** old_dir = dir;
+
             free_read_lock();
 
             if(!write_lock()){
@@ -575,15 +595,17 @@ bool concurrency_hashtree_node::put_with_read_lock(uint64_t key, uint64_t value)
                 std::this_thread::yield();
                 return false;
             }
-   
-            global_depth += 1;
-            dir_size *= 2;
+
+
+            uint64_t new_global_depth = global_depth + 1;
+            uint64_t new_dir_size = dir_size * 2;
+
             //set dir
-            concurrency_ht_segment **new_dir = static_cast<concurrency_ht_segment **>(fast_alloc(sizeof(concurrency_ht_segment *) * dir_size));
-            for (int i = 0; i < dir_size; ++i) {
+            concurrency_ht_segment **new_dir = static_cast<concurrency_ht_segment **>(concurrency_fast_alloc(sizeof(concurrency_ht_segment *) * new_dir_size));
+            for (int i = 0; i < new_dir_size; ++i) {
                 new_dir[i] = dir[i / 2];
             }
-            concurrency_ht_segment *new_seg = new_concurrency_ht_segment(global_depth);
+            concurrency_ht_segment *new_seg = new_concurrency_ht_segment(new_global_depth);
             new_dir[dir_index * 2 + 1] = new_seg;
             //migrate previous data
             for (int i = 0; i < HT_MAX_BUCKET_NUM; ++i) {
@@ -593,7 +615,7 @@ bool concurrency_hashtree_node::put_with_read_lock(uint64_t key, uint64_t value)
                     bool tmp_type = tmp_seg->bucket[i].counter[j].type;
                     uint64_t tmp_key = tmp_seg->bucket[i].counter[j].key;
                     uint64_t tmp_value = tmp_seg->bucket[i].counter[j].value;
-                    new_dir_index = GET_SEG_NUM(tmp_key, key_len, global_depth);
+                    new_dir_index = GET_SEG_NUM(tmp_key, key_len, new_global_depth);
                     if ((dir_index * 2 + 1) == new_dir_index) {
                         concurrency_ht_segment *dst_seg = new_seg;
                         seg_index = i;
@@ -607,9 +629,30 @@ bool concurrency_hashtree_node::put_with_read_lock(uint64_t key, uint64_t value)
             }
 
             clflush((char *) new_seg, sizeof(concurrency_ht_segment));
-            clflush((char *) new_dir, sizeof(concurrency_ht_segment *) * dir_size);
+            clflush((char *) new_dir, sizeof(concurrency_ht_segment *) * new_dir_size);
 
+           
+            // free_read_lock();
+
+            // if(!write_lock()){
+            //     tmp_bucket->free_read_lock();
+            //     tmp_seg->free_read_lock();
+            //     std::this_thread::yield();
+            //     return false;
+            // }
+
+            // if(current_version!=version.load()){
+            //     tmp_bucket->free_read_lock();
+            //     tmp_seg->free_read_lock();
+            //     free_write_lock();
+            //     std::this_thread::yield();
+            //     return false;
+            // }
+
+            global_depth  = new_global_depth;
+            dir_size  = new_dir_size;
             dir = new_dir;
+          
             clflush((char *) dir, sizeof(dir));
 
             tmp_bucket->free_read_lock();
@@ -765,7 +808,7 @@ void concurrency_hashtree_node::free_write_lock(){
 }
 
 concurrency_hashtree_node *new_concurrency_hashtree_node(int _global_depth, int _key_len) {
-    concurrency_hashtree_node *_new_node = static_cast<concurrency_hashtree_node *>(fast_alloc(sizeof(concurrency_hashtree_node)));
+    concurrency_hashtree_node *_new_node = static_cast<concurrency_hashtree_node *>(concurrency_fast_alloc(sizeof(concurrency_hashtree_node)));
     _new_node->init(_global_depth, _key_len);
     return _new_node;
 }
