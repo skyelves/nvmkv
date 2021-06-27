@@ -408,7 +408,12 @@ void concurrency_hashtree_node::put(uint64_t key, uint64_t value) {
         // free bucket read lock
         tmp_bucket->free_read_lock();
   
-        tmp_bucket->write_lock();
+        if(!tmp_bucket->write_lock()){
+            tmp_seg->free_read_lock();
+            free_read_lock();
+            std::this_thread::yield();
+            goto RETRY;
+        }
 
         if(tmp_bucket->counter[bucket_index].value!=old_value){
             tmp_bucket->free_write_lock();
@@ -605,30 +610,30 @@ bool concurrency_hashtree_node::put_with_read_lock(uint64_t key, uint64_t value)
             for (int i = 0; i < new_dir_size; ++i) {
                 new_dir[i] = dir[i / 2];
             }
-            concurrency_ht_segment *new_seg = new_concurrency_ht_segment(new_global_depth);
-            new_dir[dir_index * 2 + 1] = new_seg;
-            //migrate previous data
-            for (int i = 0; i < HT_MAX_BUCKET_NUM; ++i) {
-                uint64_t bucket_cnt = 0;
-                uint64_t new_dir_index = 0;
-                for (int j = 0; j < HT_BUCKET_SIZE; ++j) {
-                    bool tmp_type = tmp_seg->bucket[i].counter[j].type;
-                    uint64_t tmp_key = tmp_seg->bucket[i].counter[j].key;
-                    uint64_t tmp_value = tmp_seg->bucket[i].counter[j].value;
-                    new_dir_index = GET_SEG_NUM(tmp_key, key_len, new_global_depth);
-                    if ((dir_index * 2 + 1) == new_dir_index) {
-                        concurrency_ht_segment *dst_seg = new_seg;
-                        seg_index = i;
-                        concurrency_ht_bucket *dst_bucket = &(dst_seg->bucket[seg_index]);
-                        dst_bucket->counter[bucket_cnt].key = tmp_key;
-                        dst_bucket->counter[bucket_cnt].value = tmp_value;
-                        dst_bucket->counter[bucket_cnt].type = tmp_type;
-                        bucket_cnt++;
-                    }
-                }
-            }
+            // concurrency_ht_segment *new_seg = new_concurrency_ht_segment(new_global_depth);
+            // new_dir[dir_index * 2 + 1] = new_seg;
+            // //migrate previous data
+            // for (int i = 0; i < HT_MAX_BUCKET_NUM; ++i) {
+            //     uint64_t bucket_cnt = 0;
+            //     uint64_t new_dir_index = 0;
+            //     for (int j = 0; j < HT_BUCKET_SIZE; ++j) {
+            //         bool tmp_type = tmp_seg->bucket[i].counter[j].type;
+            //         uint64_t tmp_key = tmp_seg->bucket[i].counter[j].key;
+            //         uint64_t tmp_value = tmp_seg->bucket[i].counter[j].value;
+            //         new_dir_index = GET_SEG_NUM(tmp_key, key_len, new_global_depth);
+            //         if ((dir_index * 2 + 1) == new_dir_index) {
+            //             concurrency_ht_segment *dst_seg = new_seg;
+            //             seg_index = i;
+            //             concurrency_ht_bucket *dst_bucket = &(dst_seg->bucket[seg_index]);
+            //             dst_bucket->counter[bucket_cnt].key = tmp_key;
+            //             dst_bucket->counter[bucket_cnt].value = tmp_value;
+            //             dst_bucket->counter[bucket_cnt].type = tmp_type;
+            //             bucket_cnt++;
+            //         }
+            //     }
+            // }
 
-            clflush((char *) new_seg, sizeof(concurrency_ht_segment));
+            // clflush((char *) new_seg, sizeof(concurrency_ht_segment));
             clflush((char *) new_dir, sizeof(concurrency_ht_segment *) * new_dir_size);
 
            

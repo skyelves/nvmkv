@@ -49,7 +49,7 @@ concurrencyhashtree::~concurrencyhashtree() {
 
 void concurrencyhashtree::init(int _span, int _init_depth) {
     span = _span;
-    span_test[0] = 63;
+    span_test[0] = 32;
     span_test[1] = 16;
     span_test[2] = 16;
     span_test[3] = 8;
@@ -240,7 +240,12 @@ void concurrencyhashtree::put(uint64_t k, uint64_t v) {
             //not exists
 
             tmp_bucket->free_read_lock();
-            tmp_bucket->write_lock();
+            if(!tmp_bucket->write_lock()){
+                tmp_seg->free_read_lock();
+                tmp->free_read_lock();
+                std::this_thread::yield();
+                goto GET_RETRY;
+            }
 
             if(tmp_bucket->counter[pos].value!=0){
                 tmp_bucket->free_write_lock();
@@ -271,7 +276,12 @@ void concurrencyhashtree::put(uint64_t k, uint64_t v) {
                 uint64_t pre_k = ((concurrency_ht_key_value *) next)->key;
 
                 tmp_bucket->free_read_lock();
-                tmp_bucket->write_lock();
+                if(!tmp_bucket->write_lock()){
+                    tmp_seg->free_read_lock();
+                    tmp->free_read_lock();  
+                    std::this_thread::yield();
+                    goto GET_RETRY;
+                }
 
                 if(tmp_bucket->counter[pos].value!=next){
                     tmp_bucket->free_write_lock();

@@ -192,7 +192,8 @@ void *fast_alloc(uint64_t size, bool _on_nvm) {
 }
 
 void *concurrency_fast_alloc(uint64_t size, bool _on_nvm){
-    return myallocator->alloc(size, _on_nvm);
+    return malloc(size);
+    // return myallocator->alloc(size, _on_nvm);
     // while(true){
     //     if(cas(&concurrency_myallocator[currenct_allocator_pos]->is_used,&false_flag,true)){
     //         void * address = concurrency_myallocator[currenct_allocator_pos]->alloc(size,_on_nvm);

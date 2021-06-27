@@ -25,7 +25,7 @@ inline uint64_t rng_next(rng *r) {
     r->state[0] = rotl(s0, 55) ^ s1 ^ (s1 << 14);
     r->state[1] = rotl(s1, 36);
 
-    return value;
+    return value>>1;
 }
 
 void rng_jump(rng *r) {
