@@ -118,26 +118,31 @@ void cacheline_concious_extendible_hash::put(Key_t key, Value_t value) {
 #endif
             cceh_segment *new_seg = new_cceh_segment(tmp_seg->depth + 1);
             //set dir [left,right)
-            int64_t left = dir_index, mid = dir_index, right = dir_index + 1;
-            for (int i = dir_index + 1; i < dir_size; ++i) {
-                if (likely(dir[i] != tmp_seg)) {
-                    right = i;
-                    break;
-                } else if (unlikely(i == (dir_size - 1))) {
-                    right = dir_size;
-                    break;
-                }
-            }
-            for (int i = dir_index - 1; i >= 0; --i) {
-                if (likely(dir[i] != tmp_seg)) {
-                    left = i + 1;
-                    break;
-                } else if (unlikely(i == 0)) {
-                    left = 0;
-                    break;
-                }
-            }
-            mid = (left + right) / 2;
+//            int64_t left = dir_index, mid = dir_index, right = dir_index + 1;
+//            for (int i = dir_index + 1; i < dir_size; ++i) {
+//                if (likely(dir[i] != tmp_seg)) {
+//                    right = i;
+//                    break;
+//                } else if (unlikely(i == (dir_size - 1))) {
+//                    right = dir_size;
+//                    break;
+//                }
+//            }
+//            for (int i = dir_index - 1; i >= 0; --i) {
+//                if (likely(dir[i] != tmp_seg)) {
+//                    left = i + 1;
+//                    break;
+//                } else if (unlikely(i == 0)) {
+//                    left = 0;
+//                    break;
+//                }
+//            }
+//            mid = (left + right) / 2;
+
+            int64_t stride = pow(2, global_depth - tmp_seg->depth);
+            int64_t left = dir_index - dir_index % stride;
+            int64_t mid = left + stride / 2, right = left + stride;
+
             //migrate previous data to the new segment
             for (int i = 0; i < CCEH_MAX_BUCKET_NUM; ++i) {
                 uint64_t bucket_cnt = 0;
@@ -161,13 +166,12 @@ void cacheline_concious_extendible_hash::put(Key_t key, Value_t value) {
             //set dir[mid, right) to the new segment
             for (int i = right - 1; i >= mid; --i) {
                 dir[i] = new_seg;
-
-                clflush((char *) dir[i], sizeof(cceh_segment *));
+//                clflush((char *) dir[i], sizeof(cceh_segment *));
 
             }
+            clflush((char *) dir[right - 1], (stride / 2) * sizeof(cceh_segment *));
 
             tmp_seg->depth = tmp_seg->depth + 1;
-
             clflush((char *) &(tmp_seg->depth), sizeof(tmp_seg->depth));
 #ifdef CCEH_PROFILE_TIME
             gettimeofday(&end_time, NULL);
