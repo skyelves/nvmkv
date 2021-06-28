@@ -81,27 +81,34 @@ void concurrencyhashtree::crash_consistent_put(concurrency_hashtree_node *_node,
         sub_key = GET_SUB_KEY(k, i, span_test[j]);
 
         GET_RETRY:
-            if(!tmp->read_lock()){
-                std::this_thread::yield();
-                goto GET_RETRY;
-            }
+            // if(!tmp->read_lock()){
+            //     std::this_thread::yield();
+            //     goto GET_RETRY;
+            // }
 
             uint64_t dir_index = GET_SEG_NUM(sub_key, tmp->key_len, tmp->global_depth);
             concurrency_ht_segment *tmp_seg = tmp->dir[dir_index];
             
             // read lock segment
             if(!tmp_seg->read_lock()){
-                tmp->free_read_lock();
+                // tmp->free_read_lock();
                 std::this_thread::yield();
                 goto GET_RETRY;
             }
+
+            if(tmp->dir[GET_SEG_NUM(sub_key, tmp->key_len, tmp->global_depth)]!=tmp_seg){
+                tmp_seg->free_read_lock();
+                std::this_thread::yield();
+                goto GET_RETRY;
+            }
+
 
             uint64_t seg_index = GET_BUCKET_NUM(sub_key, HT_BUCKET_MASK_LEN);
             concurrency_ht_bucket *tmp_bucket = &(tmp_seg->bucket[seg_index]);
             
             if(!tmp_bucket->read_lock()){
                 tmp_seg->free_read_lock();
-                tmp->free_read_lock();
+                // tmp->free_read_lock();
                 std::this_thread::yield();
                 goto GET_RETRY;
             }
@@ -118,12 +125,12 @@ void concurrencyhashtree::crash_consistent_put(concurrency_hashtree_node *_node,
 
         // uint64_t next = tmp->get(sub_key);
         if (next == 0) {
-            //not exists
+            //not exists 
             concurrency_ht_key_value *kv = new_concurrency_ht_key_value(k, v);
             clflush((char *) kv, sizeof(concurrency_ht_key_value));
             // tmp->put(sub_key, (uint64_t) kv);//crash consistency operations
 
-            if(!tmp->put_with_read_lock(sub_key,(uint64_t)kv)){
+            if(!tmp->put_with_read_lock(sub_key,(uint64_t)kv, tmp_seg, tmp_bucket)){
                 goto GET_RETRY;
             }
 
@@ -137,7 +144,7 @@ void concurrencyhashtree::crash_consistent_put(concurrency_hashtree_node *_node,
 
                 if(!tmp_bucket->write_lock()){
                     tmp_seg->free_read_lock();
-                    tmp->free_read_lock();
+                    // tmp->free_read_lock();
                     std::this_thread::yield();
                     goto GET_RETRY;
                 }
@@ -146,7 +153,7 @@ void concurrencyhashtree::crash_consistent_put(concurrency_hashtree_node *_node,
                 if(tmp_bucket->counter[pos].value!=next){
                     tmp_bucket->free_write_lock();
                     tmp_seg->free_read_lock();
-                    tmp->free_read_lock();  
+                    // tmp->free_read_lock();  
                     std::this_thread::yield();
                     goto GET_RETRY;
                 }   
@@ -157,7 +164,7 @@ void concurrencyhashtree::crash_consistent_put(concurrency_hashtree_node *_node,
                     clflush((char *) &(((concurrency_ht_key_value *) next)->value), 8);
                     tmp_bucket->free_write_lock();
                     tmp_seg->free_read_lock();
-                    tmp->free_read_lock();
+                    // tmp->free_read_lock();
                     return;
                 } else {
                     //not same key: needs to create a new eh
@@ -169,7 +176,7 @@ void concurrencyhashtree::crash_consistent_put(concurrency_hashtree_node *_node,
                     tmp_bucket->counter[pos].value =  (uint64_t) new_node;
                     tmp_bucket->free_write_lock();
                     tmp_seg->free_read_lock();
-                    tmp->free_read_lock();
+                    // tmp->free_read_lock();
 //                    node_cnt++;
                     return;
                 }
@@ -177,7 +184,7 @@ void concurrencyhashtree::crash_consistent_put(concurrency_hashtree_node *_node,
                 // next is next extendible hash
                 tmp_bucket->free_read_lock();
                 tmp_seg->free_read_lock();
-                tmp->free_read_lock();
+                // tmp->free_read_lock();
                 tmp = (concurrency_hashtree_node *) next;
             }
         }

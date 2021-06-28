@@ -452,24 +452,39 @@ void concurrency_hashtree_node::put(uint64_t key, uint64_t value) {
     return;
 }
 
-bool concurrency_hashtree_node::put_with_read_lock(uint64_t key, uint64_t value) {
+bool concurrency_hashtree_node::put_with_read_lock(uint64_t key, uint64_t value, concurrency_ht_segment *tmp_seg,  concurrency_ht_bucket * tmp_bucket) {
 
-    uint64_t dir_index = GET_SEG_NUM(key, key_len, global_depth);
-    concurrency_ht_segment *tmp_seg = dir[dir_index];
-    uint64_t seg_index = GET_BUCKET_NUM(key, HT_BUCKET_MASK_LEN);
-    concurrency_ht_bucket *tmp_bucket = &(tmp_seg->bucket[seg_index]);
+    
     int bucket_index = tmp_bucket->find_place(key, key_len, tmp_seg->depth);
     if (bucket_index == -1) {
+
         //condition: full
         if (likely(tmp_seg->depth < global_depth)) {
 #ifdef HT_PROFILE_TIME
             gettimeofday(&start_time, NULL);
 #endif
+            if(!read_lock()){
+                tmp_bucket->free_read_lock();
+                tmp_seg->free_read_lock();
+                std::this_thread::yield();
+                return false;
+            }
+
+            uint64_t dir_index = GET_SEG_NUM(key, key_len, global_depth);
+            uint64_t seg_index = GET_BUCKET_NUM(key, HT_BUCKET_MASK_LEN);
+
+            if(dir[dir_index]!=tmp_seg){
+                tmp_bucket->free_read_lock();
+                tmp_seg->free_read_lock();
+                free_read_lock();
+                std::this_thread::yield();
+                return false;
+            }
+
             uint64_t old_depth = tmp_seg->depth;
-            // free seg read lock
+
             tmp_seg->free_read_lock();
 
-            // get seg write lock
             if(!tmp_seg->write_lock()){
                 tmp_bucket->free_read_lock();
                 free_read_lock();
@@ -477,7 +492,6 @@ bool concurrency_hashtree_node::put_with_read_lock(uint64_t key, uint64_t value)
                 return false;
             }
             
-            // double check
             if(tmp_seg->depth!=old_depth){
                 tmp_bucket->free_read_lock();
                 tmp_seg->free_write_lock();
@@ -485,8 +499,6 @@ bool concurrency_hashtree_node::put_with_read_lock(uint64_t key, uint64_t value)
                 std::this_thread::yield();
                return false;
             }
-
-            // uint64_t current_version = tmp_seg->version.load();
 
             concurrency_ht_segment *new_seg = new_concurrency_ht_segment(tmp_seg->depth + 1);
             //set dir [left,right)
@@ -532,26 +544,6 @@ bool concurrency_hashtree_node::put_with_read_lock(uint64_t key, uint64_t value)
             }
             clflush((char *) new_seg, sizeof(concurrency_ht_segment));
 
-
-            // tmp_seg->free_read_lock();
-
-            // // get seg write lock
-            // if(!tmp_seg->write_lock()){
-            //     tmp_bucket->free_read_lock();
-            //     free_read_lock();
-            //     std::this_thread::yield();
-            //     return false;
-            // }
-            
-            // // version check
-            // if(current_version!=tmp_seg->version){
-            //     tmp_bucket->free_read_lock();
-            //     tmp_seg->free_write_lock();
-            //     free_read_lock();
-            //     std::this_thread::yield();
-            //    return false;
-            // }
-
             // set dir[mid, right) to the new bucket
             for (int i = right - 1; i >= mid; --i) {
                 dir[i] = new_seg;
@@ -569,7 +561,6 @@ bool concurrency_hashtree_node::put_with_read_lock(uint64_t key, uint64_t value)
             gettimeofday(&end_time, NULL);
             t2 += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
 #endif
-            
             return false;
         } else {
             //condition: tmp_bucket->depth == global_depth
@@ -580,12 +571,7 @@ bool concurrency_hashtree_node::put_with_read_lock(uint64_t key, uint64_t value)
             ht_dir_num += dir_size;
 #endif
 
-            // uint64_t current_version = tmp_seg->version.load();
-
             concurrency_ht_segment** old_dir = dir;
-
-            free_read_lock();
-
             if(!write_lock()){
                 tmp_bucket->free_read_lock();
                 tmp_seg->free_read_lock();
@@ -600,7 +586,6 @@ bool concurrency_hashtree_node::put_with_read_lock(uint64_t key, uint64_t value)
                 std::this_thread::yield();
                 return false;
             }
-
 
             uint64_t new_global_depth = global_depth + 1;
             uint64_t new_dir_size = dir_size * 2;
@@ -636,24 +621,6 @@ bool concurrency_hashtree_node::put_with_read_lock(uint64_t key, uint64_t value)
             // clflush((char *) new_seg, sizeof(concurrency_ht_segment));
             clflush((char *) new_dir, sizeof(concurrency_ht_segment *) * new_dir_size);
 
-           
-            // free_read_lock();
-
-            // if(!write_lock()){
-            //     tmp_bucket->free_read_lock();
-            //     tmp_seg->free_read_lock();
-            //     std::this_thread::yield();
-            //     return false;
-            // }
-
-            // if(current_version!=version.load()){
-            //     tmp_bucket->free_read_lock();
-            //     tmp_seg->free_read_lock();
-            //     free_write_lock();
-            //     std::this_thread::yield();
-            //     return false;
-            // }
-
             global_depth  = new_global_depth;
             dir_size  = new_dir_size;
             dir = new_dir;
@@ -674,14 +641,13 @@ bool concurrency_hashtree_node::put_with_read_lock(uint64_t key, uint64_t value)
 #ifdef HT_PROFILE_TIME
         gettimeofday(&start_time, NULL);
 #endif
-
         uint64_t old_value = tmp_bucket->counter[bucket_index].value;
         // free bucket read lock
         tmp_bucket->free_read_lock();
   
         if(!tmp_bucket->write_lock()){
             tmp_seg->free_read_lock();
-            free_read_lock();
+            // free_read_lock();
             std::this_thread::yield();
             return false;
         }
@@ -689,7 +655,7 @@ bool concurrency_hashtree_node::put_with_read_lock(uint64_t key, uint64_t value)
         if(tmp_bucket->counter[bucket_index].value!=old_value){
             tmp_bucket->free_write_lock();
             tmp_seg->free_read_lock();
-            free_read_lock();
+            // free_read_lock();
             std::this_thread::yield();
             return false;
         }
@@ -713,7 +679,7 @@ bool concurrency_hashtree_node::put_with_read_lock(uint64_t key, uint64_t value)
         }
 
         tmp_seg->free_read_lock();
-        free_read_lock();
+        // free_read_lock();
 
 #ifdef HT_PROFILE_TIME
         gettimeofday(&end_time, NULL);
