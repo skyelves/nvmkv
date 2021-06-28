@@ -20,7 +20,7 @@ void fastalloc::init() {
     dram_cnt++;
 
 #ifdef __linux__
-    string nvm_filename = "/mnt/aep/test";
+    string nvm_filename = "/mnt/aep1/test";
     nvm_filename = nvm_filename + to_string(nvm_cnt);
     int nvm_fd = open(nvm_filename.c_str(), O_CREAT | O_RDWR, 0644);
     if (posix_fallocate(nvm_fd, 0, ALLOC_SIZE) < 0)
@@ -43,7 +43,7 @@ void concurrency_fastalloc::init() {
 #ifdef __linux__
     std::thread::id this_id = std::this_thread::get_id();
     unsigned int t = *(unsigned int*)&this_id;// threadid 转成 unsigned int
-    string nvm_filename = "/mnt/aep/test"+to_string(t);
+    string nvm_filename = "/mnt/aep1/test"+to_string(t);
     nvm_filename = nvm_filename + to_string(nvm_cnt);
     int nvm_fd = open(nvm_filename.c_str(), O_CREAT | O_RDWR, 0644);
     if (posix_fallocate(nvm_fd, 0, CONCURRENCY_ALLOC_SIZE) < 0)
@@ -61,7 +61,7 @@ void *fastalloc::alloc(uint64_t size, bool _on_nvm) {
     if (_on_nvm) {
         if (unlikely(size > nvm_left)) {
 #ifdef __linux__
-            string nvm_filename = "/mnt/aep/test";
+            string nvm_filename = "/mnt/aep1/test";
             nvm_filename = nvm_filename + to_string(nvm_cnt);
             int nvm_fd = open(nvm_filename.c_str(), O_CREAT | O_RDWR, 0644);
             if (posix_fallocate(nvm_fd, 0, ALLOC_SIZE) < 0)
@@ -108,7 +108,7 @@ void *concurrency_fastalloc::alloc(uint64_t size, bool _on_nvm) {
 #ifdef __linux__
             std::thread::id this_id = std::this_thread::get_id();
 	        unsigned int t = *(unsigned int*)&this_id;// threadid 转成 unsigned int
-            string nvm_filename = "/mnt/aep/test"+to_string(t);
+            string nvm_filename = "/mnt/aep1/test"+to_string(t);
             nvm_filename = nvm_filename + to_string(nvm_cnt);
             int nvm_fd = open(nvm_filename.c_str(), O_CREAT | O_RDWR, 0644);
             if (posix_fallocate(nvm_fd, 0, CONCURRENCY_ALLOC_SIZE) < 0)
