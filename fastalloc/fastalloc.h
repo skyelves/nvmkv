@@ -15,7 +15,7 @@
 #define NVMKV_FASTALLOC_H
 
 #define ALLOC_SIZE ((size_t)4<<30) // 4GB
-#define CONCURRENCY_ALLOC_SIZE ((size_t)4<<26)  
+#define CONCURRENCY_ALLOC_SIZE ((size_t)4<<27)  
 #define CACHELINESIZE (64)
 
 
