@@ -185,9 +185,9 @@ void hashtree_node::put(uint64_t key, uint64_t value) {
             // set dir[mid, right) to the new bucket
             for (int i = right - 1; i >= mid; --i) {
                 dir[i] = new_seg;
-                clflush((char *) dir[i], sizeof(ht_segment *));
+//                clflush((char *) dir[i], sizeof(ht_segment *));
             }
-//            clflush((char *) dir[right - 1], sizeof(ht_segment *));
+            clflush((char *) dir[right - 1], (stride / 2) * sizeof(ht_segment *));
 
             tmp_seg->depth = tmp_seg->depth + 1;
             clflush((char *) &(tmp_seg->depth), sizeof(tmp_seg->depth));
