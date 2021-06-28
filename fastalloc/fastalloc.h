@@ -49,7 +49,7 @@ public:
 
     virtual void init();
 
-    virtual void *alloc(uint64_t size, bool _on_nvm = false);
+    virtual void *alloc(uint64_t size, bool _on_nvm = true);
 
     virtual void free();
 };
@@ -63,7 +63,7 @@ class concurrency_fastalloc :public fastalloc {
 
         void init();
 
-        void * alloc(uint64_t size, bool _on_nvm = false);
+        void * alloc(uint64_t size, bool _on_nvm = true);
 
         void lock();
         
@@ -75,9 +75,9 @@ void init_fast_allocator(bool isMultiThread);
 
 void concurrency_init_fast_allocator();
 
-void *fast_alloc(uint64_t size, bool _on_nvm = false);
+void *fast_alloc(uint64_t size, bool _on_nvm = true);
 
-void *concurrency_fast_alloc(uint64_t size, bool _on_nvm = false);
+void *concurrency_fast_alloc(uint64_t size, bool _on_nvm = true);
 
 void fast_free();
 
