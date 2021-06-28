@@ -6,6 +6,8 @@
 #include <map>
 #include <string.h>
 #include <sys/time.h>
+#include <functional>
+#include <unordered_map>
 #include "blink/blink_tree.h"
 #include "mass/mass_tree.h"
 #include "hashtree/hashtree.h"
@@ -103,15 +105,103 @@ void *putFunc(void *arg) {
     }
 }
 
+#define info(args...) \
+{ \
+    printf("INFO: "); \
+    printf(args); \
+    printf("\n"); \
+    fflush(stdout); \
+}
+
+void parseLine(std::string rawStr, uint64_t &hashKey, uint64_t &hashValue) {
+    uint32_t t = rawStr.find(" ");
+    uint32_t t1 = rawStr.find(" ", t + 1);
+    std::string tableName = rawStr.substr(t, t1 - t);
+    uint32_t t2 = rawStr.find(" ", t1 + 1);
+    std::string keyName = rawStr.substr(t1, t2 - t1);
+    std::string fullKey = keyName;
+    std::string fullValue = rawStr.substr(t2);
+    static std::hash<std::string> hash_str;
+    hashKey = hash_str(fullKey);
+    hashValue = hash_str(fullValue);
+    // info("key:%s, hashed_key: %lx, hashed_value: %lx", fullKey.c_str(), hashKey, hashValue);
+    // info("hashed_key: %lx, hashed_value: %lx", hashKey, hashValue);
+}
+
+void readYCSBFile(std::string wlName) {
+    std::ifstream loadFile(wlName + ".load");
+    assert(loadFile.is_open());
+    std::string rawStr;
+    std::vector<uint64_t>* allKeysPtr = new std::vector<uint64_t>;
+    std::vector<uint64_t> &allKeys = *allKeysPtr;
+    std::unordered_map<uint64_t, uint64_t>* oracleMap = new std::unordered_map<uint64_t, uint64_t>;
+    uint32_t opCnt = 0;
+    uint64_t hashKey, hashValue;
+    while (std::getline(loadFile, rawStr)) {
+        assert(rawStr.size() > 6);
+        std::string opStr = rawStr.substr(0, 4);
+        if (opStr == "INSE" || opStr == "UPDA") {
+            // info("%s", rawStr.c_str());
+            parseLine(rawStr, hashKey, hashValue);
+            ht->crash_consistent_put(NULL, hashKey, hashValue, 0);
+            (*oracleMap)[hashKey] = hashValue;
+            opCnt++;
+        } else {
+            // other info
+        }
+    }
+    loadFile.close();
+    testNum = opCnt;
+    info("Load finish");
+
+    std::ifstream runFile(wlName + ".run");
+    assert(runFile.is_open());
+    opCnt = 0;
+    while (std::getline(runFile, rawStr)) {
+        assert(rawStr.size() > 6);
+        std::string opStr = rawStr.substr(0, 4);
+        if (opStr == "READ") {
+            // info("%s", rawStr.c_str());
+            parseLine(rawStr, hashKey, hashValue);
+            allKeys.push_back(hashKey); // buffer this query
+            opCnt++;
+        } else if (opStr == "INSE" || opStr == "UPDA") {
+            // info("%s", rawStr.c_str());
+            parseLine(rawStr, hashKey, hashValue);
+            ht->crash_consistent_put(NULL, hashKey, hashValue, 0);
+            (*oracleMap)[hashKey] = hashValue;
+            opCnt++;
+        } else {
+            // other info
+        }
+    }
+    runFile.close();
+
+    for (uint64_t hashKey : allKeys) {
+        assert(oracleMap->count(hashKey));
+        // info("hash: %lx", hashKey);
+        uint64_t htValue = ht->get(hashKey);
+        assert(htValue);
+        uint64_t mapValue = oracleMap->at(hashKey);
+        if (htValue != mapValue) {
+            info("Incorrect key %lx v1 %lx v2 %lx", hashKey, htValue, mapValue);
+            assert(false);
+        }
+    }
+
+    info("Pass correctness check!");
+    delete allKeysPtr;
+    // delete allValues;
+    delete oracleMap;
+}
+
 void speedTest() {
-    out.open("/home/wangke/nvmkv/res.txt", ios::app);
+    // out.open("/home/wangke/nvmkv/res.txt", ios::app);
     mykey = new uint64_t[testNum];
     rng r;
     rng_init(&r, 1, 2);
     for (int i = 0; i < testNum; ++i) {
         mykey[i] = rng_next(&r);
-//        mykey[i] = rng_next(&r) & 0xffffffff00000000;
-//        mykey[i] = rng_next(&r) % testNum;
     }
     uint64_t value = 1;
 //    timeval start, ends;
@@ -137,58 +227,58 @@ void speedTest() {
     // insert speed for ht
     Time_BODY(test_case[0], "hash tree put ", { ht->crash_consistent_put(NULL, mykey[i], 1, 0); })
 
-    // insert speed for art
-    Time_BODY(test_case[1], "art tree put ", { art_put(art, (unsigned char *) &(mykey[i]), 8, &value); })
+    // // insert speed for art
+    // Time_BODY(test_case[1], "art tree put ", { art_put(art, (unsigned char *) &(mykey[i]), 8, &value); })
 
-    // insert speed for wort
-    Time_BODY(test_case[2], "wort put ", { wort_put(wort, mykey[i], 8, &value); })
+    // // insert speed for wort
+    // Time_BODY(test_case[2], "wort put ", { wort_put(wort, mykey[i], 8, &value); })
 
-    // insert speed for woart
-    Time_BODY(test_case[3], "woart put ", { woart_put(woart, mykey[i], 8, &value); })
+    // // insert speed for woart
+    // Time_BODY(test_case[3], "woart put ", { woart_put(woart, mykey[i], 8, &value); })
 
-    // insert speed for cceh
-    Time_BODY(test_case[4], "cceh put ", { cceh->put(mykey[i], value); })
+    // // insert speed for cceh
+    // Time_BODY(test_case[4], "cceh put ", { cceh->put(mykey[i], value); })
 
-    // insert speed for fast&fair
-    Time_BODY(test_case[5], "fast&fair put ", { ff->put(mykey[i], (char *) &value); })
+    // // insert speed for fast&fair
+    // Time_BODY(test_case[5], "fast&fair put ", { ff->put(mykey[i], (char *) &value); })
 
-    // insert speed for fast&fair
-    Time_BODY(test_case[6], "roart put ", { roart->put(mykey[i], value); })
+    // // insert speed for fast&fair
+    // Time_BODY(test_case[6], "roart put ", { roart->put(mykey[i], value); })
 
     // query speed for ht
     Time_BODY(test_case[0], "hash tree get ", { ht->get(mykey[i]); })
 
-    // query speed for art
-    Time_BODY(test_case[1], "art tree get ", { art_get(art, (unsigned char *) &(mykey[i]), 8); })
+    // // query speed for art
+    // Time_BODY(test_case[1], "art tree get ", { art_get(art, (unsigned char *) &(mykey[i]), 8); })
 
-    // query speed for wort
-    Time_BODY(test_case[2], "wort get ", { wort_get(wort, mykey[i], 8); })
+    // // query speed for wort
+    // Time_BODY(test_case[2], "wort get ", { wort_get(wort, mykey[i], 8); })
 
-    // query speed for woart
-    Time_BODY(test_case[3], "woart get ", { woart_get(woart, mykey[i], 8); })
+    // // query speed for woart
+    // Time_BODY(test_case[3], "woart get ", { woart_get(woart, mykey[i], 8); })
 
-    // query speed for cceh
-    Time_BODY(test_case[4], "cceh get ", { cceh->get(mykey[i]); })
+    // // query speed for cceh
+    // Time_BODY(test_case[4], "cceh get ", { cceh->get(mykey[i]); })
 
-    // query speed for fast&fair
-    Time_BODY(test_case[5], "fast&fair get ", { ff->get(mykey[i]); })
+    // // query speed for fast&fair
+    // Time_BODY(test_case[5], "fast&fair get ", { ff->get(mykey[i]); })
 
-    // query speed for fast&fair
-    Time_BODY(test_case[6], "roart get ", { roart->get(mykey[i]); })
+    // // query speed for fast&fair
+    // Time_BODY(test_case[6], "roart get ", { roart->get(mykey[i]); })
 
-    //range query speed for ht
-    Time_BODY(range_query_test_case[0], "hash tree range query ", { ht->scan(mykey[i], mykey[i] + 1024); })
+    // //range query speed for ht
+    // Time_BODY(range_query_test_case[0], "hash tree range query ", { ht->scan(mykey[i], mykey[i] + 1024); })
 
-    //range query speed for wort
-    Time_BODY(range_query_test_case[1], "wort range query ", { wort_scan(wort, mykey[i], mykey[i] + 1024); })
+    // //range query speed for wort
+    // Time_BODY(range_query_test_case[1], "wort range query ", { wort_scan(wort, mykey[i], mykey[i] + 1024); })
 
-    //range query speed for woart
-    Time_BODY(range_query_test_case[2], "woart tree range query ", { woart_scan(woart, mykey[i], mykey[i] + 1024); })
+    // //range query speed for woart
+    // Time_BODY(range_query_test_case[2], "woart tree range query ", { woart_scan(woart, mykey[i], mykey[i] + 1024); })
 
-    //range query speed for fast&fair
-    Time_BODY(range_query_test_case[3], "fast&fair range query ", { ff->scan(mykey[i], mykey[i] + 1024); })
+    // //range query speed for fast&fair
+    // Time_BODY(range_query_test_case[3], "fast&fair range query ", { ff->scan(mykey[i], mykey[i] + 1024); })
 
-    out.close();
+    // out.close();
 }
 
 void correctnessTest() {
@@ -382,21 +472,25 @@ void concurrencyTest(concurrencyhashtree *cht){
 }
 
 int main(int argc, char *argv[]) {
-    sscanf(argv[1], "%d", &numThread);
-    sscanf(argv[2], "%d", &testNum);
+    // sscanf(argv[1], "%d", &numThread);
+    // sscanf(argv[2], "%d", &testNum);
+    std::string wlName = argv[1];
     init_fast_allocator();
     ht = new_hashtree(64, 4);
-    art = new_art_tree();
-    wort = new_wort_tree();
-    woart = new_woart_tree();
-    cceh = new_cceh();
-    ff = new_fastfair();
-    roart = new_roart();
+
+
+    readYCSBFile(wlName);
+    // art = new_art_tree();
+    // wort = new_wort_tree();
+    // woart = new_woart_tree();
+    // cceh = new_cceh();
+    // ff = new_fastfair();
+    // roart = new_roart();
 //    mt = new_mass_tree();
 //    bt = new_blink_tree(numThread);
 //    concurrencyhashtree *cht = new_concurrency_hashtree(64, 0);
 
-    test_key_len();
+    // test_key_len();
 //    correctnessTest();
 //    speedTest();
 
