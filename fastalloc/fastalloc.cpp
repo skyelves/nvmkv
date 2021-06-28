@@ -9,7 +9,7 @@ fastalloc *myallocator;
 
 // int currenct_allocator_pos=0;
 // bool false_flag = false;
-thread_local fastalloc* concurrency_myallocator;
+thread_local concurrency_fastalloc* concurrency_myallocator;
 
 fastalloc::fastalloc() {}
 
