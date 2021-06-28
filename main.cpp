@@ -313,9 +313,13 @@ void range_query_correctness_test() {
 
 
 void *concurrency_put_with_thread(int threadNum){
+    init_fast_allocator(true);
+
     for (int i = threadNum*(testNum/numThread); i < (threadNum+1)*(testNum/numThread); ++i) {                                                     
             cht->crash_consistent_put(NULL,mykey[i], 1, 0);
     }
+
+    // fast_free();
 }
 
 void *concurrency_cceh_put(int threadNum){

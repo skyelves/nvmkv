@@ -6,9 +6,10 @@
 
 fastalloc *myallocator;
 
+
 // int currenct_allocator_pos=0;
 // bool false_flag = false;
-concurrency_fastalloc ** concurrency_myallocator;
+thread_local fastalloc* concurrency_myallocator;
 
 fastalloc::fastalloc() {}
 
@@ -173,8 +174,11 @@ void concurrency_fastalloc::free_lock(){
 
 void init_fast_allocator(bool isMultiThread) {
     if(isMultiThread){
-        myallocator = new concurrency_fastalloc;
-        myallocator->init();
+        concurrency_myallocator = new concurrency_fastalloc;
+        concurrency_myallocator->init();
+        
+        // myallocator = new concurrency_fastalloc;
+        // myallocator->init();
         // concurrency_myallocator = new concurrency_fastalloc*[64] ;
         // for(int i=0;i<ALLOCATORNUM;i++){
         //     concurrency_myallocator[i] = new concurrency_fastalloc;
@@ -192,8 +196,8 @@ void *fast_alloc(uint64_t size, bool _on_nvm) {
 }
 
 void *concurrency_fast_alloc(uint64_t size, bool _on_nvm){
-    return malloc(size);
-    // return myallocator->alloc(size, _on_nvm);
+    // return malloc(size);
+    return concurrency_myallocator->alloc(size, _on_nvm);
     // while(true){
     //     if(cas(&concurrency_myallocator[currenct_allocator_pos]->is_used,&false_flag,true)){
     //         void * address = concurrency_myallocator[currenct_allocator_pos]->alloc(size,_on_nvm);
@@ -210,13 +214,11 @@ void *concurrency_fast_alloc(uint64_t size, bool _on_nvm){
 void fast_free() {
     if(myallocator!=NULL){
         myallocator->free();
+        delete myallocator;
     }
-    delete myallocator;
     
     if(concurrency_myallocator!=NULL){
-        for(int i=0;i<CONCURRENCY_ALLOC_SIZE;i++){
-            concurrency_myallocator[i]->free();
-            delete concurrency_myallocator[i];
-        }
+        concurrency_myallocator->free();
+        delete concurrency_myallocator;
     }
 }

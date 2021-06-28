@@ -8,13 +8,14 @@
 #include <fcntl.h>
 #include <string>
 #include <atomic>
+#include <thread>
 #include <sys/mman.h>
 
 #ifndef NVMKV_FASTALLOC_H
 #define NVMKV_FASTALLOC_H
 
 #define ALLOC_SIZE ((size_t)4<<30) // 4GB
-#define CONCURRENCY_ALLOC_SIZE ((size_t)4<<30)  
+#define CONCURRENCY_ALLOC_SIZE ((size_t)4<<26)  
 #define CACHELINESIZE (64)
 
 
