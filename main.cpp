@@ -381,6 +381,31 @@ void concurrencyTest(concurrencyhashtree *cht){
 
 }
 
+void recoveryTest(){
+    mykey = new uint64_t[testNum];
+    rng r;
+    rng_init(&r, 1, 2);
+    for (int i = 0; i < testNum; ++i) {
+        mykey[i] = rng_next(&r);
+    }
+                                                          
+    for (int i = 0; i < testNum; ++i) {                                                     
+      ht->crash_consistent_put(NULL,mykey[i],1,0);                                                
+    }     
+
+    
+
+    timeval start, ends;                                                                    
+    gettimeofday(&start, NULL);                                                                                    
+    recovery(ht->getRoot());     
+    gettimeofday(&ends, NULL);                                                              
+    double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
+                                
+    cout << "ht recovery test" << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;        
+
+
+}
+
 int main(int argc, char *argv[]) {
     sscanf(argv[1], "%d", &numThread);
     sscanf(argv[2], "%d", &testNum);
@@ -396,18 +421,12 @@ int main(int argc, char *argv[]) {
 //    bt = new_blink_tree(numThread);
 //    concurrencyhashtree *cht = new_concurrency_hashtree(64, 0);
 
-    test_key_len();
+    // test_key_len();
 //    correctnessTest();
 //    speedTest();
 
 
-// build for cocurrencyTest
-//    threads = new thread* [numThread];
-//    try{
-//        concurrencyTest(cht);
-//    }catch(void*){
-//        fast_free();
-//    }
+    recoveryTest();
 //    profile();
 //    range_query_correctness_test();
 //    cout << ht->node_cnt << endl;
