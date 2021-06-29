@@ -77,7 +77,7 @@ void concurrency_init_fast_allocator();
 
 void *fast_alloc(uint64_t size, bool _on_nvm = true);
 
-void *concurrency_fast_alloc(uint64_t size, bool _on_nvm = true);
+void *concurrency_fast_alloc(uint64_t size, bool _on_nvm = false);
 
 void fast_free();
 

@@ -191,17 +191,18 @@ void concurrency_cceh::init(uint64_t _global_depth, uint64_t _key_len) {
 void concurrency_cceh::put(Key_t key, Value_t value) {
 
     RETRY:
-        if(!read_lock()){
-            std::this_thread::yield();
-            goto RETRY;
-        }
         // value should not be 0
         uint64_t dir_index = GET_SEG_NUM(key, key_len, global_depth);
         concurrency_cceh_segment *tmp_seg = dir[dir_index];
 
         // get read lock
         if(!tmp_seg->read_lock()){
-            free_read_lock();
+            std::this_thread::yield();
+            goto RETRY;
+        }
+
+        if(tmp_seg!=dir[GET_SEG_NUM(key, key_len, global_depth)]){
+            tmp_seg->free_read_lock();
             std::this_thread::yield();
             goto RETRY;
         }
@@ -211,7 +212,6 @@ void concurrency_cceh::put(Key_t key, Value_t value) {
 
         if(!tmp_bucket->read_lock()){
             tmp_seg->free_read_lock();
-            free_read_lock();
             std::this_thread::yield();
             goto RETRY;
         }
@@ -226,6 +226,24 @@ void concurrency_cceh::put(Key_t key, Value_t value) {
     #ifdef CCEH_PROFILE_LOAD_FACTOR
                 cceh_seg_num++;
     #endif
+
+                if(!read_lock()){
+                    tmp_bucket->free_read_lock();
+                    tmp_seg->free_read_lock();
+                    std::this_thread::yield();
+                    goto RETRY;
+                }
+
+                uint64_t check_dir_index = GET_SEG_NUM(key, key_len, global_depth);
+
+                if(dir[check_dir_index]!=tmp_seg){
+                    tmp_bucket->free_read_lock();
+                    tmp_seg->free_read_lock();
+                    free_read_lock();
+                    std::this_thread::yield();
+                    goto RETRY;
+                }
+
                 uint64_t old_depth = tmp_seg->depth;
                 // free seg read lock
                 tmp_seg->free_read_lock();
@@ -318,9 +336,7 @@ void concurrency_cceh::put(Key_t key, Value_t value) {
     #ifdef CCEH_PROFILE_LOAD_FACTOR
                 cceh_seg_num++;
     #endif
-
                 concurrency_cceh_segment ** old_dir = dir;
-                free_read_lock();
 
                 if(!write_lock()){
                     tmp_bucket->free_read_lock();
@@ -333,41 +349,46 @@ void concurrency_cceh::put(Key_t key, Value_t value) {
                     tmp_bucket->free_read_lock();
                     tmp_seg->free_read_lock();
                     free_write_lock();
+                    std::this_thread::yield();
                     goto RETRY;
                 }
 
-                global_depth += 1;
-                dir_size *= 2;
+                uint64_t new_global_depth = global_depth + 1;
+                uint64_t new_dir_size = dir_size * 2;
+
                 //set dir
-                concurrency_cceh_segment **new_dir = static_cast<concurrency_cceh_segment **>(concurrency_fast_alloc(sizeof(concurrency_cceh_segment *) * dir_size));
-                for (int i = 0; i < dir_size; ++i) {
+                concurrency_cceh_segment **new_dir = static_cast<concurrency_cceh_segment **>(concurrency_fast_alloc(sizeof(concurrency_cceh_segment *) * new_dir_size));
+                for (int i = 0; i < new_dir_size; ++i) {
                     new_dir[i] = dir[i / 2];
                 }
-                concurrency_cceh_segment *new_seg = new_concurrency_cceh_segment(global_depth);
-                new_dir[dir_index * 2 + 1] = new_seg;
-                //migrate previous data
-                for (int i = 0; i < CCEH_MAX_BUCKET_NUM; ++i) {
-                    uint64_t bucket_cnt = 0;
-                    uint64_t new_dir_index = 0;
-                    for (int j = 0; j < CCEH_BUCKET_SIZE; ++j) {
-                        uint64_t tmp_key = tmp_seg->bucket[i].kv[j].key;
-                        uint64_t tmp_value = tmp_seg->bucket[i].kv[j].value;
-                        new_dir_index = GET_SEG_NUM(tmp_key, key_len, global_depth);
-                        if ((dir_index * 2 + 1) == new_dir_index) {
-                            concurrency_cceh_segment *dst_seg = new_seg;
-                            seg_index = i;
-                            concurrency_cceh_bucket *dst_bucket = &(dst_seg->bucket[seg_index]);
-                            dst_bucket->kv[bucket_cnt].key = tmp_key;
-                            dst_bucket->kv[bucket_cnt].value = tmp_value;
-                            bucket_cnt++;
-                        }
-                    }
-                }
+                // concurrency_cceh_segment *new_seg = new_concurrency_cceh_segment(global_depth);
+                // new_dir[dir_index * 2 + 1] = new_seg;
+                // //migrate previous data
+                // for (int i = 0; i < CCEH_MAX_BUCKET_NUM; ++i) {
+                //     uint64_t bucket_cnt = 0;
+                //     uint64_t new_dir_index = 0;
+                //     for (int j = 0; j < CCEH_BUCKET_SIZE; ++j) {
+                //         uint64_t tmp_key = tmp_seg->bucket[i].kv[j].key;
+                //         uint64_t tmp_value = tmp_seg->bucket[i].kv[j].value;
+                //         new_dir_index = GET_SEG_NUM(tmp_key, key_len, global_depth);
+                //         if ((dir_index * 2 + 1) == new_dir_index) {
+                //             concurrency_cceh_segment *dst_seg = new_seg;
+                //             seg_index = i;
+                //             concurrency_cceh_bucket *dst_bucket = &(dst_seg->bucket[seg_index]);
+                //             dst_bucket->kv[bucket_cnt].key = tmp_key;
+                //             dst_bucket->kv[bucket_cnt].value = tmp_value;
+                //             bucket_cnt++;
+                //         }
+                //     }
+                // }
 
-                clflush((char *) new_seg, sizeof(concurrency_cceh_bucket));
-                clflush((char *) new_dir, sizeof(concurrency_cceh_bucket *) * dir_size);
-
+                // clflush((char *) new_seg, sizeof(concurrency_cceh_bucket));
+                clflush((char *) new_dir, sizeof(concurrency_cceh_bucket *) * new_dir_size);
+                
+                global_depth  = new_global_depth;
+                dir_size  = new_dir_size;
                 dir = new_dir;
+                
                 clflush((char *) dir, sizeof(dir));
 
                 // tmp_seg->depth = tmp_seg->depth + 1;
@@ -395,7 +416,6 @@ void concurrency_cceh::put(Key_t key, Value_t value) {
     
             if(!tmp_bucket->write_lock()){
                 tmp_seg->free_read_lock();
-                free_read_lock();
                 std::this_thread::yield();
                 goto RETRY;
             }
@@ -403,7 +423,6 @@ void concurrency_cceh::put(Key_t key, Value_t value) {
             if(tmp_bucket->kv[bucket_index].value!=old_value){
                 tmp_bucket->free_write_lock();
                 tmp_seg->free_read_lock();
-                free_read_lock();
                 std::this_thread::yield();
                 goto RETRY;
             }
@@ -422,7 +441,6 @@ void concurrency_cceh::put(Key_t key, Value_t value) {
             }
             tmp_bucket->free_write_lock();
             tmp_seg->free_read_lock();
-            free_read_lock();
     #ifdef CCEH_PROFILE_TIME
             gettimeofday(&end_time, NULL);
             t1+=(end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
