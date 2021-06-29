@@ -160,12 +160,13 @@ void concurrency_cceh_segment::free_write_lock(){
 
 
 concurrency_cceh::concurrency_cceh() {
-    global_depth = 0;
-    dir_size = pow(2, global_depth);
+    directory = static_cast<Directory*>(concurrency_fast_alloc(sizeof(Directory)));
+    directory-> global_depth = 0;
+    directory-> dir_size = pow(2, directory->global_depth);
+    directory-> dir = static_cast<concurrency_cceh_segment **>(concurrency_fast_alloc(sizeof(concurrency_cceh_segment *) * directory-> dir_size));
     key_len = 64;
-    dir = static_cast<concurrency_cceh_segment **>(concurrency_fast_alloc(sizeof(concurrency_cceh_segment *) * dir_size));
-    for (int i = 0; i < dir_size; ++i) {
-        dir[i] = new_concurrency_cceh_segment();
+    for (int i = 0; i < directory->dir_size; ++i) {
+        directory->dir[i] = new_concurrency_cceh_segment();
     }
 #ifdef CCEH_PROFILE_LOAD_FACTOR
     cceh_seg_num = dir_size;
@@ -176,12 +177,13 @@ concurrency_cceh::~concurrency_cceh() {
 }
 
 void concurrency_cceh::init(uint64_t _global_depth, uint64_t _key_len) {
-    global_depth = _global_depth;
-    dir_size = pow(2, global_depth);
+    directory = static_cast<Directory*>(concurrency_fast_alloc(sizeof(Directory)));
+    directory->global_depth = _global_depth;
+    directory->dir_size = pow(2, directory->global_depth);
     key_len = _key_len;
-    dir = static_cast<concurrency_cceh_segment **>(concurrency_fast_alloc(sizeof(concurrency_cceh_segment *) * dir_size));
-    for (int i = 0; i < dir_size; ++i) {
-        dir[i] = new_concurrency_cceh_segment(_global_depth);
+    directory->dir = static_cast<concurrency_cceh_segment **>(concurrency_fast_alloc(sizeof(concurrency_cceh_segment *) * directory->dir_size));
+    for (int i = 0; i < directory->dir_size; ++i) {
+        directory->dir[i] = new_concurrency_cceh_segment(_global_depth);
     }
 #ifdef CCEH_PROFILE_LOAD_FACTOR
     cceh_seg_num = dir_size;
@@ -191,9 +193,12 @@ void concurrency_cceh::init(uint64_t _global_depth, uint64_t _key_len) {
 void concurrency_cceh::put(Key_t key, Value_t value) {
 
     RETRY:
+        while(lock_meta<0){
+            std::this_thread::yield();
+        }
         // value should not be 0
-        uint64_t dir_index = GET_SEG_NUM(key, key_len, global_depth);
-        concurrency_cceh_segment *tmp_seg = dir[dir_index];
+        uint64_t dir_index = GET_SEG_NUM(key, key_len, directory->global_depth);
+        concurrency_cceh_segment *tmp_seg = directory->dir[dir_index];
 
         // get read lock
         if(!tmp_seg->read_lock()){
@@ -201,7 +206,7 @@ void concurrency_cceh::put(Key_t key, Value_t value) {
             goto RETRY;
         }
 
-        if(tmp_seg!=dir[GET_SEG_NUM(key, key_len, global_depth)]){
+        if(tmp_seg!=directory->dir[GET_SEG_NUM(key, key_len, directory->global_depth)]){
             tmp_seg->free_read_lock();
             std::this_thread::yield();
             goto RETRY;
@@ -219,14 +224,13 @@ void concurrency_cceh::put(Key_t key, Value_t value) {
         int bucket_index = tmp_bucket->find_place(key, tmp_seg->depth);
         if (bucket_index == -1) {
             //condition: full
-            if (likely(tmp_seg->depth < global_depth)) {
+            if (likely(tmp_seg->depth < directory->global_depth)) {
     #ifdef CCEH_PROFILE_TIME
                 gettimeofday(&start_time, NULL);
     #endif
     #ifdef CCEH_PROFILE_LOAD_FACTOR
                 cceh_seg_num++;
     #endif
-
                 if(!read_lock()){
                     tmp_bucket->free_read_lock();
                     tmp_seg->free_read_lock();
@@ -234,9 +238,9 @@ void concurrency_cceh::put(Key_t key, Value_t value) {
                     goto RETRY;
                 }
 
-                uint64_t check_dir_index = GET_SEG_NUM(key, key_len, global_depth);
+                uint64_t check_dir_index = GET_SEG_NUM(key, key_len, directory->global_depth);
 
-                if(dir[check_dir_index]!=tmp_seg){
+                if(directory->dir[check_dir_index]!=tmp_seg){
                     tmp_bucket->free_read_lock();
                     tmp_seg->free_read_lock();
                     free_read_lock();
@@ -266,33 +270,19 @@ void concurrency_cceh::put(Key_t key, Value_t value) {
 
                 concurrency_cceh_segment *new_seg = new_concurrency_cceh_segment(tmp_seg->depth + 1);
                 //set dir [left,right)
-                int64_t left = dir_index, mid = dir_index, right = dir_index + 1;
-                for (int i = dir_index + 1; i < dir_size; ++i) {
-                    if (likely(dir[i] != tmp_seg)) {
-                        right = i;
-                        break;
-                    } else if (unlikely(i == (dir_size - 1))) {
-                        right = dir_size;
-                        break;
-                    }
-                }
-                for (int i = dir_index - 1; i >= 0; --i) {
-                    if (likely(dir[i] != tmp_seg)) {
-                        left = i + 1;
-                        break;
-                    } else if (unlikely(i == 0)) {
-                        left = 0;
-                        break;
-                    }
-                }
-                mid = (left + right) / 2;
+
+
+                int64_t stride = pow(2,  directory->global_depth - tmp_seg->depth);
+                int64_t left = dir_index - dir_index % stride;
+                int64_t mid = left + stride / 2, right = left + stride;
+               
                 //migrate previous data to the new segment
                 for (int i = 0; i < CCEH_MAX_BUCKET_NUM; ++i) {
                     uint64_t bucket_cnt = 0;
                     for (int j = 0; j < CCEH_BUCKET_SIZE; ++j) {
                         uint64_t tmp_key = tmp_seg->bucket[i].kv[j].key;
                         uint64_t tmp_value = tmp_seg->bucket[i].kv[j].value;
-                        dir_index = GET_SEG_NUM(tmp_key, key_len, global_depth);
+                        dir_index = GET_SEG_NUM(tmp_key, key_len, directory->global_depth);
                         if (dir_index >= mid) {
                             concurrency_cceh_segment *dst_seg = new_seg;
                             seg_index = i;
@@ -308,10 +298,8 @@ void concurrency_cceh::put(Key_t key, Value_t value) {
 
                 //set dir[mid, right) to the new segment
                 for (int i = right - 1; i >= mid; --i) {
-                    dir[i] = new_seg;
-
-                    clflush((char *) dir[i], sizeof(concurrency_cceh_segment *));
-
+                    directory->dir[i] = new_seg;
+                    clflush((char *) directory->dir[i], sizeof(concurrency_cceh_segment *));
                 }
 
                 tmp_seg->depth = tmp_seg->depth + 1;
@@ -336,7 +324,7 @@ void concurrency_cceh::put(Key_t key, Value_t value) {
     #ifdef CCEH_PROFILE_LOAD_FACTOR
                 cceh_seg_num++;
     #endif
-                concurrency_cceh_segment ** old_dir = dir;
+                Directory * old_dir = directory;
 
                 if(!write_lock()){
                     tmp_bucket->free_read_lock();
@@ -345,7 +333,7 @@ void concurrency_cceh::put(Key_t key, Value_t value) {
                     goto RETRY;
                 }
 
-                if(old_dir!=dir){
+                if(old_dir!=directory){
                     tmp_bucket->free_read_lock();
                     tmp_seg->free_read_lock();
                     free_write_lock();
@@ -353,13 +341,14 @@ void concurrency_cceh::put(Key_t key, Value_t value) {
                     goto RETRY;
                 }
 
-                uint64_t new_global_depth = global_depth + 1;
-                uint64_t new_dir_size = dir_size * 2;
+                Directory * new_directory = static_cast<Directory*>(concurrency_fast_alloc(sizeof(Directory)));
+                new_directory->global_depth = directory->global_depth + 1;
+                new_directory->dir_size = directory->dir_size * 2;
 
                 //set dir
-                concurrency_cceh_segment **new_dir = static_cast<concurrency_cceh_segment **>(concurrency_fast_alloc(sizeof(concurrency_cceh_segment *) * new_dir_size));
-                for (int i = 0; i < new_dir_size; ++i) {
-                    new_dir[i] = dir[i / 2];
+                new_directory->dir = static_cast<concurrency_cceh_segment **>(concurrency_fast_alloc(sizeof(concurrency_cceh_segment *) * new_directory->dir_size));
+                for (int i = 0; i < new_directory->dir_size; ++i) {
+                    new_directory->dir[i] = directory->dir[i / 2];
                 }
                 // concurrency_cceh_segment *new_seg = new_concurrency_cceh_segment(global_depth);
                 // new_dir[dir_index * 2 + 1] = new_seg;
@@ -383,21 +372,18 @@ void concurrency_cceh::put(Key_t key, Value_t value) {
                 // }
 
                 // clflush((char *) new_seg, sizeof(concurrency_cceh_bucket));
-                clflush((char *) new_dir, sizeof(concurrency_cceh_bucket *) * new_dir_size);
+                clflush((char *) new_directory->dir, sizeof(concurrency_cceh_bucket *) * new_directory->dir_size);
+              
+                directory = new_directory;
                 
-                global_depth  = new_global_depth;
-                dir_size  = new_dir_size;
-                dir = new_dir;
-                
-                clflush((char *) dir, sizeof(dir));
+                clflush((char *) directory, sizeof(directory));
 
                 // tmp_seg->depth = tmp_seg->depth + 1;
-                clflush((char *) &(tmp_seg->depth), sizeof(tmp_seg->depth));
+                // clflush((char *) &(tmp_seg->depth), sizeof(tmp_seg->depth));
     #ifdef CCEH_PROFILE_TIME
                 gettimeofday(&end_time, NULL);
                 t3+=(end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
     #endif
-
                 tmp_bucket->free_read_lock();
                 tmp_seg->free_read_lock();
                 free_write_lock();
@@ -449,8 +435,8 @@ void concurrency_cceh::put(Key_t key, Value_t value) {
 }
 
 Value_t concurrency_cceh::get(Key_t key) {
-    uint64_t dir_index = GET_SEG_NUM(key, key_len, global_depth);
-    concurrency_cceh_segment *tmp_seg = dir[dir_index];
+    uint64_t dir_index = GET_SEG_NUM(key, key_len, directory->global_depth);
+    concurrency_cceh_segment *tmp_seg = directory->dir[dir_index];
     uint64_t seg_index = GET_BUCKET_NUM(key, CCEH_BUCKET_MASK_LEN);
     concurrency_cceh_bucket *tmp_bucket = &(tmp_seg->bucket[seg_index]);
     return tmp_bucket->get(key);

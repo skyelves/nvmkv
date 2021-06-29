@@ -85,9 +85,15 @@ concurrency_cceh_segment *new_concurrency_cceh_segment(uint64_t _depth = 0);
 
 class concurrency_cceh {
 public:
-    concurrency_cceh_segment **dir = NULL;
-    uint64_t global_depth = 0;
-    uint64_t dir_size = 1;
+
+    class Directory{
+        public:
+            concurrency_cceh_segment **dir = NULL;
+            uint64_t global_depth = 0;
+            uint64_t dir_size = 1;
+    };
+
+    Directory * directory = NULL;
     uint64_t key_len = 64;
     int64_t lock_meta = 0;
 
@@ -111,6 +117,8 @@ public:
 };
 
 concurrency_cceh *new_concurrency_cceh(uint64_t _global_depth = 0, uint64_t _key_len = 64);
+
+
 
 
 #endif //NVMKV_CACHELINE_CONCIOUS_EXTENDIBLE_HASH_H

@@ -81,10 +81,9 @@ void concurrencyhashtree::crash_consistent_put(concurrency_hashtree_node *_node,
         sub_key = GET_SUB_KEY(k, i, span_test[j]);
 
         GET_RETRY:
-            // if(!tmp->read_lock()){
-            //     std::this_thread::yield();
-            //     goto GET_RETRY;
-            // }
+            while(tmp->lock_meta<0){
+                std::this_thread::yield();
+            }
 
             uint64_t dir_index = GET_SEG_NUM(sub_key, tmp->key_len, tmp->global_depth);
             concurrency_ht_segment *tmp_seg = tmp->dir[dir_index];
