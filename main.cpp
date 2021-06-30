@@ -16,6 +16,7 @@
 #include "cceh/cacheline_concious_extendible_hash.h"
 #include "cceh/concurrency_cceh.h"
 #include "fastfair/fastfair.h"
+#include "fastfair/concurrency_fastfair.h"
 #include "roart/roart.h"
 #include "concurrencyhashtree/concurrency_hashtree.h"
 
@@ -37,6 +38,20 @@ ofstream out;
         cout << name << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;        \
         cout << name << "ThroughPut: " << throughPut << " Mops" << endl;                        \
     }
+
+
+
+#define CONCURRENCY_Time_BODY( name, func)                                                        \
+        sleep(1);                                                                               \
+        timeval start, ends;                                                                    \
+        gettimeofday(&start, NULL);                                                             \
+        func                                                                                    \
+        gettimeofday(&ends, NULL);                                                              \
+        double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;\
+        double throughPut = (double) testNum / timeCost;                                        \
+        cout << name << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;        \
+        cout << name << "ThroughPut: " << throughPut << " Mops" << endl;                        \
+    
 
 #define MULTITHREAD true
 
@@ -75,12 +90,15 @@ ROART *roart;
 
 concurrencyhashtree * cht;
 concurrency_cceh *con_cceh;
+concurrency_fastfair *con_fastfair;
 
 thread** threads;
 
 uint64_t *mykey;
 
 std::mutex mtx;
+
+int value =1;
 
 void *putFunc(void *arg) {
     rng r;
@@ -281,7 +299,7 @@ void range_query_correctness_test() {
     for (int i = 0; i < testNum; ++i) {
         mykey[i] = rng_next(&r);
     }
-    vector<ff_key_value> res;
+    vector<concurrency_ff_key_value> res;
 //    vector<ht_key_value> res;
 //    vector<woart_key_value> res;
 //    vector<wort_key_value> res;
@@ -314,11 +332,9 @@ void range_query_correctness_test() {
 
 void *concurrency_put_with_thread(int threadNum){
     init_fast_allocator(true);
-
     for (int i = threadNum*(testNum/numThread); i < (threadNum+1)*(testNum/numThread); ++i) {                                                     
             cht->crash_consistent_put(NULL,mykey[i], 1, 0);
     }
-
     // fast_free();
 }
 
@@ -329,6 +345,14 @@ void *concurrency_cceh_put(int threadNum){
     }
 }
 
+void * concurrency_fastfair_put(int threadNum){
+    init_fast_allocator(true);
+    for (int i = threadNum*(testNum/numThread); i < (threadNum+1)*(testNum/numThread); ++i) {                                                     
+            con_fastfair->put(mykey[i], (char *) &value);
+    }
+}
+
+
 void concurrencyTest(){
     mykey = new uint64_t[testNum];
     rng r;
@@ -337,46 +361,73 @@ void concurrencyTest(){
         mykey[i] = rng_next(&r);
      }
 
-    for( int i =2;i<=16;i*=2){
+    for( int i =1;i<=16;i*=2){
         init_fast_allocator(true);
         numThread = i;
-        cht = new_concurrency_hashtree(64, 0);
-
-
+        
+        // cht = new_concurrency_hashtree(64, 0);
         // con_cceh = new_concurrency_cceh();
-        timeval start, ends;                                                                    
-        gettimeofday(&start, NULL);    
+        con_fastfair = new_concurrency_fastfair();
+        
+        CONCURRENCY_Time_BODY("concurrency fast fair ", {    
+            for(int i=0;i<numThread;i++){
+                threads[i]  = new std::thread(concurrency_fastfair_put,i);     
+            }
 
-        for(int i=0;i<numThread;i++){
-            threads[i]  = new std::thread(concurrency_put_with_thread,i);     
-        }
-
-        for(int i=0;i<numThread;i++){
-            threads[i]->join();
-        }
-
-        gettimeofday(&ends, NULL);                                                              
-        double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
-        double throughPut = (double) testNum / timeCost;  
-        cout << "concurrency hash tree put " << testNum << " kv pais with "<<numThread<<" threads in " << timeCost / 1000000 << " s" << endl;        
-        cout << "concurrency hash tree" << "ThroughPut: " << throughPut << " Mops" << endl;  
+            for(int i=0;i<numThread;i++){
+                threads[i]->join();
+            }
+        })
 
         int failed = 0;
         vector<uint64_t> failed_key;
         for(int i=0;i<testNum;i++){
-            int res = cht->get(mykey[i]);
+            int res = *(int*)con_fastfair->get(mykey[i]);
             if(res!=1){
                 failed++;
                 cout<<"failed : "<<i<< " key : "<< mykey[i]<<" value: "<< res <<endl;
-
-                cht->crash_consistent_put(NULL,mykey[i],1,0);
-                if(cht->get(mykey[i])!=1){
+                con_fastfair->put(mykey[i],(char *) &value);
+                if((*(int*)con_fastfair->get(mykey[i]))!=1){
                     cout<<"still wrong!"<<endl;
                 }else{
                     cout<<"fixed"<<endl;
                 }
             }
         }
+
+        // timeval start, ends;                                                                    
+        // gettimeofday(&start, NULL);    
+
+        // for(int i=0;i<numThread;i++){
+        //     threads[i]  = new std::thread(concurrency_put_with_thread,i);     
+        // }
+
+        // for(int i=0;i<numThread;i++){
+        //     threads[i]->join();
+        // }
+
+        // gettimeofday(&ends, NULL);                                                              
+        // double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
+        // double throughPut = (double) testNum / timeCost;  
+        // cout << "concurrency hash tree put " << testNum << " kv pais with "<<numThread<<" threads in " << timeCost / 1000000 << " s" << endl;        
+        // cout << "concurrency hash tree" << "ThroughPut: " << throughPut << " Mops" << endl;  
+
+        // int failed = 0;
+        // vector<uint64_t> failed_key;
+        // for(int i=0;i<testNum;i++){
+        //     int res = cht->get(mykey[i]);
+        //     if(res!=1){
+        //         failed++;
+        //         cout<<"failed : "<<i<< " key : "<< mykey[i]<<" value: "<< res <<endl;
+
+        //         cht->crash_consistent_put(NULL,mykey[i],1,0);
+        //         if(cht->get(mykey[i])!=1){
+        //             cout<<"still wrong!"<<endl;
+        //         }else{
+        //             cout<<"fixed"<<endl;
+        //         }
+        //     }
+        // }
         // for(int i=0;i<numThread;i++){
         //     threads[i]  = new std::thread(concurrency_cceh_put,i);     
         // }
