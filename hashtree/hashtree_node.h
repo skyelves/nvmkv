@@ -16,7 +16,7 @@
 #define likely(x)   (__builtin_expect(!!(x), 1))
 #define unlikely(x) (__builtin_expect(!!(x), 0))
 
-#define HT_BUCKET_SIZE 8
+#define HT_BUCKET_SIZE 4
 #define HT_BUCKET_MASK_LEN 8
 #define HT_MAX_BUCKET_NUM (1<<HT_BUCKET_MASK_LEN)
 
