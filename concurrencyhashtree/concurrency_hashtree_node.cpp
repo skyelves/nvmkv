@@ -502,26 +502,9 @@ bool concurrency_hashtree_node::put_with_read_lock(uint64_t key, uint64_t value,
 
             concurrency_ht_segment *new_seg = new_concurrency_ht_segment(tmp_seg->depth + 1);
             //set dir [left,right)
-            int64_t left = dir_index, mid = dir_index, right = dir_index + 1;
-            for (int i = dir_index + 1; i < dir_size; ++i) {
-                if (likely(dir[i] != tmp_seg)) {
-                    right = i;
-                    break;
-                } else if (unlikely(i == (dir_size - 1))) {
-                    right = dir_size;
-                    break;
-                }
-            }
-            for (int i = dir_index - 1; i >= 0; --i) {
-                if (likely(dir[i] != tmp_seg)) {
-                    left = i + 1;
-                    break;
-                } else if (unlikely(i == 0)) {
-                    left = 0;
-                    break;
-                }
-            }
-            mid = (left + right) / 2;
+            int64_t stride = pow(2,  global_depth - tmp_seg->depth);
+            int64_t left = dir_index - dir_index % stride;
+            int64_t mid = left + stride / 2, right = left + stride;
 
             //migrate previous data to the new bucket
             for (int i = 0; i < HT_MAX_BUCKET_NUM; ++i) {

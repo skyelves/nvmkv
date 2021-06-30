@@ -340,45 +340,15 @@ void concurrencyTest(){
     for( int i =2;i<=16;i*=2){
         init_fast_allocator(true);
         numThread = i;
-        // cht = new_concurrency_hashtree(64, 0);
+        cht = new_concurrency_hashtree(64, 0);
 
 
-        con_cceh = new_concurrency_cceh();
+        // con_cceh = new_concurrency_cceh();
         timeval start, ends;                                                                    
         gettimeofday(&start, NULL);    
 
-        // for(int i=0;i<numThread;i++){
-        //     threads[i]  = new std::thread(concurrency_put_with_thread,i);     
-        // }
-
-        // for(int i=0;i<numThread;i++){
-        //     threads[i]->join();
-        // }
-
-        // gettimeofday(&ends, NULL);                                                              
-        // double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
-        // double throughPut = (double) testNum / timeCost;  
-        // cout << "concurrency hash tree put " << testNum << " kv pais with "<<numThread<<" threads in " << timeCost / 1000000 << " s" << endl;        
-        // cout << "concurrency hash tree" << "ThroughPut: " << throughPut << " Mops" << endl;  
-
-        // int failed = 0;
-        // vector<uint64_t> failed_key;
-        // for(int i=0;i<testNum;i++){
-        //     int res = cht->get(mykey[i]);
-        //     if(res!=1){
-        //         failed++;
-        //         cout<<"failed : "<<i<< " key : "<< mykey[i]<<" value: "<< res <<endl;
-
-        //         cht->crash_consistent_put(NULL,mykey[i],1,0);
-        //         if(cht->get(mykey[i])!=1){
-        //             cout<<"still wrong!"<<endl;
-        //         }else{
-        //             cout<<"fixed"<<endl;
-        //         }
-        //     }
-        // }
         for(int i=0;i<numThread;i++){
-            threads[i]  = new std::thread(concurrency_cceh_put,i);     
+            threads[i]  = new std::thread(concurrency_put_with_thread,i);     
         }
 
         for(int i=0;i<numThread;i++){
@@ -388,25 +358,55 @@ void concurrencyTest(){
         gettimeofday(&ends, NULL);                                                              
         double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
         double throughPut = (double) testNum / timeCost;  
-        cout << "concurrency CCEH put " << testNum << " kv pais with "<<numThread<<" threads in " << timeCost / 1000000 << " s" << endl;        
-        cout << "concurrency CCEH" << "ThroughPut: " << throughPut << " Mops" << endl;  
-
+        cout << "concurrency hash tree put " << testNum << " kv pais with "<<numThread<<" threads in " << timeCost / 1000000 << " s" << endl;        
+        cout << "concurrency hash tree" << "ThroughPut: " << throughPut << " Mops" << endl;  
 
         int failed = 0;
+        vector<uint64_t> failed_key;
         for(int i=0;i<testNum;i++){
-            int res = con_cceh->get(mykey[i]);
+            int res = cht->get(mykey[i]);
             if(res!=1){
                 failed++;
                 cout<<"failed : "<<i<< " key : "<< mykey[i]<<" value: "<< res <<endl;
 
-                con_cceh->put(mykey[i],1);
-                if(con_cceh->get(mykey[i])!=1){
+                cht->crash_consistent_put(NULL,mykey[i],1,0);
+                if(cht->get(mykey[i])!=1){
                     cout<<"still wrong!"<<endl;
                 }else{
                     cout<<"fixed"<<endl;
                 }
             }
         }
+        // for(int i=0;i<numThread;i++){
+        //     threads[i]  = new std::thread(concurrency_cceh_put,i);     
+        // }
+
+        // for(int i=0;i<numThread;i++){
+        //     threads[i]->join();
+        // }
+
+        // gettimeofday(&ends, NULL);                                                              
+        // double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
+        // double throughPut = (double) testNum / timeCost;  
+        // cout << "concurrency CCEH put " << testNum << " kv pais with "<<numThread<<" threads in " << timeCost / 1000000 << " s" << endl;        
+        // cout << "concurrency CCEH" << "ThroughPut: " << throughPut << " Mops" << endl;  
+
+
+        // int failed = 0;
+        // for(int i=0;i<testNum;i++){
+        //     int res = con_cceh->get(mykey[i]);
+        //     if(res!=1){
+        //         failed++;
+        //         cout<<"failed : "<<i<< " key : "<< mykey[i]<<" value: "<< res <<endl;
+
+        //         con_cceh->put(mykey[i],1);
+        //         if(con_cceh->get(mykey[i])!=1){
+        //             cout<<"still wrong!"<<endl;
+        //         }else{
+        //             cout<<"fixed"<<endl;
+        //         }
+        //     }
+        // }
         fast_free();
     }
 }
