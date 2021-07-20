@@ -56,12 +56,12 @@ int testNum = 100000;
 int numThread = 1;
 
 int test_algorithms_num = 10;
-bool test_case[10] = {1, // ht
+bool test_case[10] = {0, // ht
                       0, // art
-                      1, // wort
-                      1, // woart
-                      1, // cacheline_concious_extendible_hash
-                      1, // fast&fair
+                      0, // wort
+                      0, // woart
+                      0, // cacheline_concious_extendible_hash
+                      0, // fast&fair
                       0, // roart
                       0};
 
@@ -89,6 +89,7 @@ rng r;
 thread **threads;
 
 uint64_t *mykey;
+char **mykey_str;
 //uint64_t *negative_key;
 
 std::mutex mtx;
@@ -121,21 +122,33 @@ void *putFunc(void *arg) {
 void generate_workflow(uint64_t type) {
     // 0: dense
     // 1: sparse
-    // 2: clustered
-    set<uint64_t> s;
+    // 2: variable length: 4 bytes - 128 bytes
+
     mykey = new uint64_t[testNum];
     rng_init(&r, 1, 2);
     if (type == 0) {
         for (int i = 0; i < testNum; ++i) {
             mykey[i] = rng_next(&r) % testNum;
-//            s.insert(mykey[i]);
         }
     } else if (type == 1) {
         for (int i = 0; i < testNum; ++i) {
             mykey[i] = rng_next(&r);
-//            s.insert(mykey[i]);
+        }
+    } else if (type == 2) {
+        mykey_str = new char*[testNum];
+        uint64_t key_len[10] = {4, 8, 12, 16, 20, 32, 64, 128};
+        for (int i = 0; i < testNum; ++i) {
+            uint64_t tmp = rng_next(&r);
+            uint64_t len = key_len[tmp % 8];
+            mykey_str[i]=new char[len+2];
+            for (int j = 0; j < len; j += 8) {
+                *((uint64_t *) (mykey_str[i] + j)) = tmp;
+                tmp = rng_next(&r);
+            }
         }
     }
+
+//    out.close();
 
 //    negative_key = new uint64_t[testNum];
 //    for (int i = 0; i < testNum; ++i) {
@@ -148,8 +161,9 @@ void generate_workflow(uint64_t type) {
 }
 
 void speedTest() {
-    out.open("/home/wangke/nvmkv/res.txt", ios::app);
-    generate_workflow(1);
+//    out.open("/home/wangke/nvmkv/res.txt", ios::app);
+    generate_workflow(2);
+    return;
     uint64_t value = 1;
 //    timeval start, ends;
 //    gettimeofday(&start, NULL);
@@ -461,8 +475,7 @@ void test_key_len() {
 }
 
 
-
-void recoveryTest(){
+void recoveryTest() {
     mykey = new uint64_t[testNum];
     rng r;
     rng_init(&r, 1, 2);
@@ -471,9 +484,8 @@ void recoveryTest(){
     }
 
     for (int i = 0; i < testNum; ++i) {
-      ht->crash_consistent_put(NULL,mykey[i],1,0);
+        ht->crash_consistent_put(NULL, mykey[i], 1, 0);
     }
-
 
 
     timeval start, ends;
@@ -508,7 +520,7 @@ int main(int argc, char *argv[]) {
     speedTest();
 
 
-    recoveryTest();
+//    recoveryTest();
 //    profile();
 //    range_query_correctness_test();
 //    cout << ht->node_cnt << endl;
