@@ -56,7 +56,7 @@ int testNum = 100000;
 int numThread = 1;
 
 int test_algorithms_num = 10;
-bool test_case[10] = {0, // ht
+bool test_case[10] = {1, // ht
                       0, // art
                       0, // wort
                       0, // woart
@@ -162,8 +162,7 @@ void generate_workflow(uint64_t type) {
 
 void speedTest() {
 //    out.open("/home/wangke/nvmkv/res.txt", ios::app);
-    generate_workflow(2);
-    return;
+    generate_workflow(1);
     uint64_t value = 1;
 //    timeval start, ends;
 //    gettimeofday(&start, NULL);
