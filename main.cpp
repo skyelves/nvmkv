@@ -19,6 +19,7 @@
 #include "fastfair/concurrency_fastfair.h"
 #include "roart/roart.h"
 #include "concurrencyhashtree/concurrency_hashtree.h"
+#include "varLengthHashTree/varLengthHashTree.h"
 
 using namespace std;
 
@@ -62,10 +63,10 @@ int numThread = 1;
 int test_algorithms_num = 10;
 bool test_case[10] = {1, // ht
                       0, // art
-                      1, // wort
-                      1, // woart
-                      1, // cacheline_concious_extendible_hash
-                      1, // fast&fair
+                      0, // wort
+                      0, // woart
+                      0, // cacheline_concious_extendible_hash
+                      0, // fast&fair
                       0, // roart
                       0};
 
@@ -87,6 +88,7 @@ woart_tree *woart;
 cacheline_concious_extendible_hash *cceh;
 fastfair *ff;
 ROART *roart;
+VarLengthHashTree* vlht;
 
 concurrencyhashtree * cht;
 concurrency_cceh *con_cceh;
@@ -126,7 +128,6 @@ void *putFunc(void *arg) {
 }
 
 void speedTest() {
-    out.open("/home/wangke/nvmkv/res.txt", ios::app);
     mykey = new uint64_t[testNum];
     rng r;
     rng_init(&r, 1, 2);
@@ -359,7 +360,7 @@ void concurrencyTest(){
     rng_init(&r, 1, 2);
     for (int i = 0; i < testNum; ++i) {
         mykey[i] = rng_next(&r);
-     }
+    }
 
     for( int i =1;i<=16;i*=2){
         init_fast_allocator(true);
@@ -462,10 +463,39 @@ void concurrencyTest(){
     }
 }
 
+void varLengthTest(){
+    int span[] = {4,8,12,16,32,64,128};
+    testNum = 10000000;
+    unsigned char** keys = new unsigned char* [testNum] ;
+    int* lengths = new int [testNum];
+    rng r;
+    rng_init(&r, 1, 2);
+
+    for(int i=0;i<testNum;i++){
+        lengths[i] = span[rng_next(&r)%7];
+        keys[i] = static_cast<unsigned char*>( fast_alloc(lengths[i]));
+        for(int j=0;j<lengths[i];j++){
+            keys[i][j] = rng_next(&r);
+        }
+    }
+    timeval start, ends;                                                                   
+    gettimeofday(&start, NULL);    
+    for(int i=0;i<testNum;i++){
+        vlht->crash_consistent_put(NULL,lengths[i],keys[i],1);                                                   
+    }                                         
+    gettimeofday(&ends, NULL);                                                             
+    double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
+    double throughPut = (double) testNum / timeCost;                                        
+    cout << "varLengthHashTree" << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;        
+    cout << "varLengthHashTree" << "ThroughPut: " << throughPut << " Mops" << endl;        
+
+    fast_free();
+}
+
 int main(int argc, char *argv[]) {
     sscanf(argv[1], "%d", &numThread);
     sscanf(argv[2], "%d", &testNum);
-    // init_fast_allocator(true);
+    init_fast_allocator(false);
     // ht = new_hashtree(64, 0);
     // art = new_art_tree();
     // wort = new_wort_tree();
@@ -473,19 +503,21 @@ int main(int argc, char *argv[]) {
     // cceh = new_cceh();
     // ff = new_fastfair();
     // roart = new_roart();
-    
 
 //    mt = new_mass_tree();
+    vlht = new_varLengthHashtree();
 //    bt = new_blink_tree(numThread);
     // correctnessTest();
-//    speedTest();
+    // speedTest();
 
+    varLengthTest();
 
 // build for cocurrencyTest
-    threads = new thread* [64];
+
+    // threads = new thread* [64];
     // try{
 
-    concurrencyTest();
+    // concurrencyTest();
 
     // }catch(void*){
     //     fast_free();
