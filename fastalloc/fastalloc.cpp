@@ -58,6 +58,7 @@ void concurrency_fastalloc::init() {
 }
 
 void *fastalloc::alloc(uint64_t size, bool _on_nvm) {
+    size = size / 64 * 64 + (!!(size % 64)) * 64;
     if (_on_nvm) {
         if (unlikely(size > nvm_left)) {
 #ifdef __linux__
