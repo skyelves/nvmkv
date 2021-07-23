@@ -17,7 +17,6 @@ add_subdirectory(cceh)
 add_subdirectory(fastfair)
 add_subdirectory(roart)
 add_subdirectory(concurrencyhashtree)
-add_subdirectory(varLengthHashTree)
 add_executable(nvmkv main.cpp)
 #target_link_libraries(nvmkv PRIVATE nvmkv-blink nvmkv-cart nvmkv-mass nvmkv-rng vmmalloc)
 target_link_libraries(nvmkv PRIVATE nvmkv-blink nvmkv-mass
