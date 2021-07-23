@@ -15,13 +15,16 @@
 #define GET_SEG_NUM(key, key_len, depth)  ((key>>(key_len-depth))&(((uint64_t)1<<depth)-1))
 #define GET_BUCKET_NUM(key, bucket_mask_len) ((key)&(((uint64_t)1<<bucket_mask_len)-1))
 
+#define GET_SEG_POS(currentNode,dir_index) (((uint64_t)(currentNode) + sizeof(VarLengthHashTreeNode) + dir_index*sizeof(HashTreeSegment*)))
+
 
 #define GET_32BITS(pointer,pos) ((*(pointer+pos))<<24 | (*(pointer+pos+1))<< 16 | (*(pointer+pos+2))<<8 | *(pointer+pos+3))
 #define GET_16BITS(pointer,pos) ((*(pointer+pos))<<8 | (*(pointer+pos+1)))
 
+#define _16_BITS_OF_BYTES 2
+#define _32_BITS_OF_BYTES 4
 
 #define GET_SUB_KEY_FROM_STR()
-
 
 bool keyIsSame(unsigned char* key1, unsigned int length1, unsigned char* key2, unsigned int length2){
     if(length1!=length2){
@@ -33,6 +36,9 @@ bool keyIsSame(unsigned char* key1, unsigned int length1, unsigned char* key2, u
         }
     }
     return true;
+}
+bool keyIsSame(unsigned char* key1, unsigned char* key2, unsigned int length){
+    return keyIsSame(key1,length,key2,length);
 }
 
 inline void mfence(void) {
@@ -72,20 +78,13 @@ VarLengthHashTree *new_varLengthHashtree() {
 }
 
 void VarLengthHashTree:: crash_consistent_put(VarLengthHashTreeNode *_node, int length, unsigned char* key, uint64_t value){
-    // TODO supply the key
-    // if(length%HT_NODE_LENGTH!=0){
-    //     unsigned char* key = static_cast<unsigned char* >(fast_alloc((length/HT_NODE_LENGTH+1)*HT_NODE_LENGTH/sizeof(char)));
-    // }
-
-
     int pos = 0;
     VarLengthHashTreeNode *currentNode = _node;
     if (_node == NULL){
         currentNode = root;
     }
     unsigned char headerDepth = currentNode->header.depth;
-    HashTreeBucket * lastBucket = NULL;
-    uint64_t beforePos;
+    uint64_t beforeAddress = (uint64_t)&root;
 
     while(length>pos){
         int matchedPrefixLen;
@@ -115,18 +114,19 @@ void VarLengthHashTree:: crash_consistent_put(VarLengthHashTreeNode *_node, int 
             // uint64_t subkey = GET_16BITS(key,pos);
             uint64_t subkey = GET_32BITS(key,pos);
 
-
             // use the subkey to search in a cceh node
             uint64_t next = 0;
 
-            uint64_t dir_index = GET_SEG_NUM(subkey, currentNode->key_len, currentNode->global_depth);
-            HashTreeSegment *tmp_seg = currentNode->dir[dir_index];
+            uint64_t dir_index = GET_SEG_NUM(subkey, HT_NODE_LENGTH, currentNode->global_depth);
+            HashTreeSegment *tmp_seg = *(HashTreeSegment **)GET_SEG_POS(currentNode,dir_index);
             uint64_t seg_index = GET_BUCKET_NUM(subkey, HT_BUCKET_MASK_LEN);
             HashTreeBucket *tmp_bucket = &(tmp_seg->bucket[seg_index]);
             int i;
+            uint64_t beforeA;
             for (i = 0; i < HT_BUCKET_SIZE; ++i) {
                 if (subkey == tmp_bucket->counter[i].subkey) {
                     next =  tmp_bucket->counter[i].value;
+                    beforeA = (uint64_t)&tmp_bucket->counter[i].value;
                     break;
                 }
             }
@@ -134,8 +134,7 @@ void VarLengthHashTree:: crash_consistent_put(VarLengthHashTreeNode *_node, int 
                 //not exists
                 HashTreeKeyValue *kv = new_vlht_key_value(key, length, value);
                 clflush((char *) kv, sizeof(HashTreeKeyValue));
-
-                currentNode->put(subkey, (uint64_t) kv);
+                currentNode->put(subkey, (uint64_t) kv, tmp_seg, tmp_bucket, dir_index, seg_index, beforeAddress);
                 return;
             } else {
                 if (((bool *) next)[0]) {
@@ -149,28 +148,28 @@ void VarLengthHashTree:: crash_consistent_put(VarLengthHashTreeNode *_node, int 
                         return;
                     } else {
                         //not same key: needs to create a new node
-                        VarLengthHashTreeNode *new_node = new_varlengthhashtree_node(HT_NODE_LENGTH,headerDepth+1);
+                        VarLengthHashTreeNode *newNode = new_varlengthhashtree_node(HT_NODE_LENGTH,headerDepth+1);
 
-                        // TODO treenode put with subkey
                         // put pre kv
                         // uint64_t preSubkey = GET_16BITS(preKey,pos);
                         uint64_t preSubkey = GET_32BITS(preKey,pos);
-                        new_node->put(preSubkey, (uint64_t) next);
+                        newNode->put(preSubkey, (uint64_t) next, (uint64_t)&newNode);
 
                         // put new kv
                         HashTreeKeyValue *kv = new_vlht_key_value(key, length, value);
                         clflush((char *) kv, sizeof(HashTreeKeyValue));
-                        new_node->put(subkey,(uint64_t)kv);
+                        newNode->put(subkey, (uint64_t)kv, (uint64_t)&newNode);
 
-                        // TODO flush
+                        clflush((char *) newNode, sizeof(VarLengthHashTreeNode));
 
-                        tmp_bucket->counter[i].value = (uint64_t)new_node;
+                        tmp_bucket->counter[i].value = (uint64_t)newNode;
                         clflush((char*)&tmp_bucket->counter[i].value,8);
                         return;
                     }
                 } else {
                     // next is next extendible hash
                     currentNode = (VarLengthHashTreeNode *) next;
+                    beforeAddress =  beforeA;
                     headerDepth = currentNode->header.depth;
                 }
                 pos += HT_NODE_LENGTH / SIZE_OF_CHAR;
@@ -190,9 +189,9 @@ void VarLengthHashTree:: crash_consistent_put(VarLengthHashTreeNode *_node, int 
             uint64_t subkey = GET_32BITS(key,matchedPrefixLen);
             HashTreeKeyValue *kv = new_vlht_key_value(key, length, value);
             clflush((char *) kv, sizeof(HashTreeKeyValue));
-            newNode->put(subkey,(uint64_t)kv);
+            newNode->put(subkey,(uint64_t)kv,(uint64_t)&newNode);
             // newNode->put(GET_16BITS(currentNode->header.array,matchedPrefixLen),(uint64_t)currentNode);
-            newNode->put(GET_32BITS(currentNode->header.array,matchedPrefixLen),(uint64_t)currentNode);
+            newNode->put(GET_32BITS(currentNode->header.array,matchedPrefixLen),(uint64_t)currentNode,(uint64_t)&newNode);
 
             // modify currentNode 
             currentNode->header.depth -= matchedPrefixLen*SIZE_OF_CHAR/HT_NODE_LENGTH;
@@ -201,16 +200,52 @@ void VarLengthHashTree:: crash_consistent_put(VarLengthHashTreeNode *_node, int 
                 currentNode->header.array[i] = currentNode->header.array[i+matchedPrefixLen];
             }
             clflush((char*)&(currentNode->header),8);
+            clflush((char *) newNode, sizeof(VarLengthHashTreeNode));
 
             // modify the successor 
-            if(lastBucket!=NULL){
-                lastBucket->counter[beforePos].value = (uint64_t)newNode;
-                clflush((char*)&lastBucket->counter[beforePos].value,8);
-            }else{
-                root = newNode;
-            }
+            *(VarLengthHashTreeNode**)beforeAddress = newNode;
             return;
         }
     }
 }
 
+uint64_t VarLengthHashTree::get(int length, unsigned char* key){
+    auto currentNode = root;
+    if(currentNode==NULL){
+        return 0;
+    }
+    int  pos  = 0;
+    while(pos!=length){
+        if(length-pos <= currentNode->header.len){
+            if(keyIsSame(key+pos,currentNode->treeNodeValues[currentNode->header.len - length+pos].key+pos,length-pos)){
+                return (uint64_t)currentNode->treeNodeValues[currentNode->header.len - length+pos].value;
+            }else{
+                return 0;
+            }
+        }
+        if(!keyIsSame(key+pos,currentNode->header.array,currentNode->header.len)){
+            return 0;
+        }
+        pos += currentNode->header.len;
+        // uint64_t subkey = GET_16BITS(key,pos);
+        uint64_t subkey = GET_32BITS(key,pos);
+
+        auto next = currentNode->get(subkey);
+        // pos+=_16_BITS_OF_BYTES;
+        pos+=_32_BITS_OF_BYTES;
+        if(next==0){
+            return 0;
+        }
+        if((((bool *) next)[0])){
+            // is value
+            if(pos==length){
+                return ((HashTreeKeyValue*)next)->value;
+            }else{
+                return 0;
+            }
+        }else{
+            currentNode = (VarLengthHashTreeNode*)next;
+        }
+    }
+    return 0;
+}

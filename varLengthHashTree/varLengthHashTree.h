@@ -24,11 +24,10 @@ public:
     void init();
 
     //support variable values, for convenience, we set v to 8 byte
-    void crash_consistent_put(VarLengthHashTreeNode *_node, int length, unsigned char* key, uint64_t value );
+    void crash_consistent_put(VarLengthHashTreeNode *_node, int length, unsigned char* key, uint64_t value);
     
-    void put(uint64_t k, uint64_t v);
 
-    uint64_t get(uint64_t k);
+    uint64_t get(int length, unsigned char* key);
 
     void all_subtree_kv(VarLengthHashTreeNode *tmp, vector<HashTreeKeyValue> &res);
 
@@ -40,6 +39,35 @@ public:
 
     uint64_t del(uint64_t k);
 };
+
+
+
+
+class Length64HashTree {
+private:
+    int init_depth = 0; //represent extendible hash initial global depth
+    Length64HashTreeNode *root = NULL;
+//    extendible_hash *root = NULL;
+public:
+
+    Length64HashTree();
+
+    Length64HashTree(int _span, int _init_depth);
+
+    ~Length64HashTree();
+
+    void init();
+
+    //support variable values, for convenience, we set v to 8 byte
+    void crash_consistent_put(Length64HashTreeNode *_node, int length, unsigned char* key, uint64_t value);
+    
+    uint64_t get(int length, unsigned char* key);
+
+};
+
+
+Length64HashTree *new_length64HashTree();
+
 
 VarLengthHashTree *new_varLengthHashtree();
 

@@ -95,11 +95,10 @@ HashTreeSegment *new_vlht_segment(uint64_t _depth) {
 VarLengthHashTreeNode::VarLengthHashTreeNode() {
     type = 0;
     global_depth = 0;
-    key_len = 16;
     dir_size = pow(2, global_depth);
-    dir = static_cast<HashTreeSegment **>(fast_alloc(sizeof(HashTreeSegment *) * dir_size));
+    // dir = static_cast<HashTreeSegment **>(fast_alloc(sizeof(HashTreeSegment *) * dir_size));
     for (int i = 0; i < dir_size; ++i) {
-        dir[i] = new_vlht_segment();
+        *(HashTreeSegment **)GET_SEG_POS(this,i) = new_vlht_segment();
     }
 }
 
@@ -107,24 +106,27 @@ VarLengthHashTreeNode::~VarLengthHashTreeNode() {
 
 }
 
-void VarLengthHashTreeNode::init(int _key_len, unsigned char headerDepth) {
-    key_len = _key_len;
+void VarLengthHashTreeNode::init(unsigned char headerDepth, unsigned char global_depth) {
     type = 0;
-    dir_size = pow(2, global_depth);
+    this->global_depth = global_depth;
+    this->dir_size = pow(2, global_depth);
     header.depth = headerDepth;
     treeNodeValues = static_cast<HashTreeKeyValue*>(fast_alloc(sizeof(HashTreeKeyValue ) * (1+HT_NODE_PREFIX_MAX_BITS/HT_NODE_LENGTH)));
-    dir = static_cast<HashTreeSegment **>(fast_alloc(sizeof(HashTreeSegment *) * dir_size));
-    for (int i = 0; i < dir_size; ++i) {
-        dir[i] = new_vlht_segment(global_depth);
+    // dir = static_cast<HashTreeSegment *>(fast_alloc(sizeof(HashTreeSegment *) * dir_size));
+    for (int i = 0; i < this->dir_size; ++i) {
+        *(HashTreeSegment **)GET_SEG_POS(this,i) = new_vlht_segment(global_depth);
     }
 }
-
-void VarLengthHashTreeNode::put(uint64_t subkey, uint64_t value){
-    uint64_t dir_index = GET_SEG_NUM(subkey, key_len, global_depth);
-    HashTreeSegment *tmp_seg = dir[dir_index];
+void VarLengthHashTreeNode::put(uint64_t subkey, uint64_t value, uint64_t beforeAddress){
+    uint64_t dir_index = GET_SEG_NUM(subkey, HT_NODE_LENGTH, global_depth);
+    HashTreeSegment *tmp_seg = *(HashTreeSegment **)GET_SEG_POS(this,dir_index);
     uint64_t seg_index = GET_BUCKET_NUM(subkey, HT_BUCKET_MASK_LEN);
     HashTreeBucket *tmp_bucket = &(tmp_seg->bucket[seg_index]);
-    int bucket_index = tmp_bucket->find_place(subkey, key_len, tmp_seg->depth);
+    put(subkey,value,tmp_seg,tmp_bucket,dir_index,seg_index,beforeAddress);
+}
+
+void VarLengthHashTreeNode::put(uint64_t subkey, uint64_t value, HashTreeSegment* tmp_seg, HashTreeBucket* tmp_bucket, uint64_t dir_index, uint64_t seg_index, uint64_t beforeAddress){
+    int bucket_index = tmp_bucket->find_place(subkey, HT_NODE_LENGTH, tmp_seg->depth);
     if (bucket_index == -1) {
         //condition: full
         if (likely(tmp_seg->depth < global_depth)) {
@@ -139,7 +141,7 @@ void VarLengthHashTreeNode::put(uint64_t subkey, uint64_t value){
                 for (int j = 0; j < HT_BUCKET_SIZE; ++j) {
                     uint64_t tmp_key = tmp_seg->bucket[i].counter[j].subkey;
                     uint64_t tmp_value = tmp_seg->bucket[i].counter[j].value;
-                    dir_index = GET_SEG_NUM(tmp_key, key_len, global_depth);
+                    dir_index = GET_SEG_NUM(tmp_key, HT_NODE_LENGTH, global_depth);
                     if (dir_index >= mid) {
                         HashTreeSegment *dst_seg = new_seg;
                         seg_index = i;
@@ -154,29 +156,27 @@ void VarLengthHashTreeNode::put(uint64_t subkey, uint64_t value){
 
             // set dir[mid, right) to the new bucket
             for (int i = right - 1; i >= mid; --i) {
-                dir[i] = new_seg;
-                clflush((char *) dir[i], sizeof(HashTreeSegment *));
+                *(HashTreeSegment **)GET_SEG_POS(this,i) = new_seg;
+                clflush((char *) GET_SEG_POS(this,i), sizeof(HashTreeSegment *));
             }
-//            clflush((char *) dir[right - 1], sizeof(ht_segment *));
-
             tmp_seg->depth = tmp_seg->depth + 1;
             clflush((char *) &(tmp_seg->depth), sizeof(tmp_seg->depth));
-            put(subkey, value);
+            this->put(subkey, value, beforeAddress);
             return;
         } else {
             //condition: tmp_bucket->depth == global_depth
-            global_depth += 1;
-            dir_size *= 2;
+            VarLengthHashTreeNode *newNode = static_cast<VarLengthHashTreeNode *>(fast_alloc(sizeof(VarLengthHashTreeNode)+sizeof(HashTreeSegment *)*dir_size*2));
+            newNode->global_depth = global_depth+1;
+            newNode->dir_size = dir_size*2;
+            newNode->header.init(&this->header,this->header.len,this->header.depth);
             //set dir
-            HashTreeSegment **new_dir = static_cast<HashTreeSegment **>(fast_alloc(sizeof(HashTreeSegment *) * dir_size));
-            for (int i = 0; i < dir_size; ++i) {
-                new_dir[i] = dir[i / 2];
+            for (int i = 0; i < newNode->dir_size; ++i) {
+                *(HashTreeSegment **)GET_SEG_POS(newNode,i) = *(HashTreeSegment **) GET_SEG_POS(this,(i / 2));
             }
-           
-            clflush((char *) new_dir, sizeof(HashTreeSegment *) * dir_size);
-            dir = new_dir;
-            clflush((char *) dir, sizeof(dir));
-            put(subkey, value);
+            clflush((char *) newNode, sizeof(VarLengthHashTreeNode)+sizeof(HashTreeSegment *)*newNode->dir_size);
+            *(VarLengthHashTreeNode**)beforeAddress = newNode;
+            clflush((char *) beforeAddress, sizeof(VarLengthHashTreeNode*));
+            newNode->put(subkey, value, beforeAddress);
             return;
         }
     } else {
@@ -197,17 +197,17 @@ void VarLengthHashTreeNode::put(uint64_t subkey, uint64_t value){
     return;
 }
 
-uint64_t VarLengthHashTreeNode::get(uint64_t key) {
-    uint64_t dir_index = GET_SEG_NUM(key, key_len, global_depth);
-    HashTreeSegment *tmp_seg = dir[dir_index];
-    uint64_t seg_index = GET_BUCKET_NUM(key, HT_BUCKET_MASK_LEN);
+uint64_t VarLengthHashTreeNode::get(uint64_t subkey) {
+    uint64_t dir_index = GET_SEG_NUM(subkey, HT_NODE_LENGTH, global_depth);
+    HashTreeSegment *tmp_seg = *(HashTreeSegment **)GET_SEG_POS(this,dir_index);
+    uint64_t seg_index = GET_BUCKET_NUM(subkey, HT_BUCKET_MASK_LEN);
     HashTreeBucket *tmp_bucket = &(tmp_seg->bucket[seg_index]);
-    return tmp_bucket->get(key);
+    return tmp_bucket->get(subkey);
 }
 
-VarLengthHashTreeNode *new_varlengthhashtree_node( int _key_len, unsigned char headerDepth) {
-    VarLengthHashTreeNode *_new_node = static_cast<VarLengthHashTreeNode *>(fast_alloc(sizeof(VarLengthHashTreeNode)));
-    _new_node->init( _key_len, headerDepth);
+VarLengthHashTreeNode *new_varlengthhashtree_node( int _key_len, unsigned char headerDepth, unsigned char globalDepth) {
+    VarLengthHashTreeNode *_new_node = static_cast<VarLengthHashTreeNode *>(fast_alloc(sizeof(VarLengthHashTreeNode)+sizeof(HashTreeSegment *)*pow(2, globalDepth)));
+    _new_node->init(headerDepth,globalDepth);
     return _new_node;
 }
 

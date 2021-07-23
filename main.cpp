@@ -464,7 +464,7 @@ void concurrencyTest(){
 }
 
 void varLengthTest(){
-    int span[] = {4,8,12,16,32,64,128};
+    int span[] = {8};
     testNum = 10000000;
     unsigned char** keys = new unsigned char* [testNum] ;
     int* lengths = new int [testNum];
@@ -472,7 +472,8 @@ void varLengthTest(){
     rng_init(&r, 1, 2);
 
     for(int i=0;i<testNum;i++){
-        lengths[i] = span[rng_next(&r)%7];
+        lengths[i] = span[0];
+        // lengths[i] = span[rng_next(&r)%7];
         keys[i] = static_cast<unsigned char*>( fast_alloc(lengths[i]));
         for(int j=0;j<lengths[i];j++){
             keys[i][j] = rng_next(&r);
@@ -486,8 +487,24 @@ void varLengthTest(){
     gettimeofday(&ends, NULL);                                                             
     double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
     double throughPut = (double) testNum / timeCost;                                        
-    cout << "varLengthHashTree" << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;        
-    cout << "varLengthHashTree" << "ThroughPut: " << throughPut << " Mops" << endl;        
+    cout << "varLengthHashTree put " << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;        
+    cout << "varLengthHashTree put " << "ThroughPut: " << throughPut << " Mops" << endl;       
+
+    int wrong = 0;
+    gettimeofday(&start, NULL); 
+     for(int i=0;i<testNum;i++){
+        uint64_t res = vlht->get(lengths[i],keys[i]); 
+        if(res!=1){
+            wrong++;
+        }                                                  
+    }  
+    gettimeofday(&ends, NULL);           
+    cout<< " wrong! "<<wrong/testNum<<endl;
+    timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
+    throughPut = (double) testNum / timeCost;                                        
+    cout << "varLengthHashTree get " << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;        
+    cout << "varLengthHashTree get " << "ThroughPut: " << throughPut << " Mops" << endl;       
+   
 
     fast_free();
 }
