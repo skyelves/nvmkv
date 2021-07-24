@@ -157,8 +157,9 @@ void VarLengthHashTreeNode::put(uint64_t subkey, uint64_t value, HashTreeSegment
             // set dir[mid, right) to the new bucket
             for (int i = right - 1; i >= mid; --i) {
                 *(HashTreeSegment **)GET_SEG_POS(this,i) = new_seg;
-                clflush((char *) GET_SEG_POS(this,i), sizeof(HashTreeSegment *));
             }
+            clflush((char *) GET_SEG_POS(this,right-1), sizeof(HashTreeSegment *)*(right-mid));
+
             tmp_seg->depth = tmp_seg->depth + 1;
             clflush((char *) &(tmp_seg->depth), sizeof(tmp_seg->depth));
             this->put(subkey, value, beforeAddress);
