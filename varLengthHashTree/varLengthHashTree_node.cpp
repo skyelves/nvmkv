@@ -73,14 +73,14 @@ HashTreeBucket *new_vlht_bucket(int _depth) {
 
 HashTreeSegment::HashTreeSegment() {
     depth = 0;
-    bucket = static_cast<HashTreeBucket *>(fast_alloc(sizeof(HashTreeBucket) * HT_MAX_BUCKET_NUM));
+//    bucket = static_cast<HashTreeBucket *>(fast_alloc(sizeof(HashTreeBucket) * HT_MAX_BUCKET_NUM));
 }
 
 HashTreeSegment::~HashTreeSegment() {}
 
 void HashTreeSegment::init(uint64_t _depth) {
     depth = _depth;
-    bucket = static_cast<HashTreeBucket *>(fast_alloc(sizeof(HashTreeBucket) * HT_MAX_BUCKET_NUM));
+//    bucket = static_cast<HashTreeBucket *>(fast_alloc(sizeof(HashTreeBucket) * HT_MAX_BUCKET_NUM));
 #ifdef HT_PROFILE_LOAD_FACTOR
     ht_seg_num++;
 #endif
