@@ -74,8 +74,8 @@ HashTreeBucket *new_vlht_bucket(int _depth = 0);
 class HashTreeSegment {
 public:
     uint64_t depth = 0;
-//    HashTreeBucket *bucket;
-    HashTreeBucket bucket[HT_MAX_BUCKET_NUM];
+   HashTreeBucket *bucket;
+    // HashTreeBucket bucket[HT_MAX_BUCKET_NUM];
 
     HashTreeSegment();
 
