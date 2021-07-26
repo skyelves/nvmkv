@@ -61,14 +61,14 @@ int testNum = 100000;
 int numThread = 1;
 
 int test_algorithms_num = 10;
-bool test_case[10] = {1, // ht
+bool test_case[10] = {0, // ht
                       0, // art
                       0, // wort
                       0, // woart
                       0, // cacheline_concious_extendible_hash
                       0, // fast&fair
                       0, // roart
-                      0};
+                      1}; // l64ht
 
 bool range_query_test_case[10] = {
         0, // ht
@@ -89,6 +89,7 @@ cacheline_concious_extendible_hash *cceh;
 fastfair *ff;
 ROART *roart;
 VarLengthHashTree* vlht;
+Length64HashTree* l64ht;
 
 concurrencyhashtree * cht;
 concurrency_cceh *con_cceh;
@@ -178,6 +179,8 @@ void speedTest() {
     // insert speed for fast&fair
     Time_BODY(test_case[6], "roart put ", { roart->put(mykey[i], value); })
 
+    Time_BODY(test_case[7], "l64ht put  ", { l64ht->crash_consistent_put(NULL,mykey[i], value); })
+
     // query speed for ht
     Time_BODY(test_case[0], "hash tree get ", { ht->get(mykey[i]); })
 
@@ -198,6 +201,8 @@ void speedTest() {
 
     // query speed for fast&fair
     Time_BODY(test_case[6], "roart get ", { roart->get(mykey[i]); })
+
+    Time_BODY(test_case[7], "l64ht get ", { l64ht->get(mykey[i]); })
 
     //range query speed for ht
     Time_BODY(range_query_test_case[0], "hash tree range query ", { ht->scan(mykey[i], mykey[i] + 1024); })
@@ -520,6 +525,7 @@ int main(int argc, char *argv[]) {
     // cceh = new_cceh();
     // ff = new_fastfair();
     // roart = new_roart();
+    // l64ht = new_length64HashTree();
 
 //    mt = new_mass_tree();
     vlht = new_varLengthHashtree();

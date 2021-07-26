@@ -23,6 +23,7 @@
 
 #define GET_SEG_POS(currentNode,dir_index) (((uint64_t)(currentNode) + sizeof(VarLengthHashTreeNode) + dir_index*sizeof(HashTreeSegment*)))
 
+#define GET_SUBKEY(key, start, length) ( (key>>(64 - start - length) & (((uint64_t)1<<length)-1)))
 
 #define HT_INIT_GLOBAL_DEPTH 0
 #define HT_BUCKET_SIZE 4
@@ -33,7 +34,7 @@
 #define HT_NODE_LENGTH 32
 #define HT_NODE_PREFIX_MAX_BYTES 6
 #define HT_NODE_PREFIX_MAX_BITS 48
-
+#define HT_KEY_LENGTH 64
 
 // in fact, it's better to use two kv pair in internal nodes and leaf nodes
 class HashTreeKeyValue {
@@ -86,7 +87,6 @@ public:
 
 HashTreeSegment *new_vlht_segment(uint64_t _depth = 0);
 
-
 class VarLengthHashTreeHeader{
     public:
         unsigned char len = 7;
@@ -98,8 +98,6 @@ class VarLengthHashTreeHeader{
         int computePrefix(unsigned char* key, int len, unsigned int pos);
 
         void assign(unsigned char* key, unsigned char assignedLength = HT_NODE_PREFIX_MAX_BYTES);
-
-        
 
 };
 
@@ -130,7 +128,6 @@ public:
 
 VarLengthHashTreeNode *new_varlengthhashtree_node( int _key_len, unsigned char headerDepth = 1, unsigned char globalDepth = HT_INIT_GLOBAL_DEPTH);
 
-
 class Length64HashTreeKeyValue {
 public:
     bool type = 1;
@@ -144,7 +141,7 @@ public:
     };
 };
 
-Length64HashTreeKeyValue *new_l64ht_key_value(unsigned char* key, unsigned int len ,uint64_t value = 0);
+Length64HashTreeKeyValue *new_l64ht_key_value(uint64_t key ,uint64_t value = 0);
 
 class Length64BucketKeyValue{
     public:
@@ -179,7 +176,6 @@ public:
 
 Length64HashTreeSegment *new_l64ht_segment(uint64_t _depth = 0);
 
-
 class Length64HashTreeHeader{
     public:
         unsigned char len = 7;
@@ -188,39 +184,39 @@ class Length64HashTreeHeader{
 
         void init(Length64HashTreeHeader* oldHeader, unsigned char length, unsigned char depth);
 
-        int computePrefix(unsigned char* key, int len, unsigned int pos);
+        int computePrefix(uint64_t key, int pos);
+
+        void assign(uint64_t key, int startPos);
 
         void assign(unsigned char* key, unsigned char assignedLength = HT_NODE_PREFIX_MAX_BYTES);
-
 };
 
 class Length64HashTreeNode {
 public:
     bool type = 0;
-    int key_len = 16;
+    unsigned char global_depth = 0;
+    uint32_t dir_size = 1;
     Length64HashTreeHeader header;
-    uint64_t global_depth = 0;
-    uint64_t dir_size = 1;
     Length64HashTreeKeyValue* treeNodeValues;
     // used to represent the elements in the treenode prefix, but not in CCEH
-    Length64HashTreeSegment **dir = NULL;
     
     Length64HashTreeNode();
 
     ~Length64HashTreeNode();
 
-    void init( int _key_len = HT_NODE_LENGTH, unsigned char headerDepth = 0);
+    void init( unsigned char headerDepth = 0, unsigned char global_depth = 0);
 
-    void put(uint64_t subKey, uint64_t value);//value is limited to non-zero number, zero is used to define empty counter in bucket
+    void put(uint64_t subkey, uint64_t value, uint64_t beforeAddress);
 
-    void put(uint64_t subkey, uint64_t value, HashTreeSegment* tmp_seg, HashTreeBucket* tmp_bucket, uint64_t dir_index, uint64_t seg_index);
+    void put(uint64_t subkey, uint64_t value, Length64HashTreeSegment* tmp_seg, Length64HashTreeBucket* tmp_bucket, uint64_t dir_index, uint64_t seg_index, uint64_t beforeAddress);
 
-    void node_put(int pos, HashTreeKeyValue* kv);
+    void node_put(int pos, Length64HashTreeKeyValue* kv);
     
-    uint64_t get(uint64_t key);
+    uint64_t get(uint64_t subkey);
 
 };
 
-Length64HashTreeNode *new_length64hashtree_node( int _key_len, unsigned char headerDepth = 1);
+Length64HashTreeNode *new_length64hashtree_node(int _key_len, unsigned char headerDepth = 1, unsigned char globalDepth = HT_INIT_GLOBAL_DEPTH);
+
 
 #endif //NVMKV_VARLENGTH_HASHTREE_NODE_H

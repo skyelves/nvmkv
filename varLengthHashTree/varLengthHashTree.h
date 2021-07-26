@@ -7,7 +7,6 @@
 
 #include "varLengthHashTree_node.h"
 
-
 class VarLengthHashTree {
 private:
     int init_depth = 0; //represent extendible hash initial global depth
@@ -24,8 +23,9 @@ public:
     void init();
 
     //support variable values, for convenience, we set v to 8 byte
-    void crash_consistent_put(VarLengthHashTreeNode *_node, int length, unsigned char* key, uint64_t value);
+    void crash_consistent_put(VarLengthHashTreeNode *_node, int length, unsigned char* key, uint64_t value, uint64_t beforeAddress, int pos = 0);
     
+    void crash_consistent_put(VarLengthHashTreeNode *_node, int length, unsigned char* key, uint64_t value, int pos = 0);
 
     uint64_t get(int length, unsigned char* key);
 
@@ -40,8 +40,7 @@ public:
     uint64_t del(uint64_t k);
 };
 
-
-
+VarLengthHashTree *new_varLengthHashtree();
 
 class Length64HashTree {
 private:
@@ -59,17 +58,12 @@ public:
     void init();
 
     //support variable values, for convenience, we set v to 8 byte
-    void crash_consistent_put(Length64HashTreeNode *_node, int length, unsigned char* key, uint64_t value);
+    void crash_consistent_put(Length64HashTreeNode *_node, uint64_t key, uint64_t value, int len = 0);
     
-    uint64_t get(int length, unsigned char* key);
+    uint64_t get(uint64_t key);
 
 };
 
-
 Length64HashTree *new_length64HashTree();
 
-
-VarLengthHashTree *new_varLengthHashtree();
-
-
-#endif //NVMKV_HASHTREE_H
+#endif
