@@ -18,8 +18,8 @@
 #define GET_SEG_POS(currentNode,dir_index) (((uint64_t)(currentNode) + sizeof(VarLengthHashTreeNode) + dir_index*sizeof(HashTreeSegment*)))
 
 
-//#define GET_32BITS(pointer,pos) (*((uint32_t *)(pointer+pos)))
-#define GET_32BITS(pointer,pos) ((*(pointer+pos))<<24 | (*(pointer+pos+1))<< 16 | (*(pointer+pos+2))<<8 | *(pointer+pos+3))
+#define GET_32BITS(pointer,pos) (*((uint32_t *)(pointer+pos)))
+//#define GET_32BITS(pointer,pos) ((*(pointer+pos))<<24 | (*(pointer+pos+1))<< 16 | (*(pointer+pos+2))<<8 | *(pointer+pos+3))
 #define GET_16BITS(pointer,pos) ((*(pointer+pos))<<8 | (*(pointer+pos+1)))
 
 #define _16_BITS_OF_BYTES 2
@@ -220,13 +220,13 @@ uint64_t VarLengthHashTree::get(int length, unsigned char* key){
     int  pos  = 0;
     while(pos!=length){
         if(length-pos <= currentNode->header.len){
-            if(keyIsSame(key+pos,currentNode->treeNodeValues[currentNode->header.len - length+pos].key+pos,length-pos)){
+            if(!strncmp((char *)key+pos,(char *)currentNode->treeNodeValues[currentNode->header.len - length+pos].key+pos,length-pos)){
                 return (uint64_t)currentNode->treeNodeValues[currentNode->header.len - length+pos].value;
             }else{
                 return 0;
             }
         }
-        if(!keyIsSame(key+pos,currentNode->header.array,currentNode->header.len)){
+        if(strncmp((char *)key+pos,(char *)currentNode->header.array,currentNode->header.len)){
             return 0;
         }
         pos += currentNode->header.len;
