@@ -513,7 +513,7 @@ int main(int argc, char *argv[]) {
     sscanf(argv[1], "%d", &numThread);
     sscanf(argv[2], "%d", &testNum);
     init_fast_allocator(false);
-    // ht = new_hashtree(64, 0);
+     ht = new_hashtree(64, 0);
     // art = new_art_tree();
     // wort = new_wort_tree();
     // woart = new_woart_tree();
@@ -525,7 +525,7 @@ int main(int argc, char *argv[]) {
     vlht = new_varLengthHashtree();
 //    bt = new_blink_tree(numThread);
     // correctnessTest();
-    // speedTest();
+//     speedTest();
 
     varLengthTest();
 

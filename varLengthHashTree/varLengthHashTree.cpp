@@ -18,6 +18,7 @@
 #define GET_SEG_POS(currentNode,dir_index) (((uint64_t)(currentNode) + sizeof(VarLengthHashTreeNode) + dir_index*sizeof(HashTreeSegment*)))
 
 
+//#define GET_32BITS(pointer,pos) (*((uint32_t *)(pointer+pos)))
 #define GET_32BITS(pointer,pos) ((*(pointer+pos))<<24 | (*(pointer+pos+1))<< 16 | (*(pointer+pos+2))<<8 | *(pointer+pos+3))
 #define GET_16BITS(pointer,pos) ((*(pointer+pos))<<8 | (*(pointer+pos+1)))
 
@@ -30,6 +31,7 @@ bool keyIsSame(unsigned char* key1, unsigned int length1, unsigned char* key2, u
     if(length1!=length2){
         return false;
     }
+    return strncmp((char *)key1,(char *)key2,length1)==0;
     for(int i=0;i<length1;i++){
         if(*(key1+i)!=*(key2+i)){
             return false;
@@ -38,7 +40,8 @@ bool keyIsSame(unsigned char* key1, unsigned int length1, unsigned char* key2, u
     return true;
 }
 bool keyIsSame(unsigned char* key1, unsigned char* key2, unsigned int length){
-    return keyIsSame(key1,length,key2,length);
+//    return keyIsSame(key1,length,key2,length);
+    return strncmp((char *)key1,(char *)key2,length)==0;
 }
 
 inline void mfence(void) {
@@ -88,7 +91,7 @@ void VarLengthHashTree:: crash_consistent_put(VarLengthHashTreeNode *_node, int 
 
     while(length>pos){
         int matchedPrefixLen;
-        
+
         // init a number bigger than HT_NODE_PREFIX_MAX_LEN to represent there is no value
         if(currentNode->header.len>HT_NODE_PREFIX_MAX_BYTES){
             currentNode->header.len = (length - (pos+1)*SIZE_OF_CHAR)>HT_NODE_PREFIX_MAX_BITS?HT_NODE_PREFIX_MAX_BITS:(length - (pos+1)*SIZE_OF_CHAR);
