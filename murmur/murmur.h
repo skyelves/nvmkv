@@ -18,7 +18,7 @@ public:
     murmur(uint32_t _seed):seed(_seed){}
     void init(uint32_t _seed);
     uint32_t run(const void *key, int len);
-
+    uint64_t run64(const void *key, int len);
 };
 
 

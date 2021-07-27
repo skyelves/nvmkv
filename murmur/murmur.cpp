@@ -88,3 +88,56 @@ uint32_t murmur::run(const void *key, int len) {
 
     return h1;
 }
+
+uint64_t murmur::run64(const void *key, int len) {
+    const uint8_t * data = (const uint8_t*)key;
+    const int nblocks = len / 4;
+    int i;
+
+    uint64_t h1 = seed;
+
+    uint64_t c1 = 0xcc9e2d51;
+    uint64_t c2 = 0x1b873593;
+
+    //----------
+    // body
+
+    const uint64_t * blocks = (const uint64_t *)(data + nblocks*4);
+
+    for(i = -nblocks; i; i++)
+    {
+        uint64_t k1 = getblock(blocks,i);
+
+        k1 *= c1;
+        k1 = ROTL64(k1,15);
+        k1 *= c2;
+
+        h1 ^= k1;
+        h1 = ROTL64(h1,13);
+        h1 = h1*5+0xe6546b64;
+    }
+
+    //----------
+    // tail
+
+    const uint8_t * tail = (const uint8_t*)(data + nblocks*4);
+
+    uint64_t k1 = 0;
+
+    switch(len & 3)
+    {
+        case 3: k1 ^= tail[2] << 16;
+        case 2: k1 ^= tail[1] << 8;
+        case 1: k1 ^= tail[0];
+            k1 *= c1; k1 = ROTL64(k1,15); k1 *= c2; h1 ^= k1;
+    };
+
+    //----------
+    // finalization
+
+    h1 ^= len;
+
+    h1 = fmix32(h1);
+
+    return h1;
+}
