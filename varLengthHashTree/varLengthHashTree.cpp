@@ -29,6 +29,7 @@ bool keyIsSame(unsigned char* key1, unsigned int length1, unsigned char* key2, u
     if(length1!=length2){
         return false;
     }
+    return strncmp((char *)key1,(char *)key2,length1)==0;
     for(int i=0;i<length1;i++){
         if(*(key1+i)!=*(key2+i)){
             return false;
@@ -37,7 +38,8 @@ bool keyIsSame(unsigned char* key1, unsigned int length1, unsigned char* key2, u
     return true;
 }
 bool keyIsSame(unsigned char* key1, unsigned char* key2, unsigned int length){
-    return keyIsSame(key1,length,key2,length);
+//    return keyIsSame(key1,length,key2,length);
+    return strncmp((char *)key1,(char *)key2,length)==0;
 }
 
 inline void mfence(void) {
@@ -102,7 +104,7 @@ void VarLengthHashTree:: crash_consistent_put(VarLengthHashTreeNode *_node, int 
     unsigned char headerDepth = currentNode->header.depth;
     while(length>pos){
         int matchedPrefixLen;
-        
+
         // init a number bigger than HT_NODE_PREFIX_MAX_LEN to represent there is no value
         if(currentNode->header.len>HT_NODE_PREFIX_MAX_BYTES){
             currentNode->header.len = (length - (pos+1)*SIZE_OF_CHAR)>HT_NODE_PREFIX_MAX_BITS?HT_NODE_PREFIX_MAX_BITS:(length - (pos+1)*SIZE_OF_CHAR);
@@ -230,13 +232,13 @@ uint64_t VarLengthHashTree::get(int length, unsigned char* key){
     int  pos  = 0;
     while(pos!=length){
         if(length-pos <= currentNode->header.len){
-            if(keyIsSame(key+pos,currentNode->treeNodeValues[currentNode->header.len - length+pos].key+pos,length-pos)){
+            if(!strncmp((char *)key+pos,(char *)currentNode->treeNodeValues[currentNode->header.len - length+pos].key+pos,length-pos)){
                 return (uint64_t)currentNode->treeNodeValues[currentNode->header.len - length+pos].value;
             }else{
                 return 0;
             }
         }
-        if(!keyIsSame(key+pos,currentNode->header.array,currentNode->header.len)){
+        if(strncmp((char *)key+pos,(char *)currentNode->header.array,currentNode->header.len)){
             return 0;
         }
         pos += currentNode->header.len;
