@@ -499,9 +499,9 @@ void varLengthTest(){
     gettimeofday(&start, NULL); 
      for(int i=0;i<testNum;i++){
         uint64_t res = vlht->get(lengths[i],keys[i]); 
-        if(res!=1){
-            wrong++;
-        }                                                  
+        // if(res!=1){
+        //     wrong++;
+        // }                                                  
     }  
     gettimeofday(&ends, NULL);           
     cout<< " wrong! "<<wrong/testNum<<endl;
@@ -525,13 +525,13 @@ int main(int argc, char *argv[]) {
     // cceh = new_cceh();
     // ff = new_fastfair();
     // roart = new_roart();
-    // l64ht = new_length64HashTree();
+    l64ht = new_length64HashTree();
 
 //    mt = new_mass_tree();
     vlht = new_varLengthHashtree();
 //    bt = new_blink_tree(numThread);
     // correctnessTest();
-    // speedTest();
+    speedTest();
 
     varLengthTest();
 
