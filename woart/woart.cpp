@@ -25,6 +25,11 @@
 uint64_t woart_visited_node;
 #endif
 
+#ifdef WOART_PROFILE_TIME
+timeval start_time, end_time;
+uint64_t t1, t2, t3;
+#endif
+
 void flush_buffer(void *buf, unsigned long len, bool fence) {
     unsigned long i;
     len = len + ((unsigned long) (buf) & (CACHE_LINE_SIZE - 1));
@@ -639,13 +644,23 @@ static void *recursive_insert(woart_node *n, woart_node **ref, const unsigned lo
 
         // Check if we are updating an existing value
         if (!leaf_matches(l, key, key_len, depth)) {
+#ifdef WOART_PROFILE_TIME
+            gettimeofday(&start_time, NULL);
+#endif
             *old = 1;
             void *old_val = l->value;
             l->value = value;
             flush_buffer(&l->value, sizeof(uintptr_t), true);
+#ifdef WOART_PROFILE_TIME
+            gettimeofday(&end_time, NULL);
+            t1 += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
             return old_val;
         }
 
+#ifdef WOART_PROFILE_TIME
+        gettimeofday(&start_time, NULL);
+#endif
         // New value, we must split the leaf into a node4
         woart_node4 *new_node = (woart_node4 *) alloc_node(NODE4);
         new_node->n.path.depth = depth;
@@ -670,6 +685,10 @@ static void *recursive_insert(woart_node *n, woart_node **ref, const unsigned lo
         // Add the leafs to the new node4
         *ref = (woart_node *) new_node;
         flush_buffer(ref, sizeof(uintptr_t), true);
+#ifdef WOART_PROFILE_TIME
+        gettimeofday(&end_time, NULL);
+        t2 += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
         return NULL;
     }
 
@@ -681,6 +700,9 @@ static void *recursive_insert(woart_node *n, woart_node **ref, const unsigned lo
     // Check if given node has a prefix
     if (n->path.pwoartial_len) {
         // Determine if the prefixes differ, since we need to split
+#ifdef WOART_PROFILE_TIME
+        gettimeofday(&start_time, NULL);
+#endif
         woart_leaf *l = NULL;
         int prefix_diff = prefix_mismatch(n, key, key_len, depth, &l);
         if ((uint32_t) prefix_diff >= n->path.pwoartial_len) {
@@ -729,6 +751,10 @@ static void *recursive_insert(woart_node *n, woart_node **ref, const unsigned lo
         flush_buffer(&n->path, sizeof(path_comp), false);
         flush_buffer(ref, sizeof(uintptr_t), false);
         mfence();
+#ifdef CCEH_PROFILE_TIME
+        gettimeofday(&end_time, NULL);
+        t3 += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
 
         return NULL;
     }
@@ -742,10 +768,16 @@ static void *recursive_insert(woart_node *n, woart_node **ref, const unsigned lo
     }
 
     // No child, node goes within us
+#ifdef WOART_PROFILE_TIME
+    gettimeofday(&start_time, NULL);
+#endif
     woart_leaf *l = make_leaf(key, key_len, value, true);
 
     add_child(n, ref, get_index(key, depth), SET_LEAF(l));
-
+#ifdef WOART_PROFILE_TIME
+    gettimeofday(&end_time, NULL);
+    t1 += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
     return NULL;
 }
 
@@ -858,8 +890,11 @@ vector<woart_key_value> woart_scan(const woart_tree *t, uint64_t left, uint64_t 
     return res;
 }
 
+double woart_profile() {
+    cout << t1 << ", " << t2 << ", " << t3 << endl;
 #ifdef WOART_PROFILE
-double woart_profile(){
     return woart_visited_node;
-}
+#else
+    return 0;
 #endif
+}
