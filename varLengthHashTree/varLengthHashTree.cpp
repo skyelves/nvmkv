@@ -270,9 +270,6 @@ uint64_t VarLengthHashTree::get(int length, unsigned char* key){
 void Length64HashTree:: crash_consistent_put(Length64HashTreeNode *_node, uint64_t key, uint64_t value, int len){
     // 0-index of current bytes
 
-    if(key==6552766278671465630){
-        ;
-    }
     Length64HashTreeNode *currentNode = _node;
     if (_node == NULL){
         currentNode = root;
@@ -442,6 +439,105 @@ uint64_t Length64HashTree::get(uint64_t key){
     return 0;
 }
 
+
+void Length64HashTree::node_scan(Length64HashTreeNode *tmp, uint64_t left, uint64_t right, vector<Length64HashTreeKeyValue> &res, int pos){
+    if(tmp == NULL){
+        tmp = root;
+    }
+    uint64_t leftPos = UINT64_MAX, rightPos = UINT64_MAX; 
+ 
+    for(int i=0;i<root->header.len;i++){
+        uint64_t subkey = GET_SUBKEY(left,pos+i,8);
+        if(subkey==(uint64_t)root->header.array[i]){
+            continue;
+        }else{
+            if(subkey>(uint64_t)root->header.array[i]){
+                return;
+            }else{
+                leftPos = 0;
+                break;
+            }
+        }
+    }
+    
+    for(int i=0;i<root->header.len;i++){
+        uint64_t subkey = GET_SUBKEY(right,pos+i,8);
+        if(subkey==(uint64_t)root->header.array[i]){
+            continue;
+        }else{
+            if(subkey>(uint64_t)root->header.array[i]){
+                rightPos = tmp->dir_size-1;
+                break;
+            }else{
+                return;
+            }
+        }
+    }
+    
+    pos += tmp->header.len*SIZE_OF_CHAR;
+    uint64_t leftSubkey = UINT64_MAX, rightSubkey = UINT64_MAX; 
+    if(leftPos == UINT64_MAX){
+        leftSubkey = GET_SUBKEY(left,pos,HT_NODE_LENGTH);
+        leftPos = GET_SEG_NUM(leftSubkey, HT_NODE_LENGTH, tmp->global_depth);
+    }
+    if(rightPos == UINT64_MAX){
+        rightSubkey = GET_SUBKEY(right,pos,HT_NODE_LENGTH);
+        rightPos = GET_SEG_NUM(rightSubkey, HT_NODE_LENGTH, tmp->global_depth);
+    }
+    pos += HT_NODE_LENGTH;
+    for(uint32_t i=leftPos;i<=rightPos;i++){
+        Length64HashTreeSegment *tmp_seg = *(Length64HashTreeSegment **)GET_SEG_POS(tmp,i);
+        for(auto j=0;j<HT_MAX_BUCKET_NUM;j++){
+            for(auto k=0;k<HT_BUCKET_SIZE;k++){
+                uint64_t curSubkey = tmp_seg->bucket[j].counter[k].subkey;
+                uint64_t value = tmp_seg->bucket[j].counter[k].value;
+                if(curSubkey==0&&value==0){
+                    continue;
+                }
+                if((leftSubkey==UINT64_MAX||curSubkey>leftSubkey)&&(rightSubkey==UINT64_MAX||curSubkey<rightSubkey)){
+                    if(((bool *) value)[0]){
+                        res.push_back(*(Length64HashTreeKeyValue*)value);
+                    }else{
+                        getAllNodes((Length64HashTreeNode*)value,res);
+                    }
+                }
+
+                if(curSubkey==leftSubkey||curSubkey==rightSubkey){
+                    if(pos==HT_KEY_LENGTH||((bool *) value)[0]){
+                        res.push_back(*(Length64HashTreeKeyValue*)value);
+                    }else{
+                        node_scan((Length64HashTreeNode*)value,left,right,res,pos);
+                    }
+                }
+            }
+        }
+    }
+    
+
+}
+
+void Length64HashTree::getAllNodes(Length64HashTreeNode *tmp, vector<Length64HashTreeKeyValue> &res){
+    if(tmp==NULL){
+        return;
+    }
+    for(int i=0;i<tmp->dir_size;i++){
+        Length64HashTreeSegment *tmp_seg = *(Length64HashTreeSegment **)GET_SEG_POS(tmp,i);
+        for(auto j=0;j<HT_MAX_BUCKET_NUM;j++){
+            for(auto k=0;k<HT_BUCKET_SIZE;k++){
+                uint64_t curSubkey = tmp_seg->bucket[j].counter[k].subkey;
+                uint64_t value = tmp_seg->bucket[j].counter[k].value;
+                if(curSubkey==0){
+                    continue;
+                }
+                if(((bool *) value)[0]){
+                    res.push_back(*(Length64HashTreeKeyValue*)value);
+                }else{
+                    getAllNodes((Length64HashTreeNode*)value,res);
+                }
+            }
+        }
+    }
+}
 
 Length64HashTree *new_length64HashTree(){
     Length64HashTree *_new_hash_tree = static_cast<Length64HashTree *>(fast_alloc(sizeof(Length64HashTree)));

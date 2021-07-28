@@ -20,6 +20,7 @@
 #include "roart/roart.h"
 #include "concurrencyhashtree/concurrency_hashtree.h"
 #include "varLengthHashTree/varLengthHashTree.h"
+#include "fastfair/varlengthfastfair.h"
 
 using namespace std;
 
@@ -90,6 +91,7 @@ fastfair *ff;
 ROART *roart;
 VarLengthHashTree* vlht;
 Length64HashTree* l64ht;
+varlength_fastfair* vlff;
 
 concurrencyhashtree * cht;
 concurrency_cceh *con_cceh;
@@ -299,24 +301,34 @@ void profile() {
 }
 
 void range_query_correctness_test() {
+    testNum = 10000000;
     mykey = new uint64_t[testNum];
     rng r;
     rng_init(&r, 1, 2);
     for (int i = 0; i < testNum; ++i) {
-        mykey[i] = rng_next(&r);
+        mykey[i] = rng_next(&r)%testNum;
     }
-    vector<concurrency_ff_key_value> res;
+    // vector<concurrency_ff_key_value> res;
 //    vector<ht_key_value> res;
 //    vector<woart_key_value> res;
 //    vector<wort_key_value> res;
+
+    vector<Length64HashTreeKeyValue> res;
+
     uint64_t value = 1;
     for (int i = 0; i < testNum; i += 1) {
-        roart->put(i + 1, i + 1);
+        l64ht->crash_consistent_put(NULL,mykey[i],1);
+        // roart->put(i + 1, i + 1);
 //        ff->put(i + 1, (char *) &value);
 //        woart_put(woart, i + 1, 8, &value);
 //        wort_put(wort, i + 1, 8, &value);
 //        ht->crash_consistent_put(NULL, i+1, 1, 0);
+        if(l64ht->get(mykey[i])!=1){
+            cout<<"wrong"<<endl;
+        }
     }
+
+
 //    for (int i = 0; i < testNum; ++i) {
 ////        res = ht->scan(mykey[i], mykey[i] + 10000);
 //        res = wort_scan(wort, mykey[i], mykey[i] + 10000);
@@ -331,7 +343,23 @@ void range_query_correctness_test() {
 //        cout << res[i].key << ", " << res[i].value << endl;
 //    }
 //    cout << res.size() << endl;
-    roart->scan(1, 10000);
+    // roart->scan(1, 10000);
+
+    timeval start, ends;                                                                    
+    gettimeofday(&start, NULL);                                                             
+    for (int i = 0; i < 10000; ++i) {                                                     
+        l64ht ->node_scan(NULL,mykey[i],mykey[i]+1000,res,0);                                                                                \
+    }                                                                                       
+    gettimeofday(&ends, NULL);                                                              
+    double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
+    double throughPut = (double) 10000 / timeCost;                                        
+    cout << "HT_SCAN " << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;        
+    cout << "HT_SCAN " << "ThroughPut: " << throughPut << " Mops" << endl;  
+
+    // Time_BODY(1,"HT_SCAN ",{
+    //      l64ht ->node_scan(NULL,mykey[i],mykey[i]+100,res,0);
+    // })
+    cout<<res.size()<<endl;
 }
 
 
@@ -484,32 +512,20 @@ void varLengthTest(){
             keys[i][j] = rng_next(&r);
         }
     }
-    timeval start, ends;                                                                   
-    gettimeofday(&start, NULL);    
-    for(int i=0;i<testNum;i++){
-        vlht->crash_consistent_put(NULL,lengths[i],keys[i],1);                                                   
-    }                                         
-    gettimeofday(&ends, NULL);                                                             
-    double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
-    double throughPut = (double) testNum / timeCost;                                        
-    cout << "varLengthHashTree put " << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;        
-    cout << "varLengthHashTree put " << "ThroughPut: " << throughPut << " Mops" << endl;       
 
-    int wrong = 0;
-    gettimeofday(&start, NULL); 
-     for(int i=0;i<testNum;i++){
-        uint64_t res = vlht->get(lengths[i],keys[i]); 
-        // if(res!=1){
-        //     wrong++;
-        // }                                                  
-    }  
-    gettimeofday(&ends, NULL);           
-    cout<< " wrong! "<<wrong/testNum<<endl;
-    timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
-    throughPut = (double) testNum / timeCost;                                        
-    cout << "varLengthHashTree get " << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;        
-    cout << "varLengthHashTree get " << "ThroughPut: " << throughPut << " Mops" << endl;       
-   
+
+    
+    // Time_BODY(1,"varLengthHashTree put " , { vlht->crash_consistent_put(NULL,lengths[i],keys[i],1); })
+    // Time_BODY(1,"varLengthHashTree get " , { vlht->get(lengths[i],keys[i]); })
+
+
+    Time_BODY(1,"varLengthFast&Fair put " , { vlff->put((char*)keys[i],lengths[i],(char *) &value); })
+    Time_BODY(1,"varLengthFast&Fair get " , { 
+        if(*(char*)(vlff->get((char*)keys[i],lengths[i]))!=1){
+            cout<<*(uint64_t*)keys[i]<<endl;
+        }; 
+    })
+
 
     fast_free();
 }
@@ -518,7 +534,7 @@ int main(int argc, char *argv[]) {
     sscanf(argv[1], "%d", &numThread);
     sscanf(argv[2], "%d", &testNum);
     init_fast_allocator(false);
-     ht = new_hashtree(64, 0);
+    // ht = new_hashtree(64, 0);
     // art = new_art_tree();
     // wort = new_wort_tree();
     // woart = new_woart_tree();
@@ -528,12 +544,13 @@ int main(int argc, char *argv[]) {
     l64ht = new_length64HashTree();
 
 //    mt = new_mass_tree();
-    vlht = new_varLengthHashtree();
+    // vlht = new_varLengthHashtree();
+    // vlff = new_varlengthfastfair();
 //    bt = new_blink_tree(numThread);
     // correctnessTest();
-    speedTest();
+    // speedTest();
 
-    varLengthTest();
+    // varLengthTest();
 
 // build for cocurrencyTest
 
@@ -546,7 +563,7 @@ int main(int argc, char *argv[]) {
     //     fast_free();
     // }
 //    profile();
-//    range_query_correctness_test();
+   range_query_correctness_test();
 //    cout << ht->node_cnt << endl;
 //    cout << ht->get_access << endl;
     // fast_free();

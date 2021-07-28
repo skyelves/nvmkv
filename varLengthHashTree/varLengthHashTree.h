@@ -31,8 +31,6 @@ public:
 
     void all_subtree_kv(VarLengthHashTreeNode *tmp, vector<HashTreeKeyValue> &res);
 
-    void node_scan(VarLengthHashTreeNode *tmp, uint64_t left, uint64_t right, uint64_t layer, vector<HashTreeKeyValue> &res);
-
     vector<HashTreeKeyValue> scan(uint64_t left, uint64_t right);
 
     void update(uint64_t k, uint64_t v);
@@ -62,6 +60,9 @@ public:
     
     uint64_t get(uint64_t key);
 
+    void node_scan(Length64HashTreeNode *tmp, uint64_t left, uint64_t right, vector<Length64HashTreeKeyValue> &res, int pos=0);
+
+    void getAllNodes(Length64HashTreeNode *tmp, vector<Length64HashTreeKeyValue> &res);
 };
 
 Length64HashTree *new_length64HashTree();
