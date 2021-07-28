@@ -7,6 +7,12 @@
 
 #include "varLengthHashTree_node.h"
 
+//#define VLHT_PROFILE
+
+#ifdef VLHT_PROFILE
+extern uint64_t vlht_visited_node;
+#endif
+
 class VarLengthHashTree {
 private:
     int init_depth = 0; //represent extendible hash initial global depth
@@ -38,6 +44,8 @@ public:
     void update(uint64_t k, uint64_t v);
 
     uint64_t del(uint64_t k);
+
+    double profile();
 };
 
 VarLengthHashTree *new_varLengthHashtree();
