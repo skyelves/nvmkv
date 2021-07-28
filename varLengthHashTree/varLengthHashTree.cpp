@@ -7,6 +7,15 @@
 #include <stdlib.h>
 #include "varLengthHashTree.h"
 
+//#ifdef VLHT_PROFILE_TIME
+//timeval start_time, end_time;
+//uint64_t t1, t2, t3, t4;
+//// t1: insertion
+//// t2: segment split
+//// t3: directory double
+//// t4: decompression
+//#endif
+
 /*
  *         begin  len
  * key [______|___________|____________]
@@ -211,7 +220,9 @@ VarLengthHashTree::crash_consistent_put(VarLengthHashTreeNode *_node, int length
 //#ifdef VLHT_PROFILE
 //            vlht_visited_node++;
 //#endif
-
+#ifdef VLHT_PROFILE_TIME
+            gettimeofday(&start_time, NULL);
+#endif
             // build new tree node
             VarLengthHashTreeNode *newNode = new_varlengthhashtree_node(HT_NODE_LENGTH, headerDepth);
             newNode->header.init(&currentNode->header, matchedPrefixLen, currentNode->header.depth);
@@ -239,6 +250,10 @@ VarLengthHashTree::crash_consistent_put(VarLengthHashTreeNode *_node, int length
 
             // modify the successor 
             *(VarLengthHashTreeNode **) beforeAddress = newNode;
+#ifdef VLHT_PROFILE_TIME
+            gettimeofday(&end_time, NULL);
+            t4 += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
             return;
         }
     }
@@ -291,6 +306,9 @@ uint64_t VarLengthHashTree::get(int length, unsigned char *key) {
 }
 
 double VarLengthHashTree::profile() {
+#ifdef VLHT_PROFILE_TIME
+    cout << "ET, " << t1 << ", " << t2 << ", " << t3 << ", " << t4 << endl;
+#endif
 #ifdef VLHT_PROFILE
     return vlht_visited_node;
 #else

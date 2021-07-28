@@ -36,6 +36,16 @@
 #define HT_NODE_PREFIX_MAX_BITS 48
 #define HT_KEY_LENGTH 64
 
+#define VLHT_PROFILE_TIME
+#ifdef VLHT_PROFILE_TIME
+extern timeval start_time, end_time;
+extern uint64_t t1, t2, t3, t4;
+// t1: insertion
+// t2: segment split
+// t3: directory double
+// t4: decompression
+#endif
+
 // in fact, it's better to use two kv pair in internal nodes and leaf nodes
 class HashTreeKeyValue {
 public:

@@ -5,6 +5,15 @@
 #include <stdio.h>
 #include "varLengthHashTree_node.h"
 
+#ifdef VLHT_PROFILE_TIME
+timeval start_time, end_time;
+uint64_t t1, t2, t3, t4;
+// t1: insertion
+// t2: segment split
+// t3: directory double
+// t4: decompression
+#endif
+
 
 #define GET_SEG_NUM(key, key_len, depth)  ((key>>(key_len-depth))&(((uint64_t)1<<depth)-1))
 #define GET_BUCKET_NUM(key, bucket_mask_len) ((key)&(((uint64_t)1<<bucket_mask_len)-1))
@@ -119,6 +128,9 @@ void VarLengthHashTreeNode::put(uint64_t subkey, uint64_t value, HashTreeSegment
     if (bucket_index == -1) {
         //condition: full
         if (likely(tmp_seg->depth < global_depth)) {
+#ifdef VLHT_PROFILE_TIME
+            gettimeofday(&start_time, NULL);
+#endif
             HashTreeSegment *new_seg = new_vlht_segment(tmp_seg->depth + 1);
             int64_t stride = pow(2, global_depth - tmp_seg->depth);
             int64_t left = dir_index - dir_index % stride;
@@ -152,9 +164,16 @@ void VarLengthHashTreeNode::put(uint64_t subkey, uint64_t value, HashTreeSegment
             tmp_seg->depth = tmp_seg->depth + 1;
             clflush((char *) &(tmp_seg->depth), sizeof(tmp_seg->depth));
             this->put(subkey, value, beforeAddress);
+#ifdef VLHT_PROFILE_TIME
+            gettimeofday(&end_time, NULL);
+            t2 += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
             return;
         } else {
             //condition: tmp_bucket->depth == global_depth
+#ifdef VLHT_PROFILE_TIME
+            gettimeofday(&start_time, NULL);
+#endif
             VarLengthHashTreeNode *newNode = static_cast<VarLengthHashTreeNode *>(fast_alloc(sizeof(VarLengthHashTreeNode)+sizeof(HashTreeSegment *)*dir_size*2));
             newNode->global_depth = global_depth+1;
             newNode->dir_size = dir_size*2;
@@ -167,9 +186,16 @@ void VarLengthHashTreeNode::put(uint64_t subkey, uint64_t value, HashTreeSegment
             *(VarLengthHashTreeNode**)beforeAddress = newNode;
             clflush((char *) beforeAddress, sizeof(VarLengthHashTreeNode*));
             newNode->put(subkey, value, beforeAddress);
+#ifdef VLHT_PROFILE_TIME
+            gettimeofday(&end_time, NULL);
+            t3 += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
             return;
         }
     } else {
+#ifdef VLHT_PROFILE_TIME
+        gettimeofday(&start_time, NULL);
+#endif
         if (unlikely(tmp_bucket->counter[bucket_index].subkey == subkey)) {
             //key exists
             tmp_bucket->counter[bucket_index].value = value;
@@ -183,6 +209,10 @@ void VarLengthHashTreeNode::put(uint64_t subkey, uint64_t value, HashTreeSegment
             // If crash after key flushed, then the value is 0. When we return the value, we would find that the key is not inserted.
             clflush((char *) &(tmp_bucket->counter[bucket_index].subkey), 16);
         }
+#ifdef VLHT_PROFILE_TIME
+        gettimeofday(&end_time, NULL);
+        t1 += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
     }
     return;
 }
