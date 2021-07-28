@@ -230,6 +230,7 @@ void profile() {
     }
 
     timeval start, ends;
+    gettimeofday(&start, NULL);
     for (int i = 0; i < testNum; ++i) {
         cceh->put(mykey[i], value);
 //        ff->put(mykey[i], (char *) &value);
@@ -245,7 +246,10 @@ void profile() {
 //                << (double) i / (ht_seg_num * HT_MAX_BUCKET_NUM * HT_BUCKET_SIZE) << endl;
 //        }
     }
-    cceh->profile();
+    gettimeofday(&ends, NULL);
+    double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
+    cout << timeCost << endl;
+//    cceh->profile();
 //    gettimeofday(&start, NULL);
 //    for (int i = 0; i < testNum; ++i) {
 //        woart_get(woart, mykey[i], 8);
