@@ -44,6 +44,12 @@
 # endif
 #endif
 
+#define WOART_PROFILE
+
+#ifdef WOART_PROFILE
+extern uint64_t visited_node;
+#endif
+
 static inline unsigned long __ffs(unsigned long word) {
     asm("rep; bsf %1,%0"
     : "=r" (word)
@@ -198,6 +204,10 @@ void woart_node_scan(woart_node *n, uint64_t left, uint64_t right, uint64_t dept
 
 
 vector<woart_key_value> woart_scan(const woart_tree *t, uint64_t left, uint64_t right, int key_len = 8);
+
+#ifdef WOART_PROFILE
+double woart_profile();
+#endif
 
 
 #endif //NVMKV_WOwoart_H

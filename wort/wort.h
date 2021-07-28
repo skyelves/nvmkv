@@ -31,6 +31,12 @@
 # endif
 #endif
 
+//#define WORT_PROFILE
+
+#ifdef WORT_PROFILE
+extern uint64_t visited_node;
+#endif
+
 typedef int(*wort_callback)(void *data, const unsigned char *key, uint32_t key_len, void *value);
 
 struct wort_key_value {
@@ -109,5 +115,9 @@ void wort_node_scan(wort_node *n, uint64_t left, uint64_t right, uint64_t depth,
                     int key_len = 8);
 
 vector<wort_key_value> wort_scan(const wort_tree *t, uint64_t left, uint64_t right, int key_len = 8);
+
+#ifdef WORT_PROFILE
+double wort_profile();
+#endif
 
 #endif //NVMKV_WORT_H

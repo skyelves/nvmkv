@@ -17,6 +17,11 @@
 
 #define CACHE_LINE_SIZE 64
 
+#ifdef WORT_PROFILE
+uint64_t visited_node;
+#endif
+
+
 static inline void mfence() {
     asm volatile("mfence":: : "memory");
 }
@@ -65,6 +70,10 @@ static wort_node *alloc_node() {
 int wort_tree_init(wort_tree *t) {
     t->root = NULL;
     t->size = 0;
+#ifdef WORT_PROFILE
+    visited_node = 0;
+#endif
+
     return 0;
 }
 
@@ -276,6 +285,11 @@ void recovery_prefix(wort_node *n, int depth) {
 
 static void *recursive_insert(wort_node *n, wort_node **ref, const unsigned long key,
                               int key_len, void *value, int depth, int *old) {
+
+#ifdef WORT_PROFILE
+    visited_node++;
+#endif
+
     // If we are at a NULL node, inject a leaf
     if (!n) {
         *ref = (wort_node *) SET_LEAF(make_leaf(key, key_len, value, true));
@@ -504,3 +518,9 @@ vector<wort_key_value> wort_scan(const wort_tree *t, uint64_t left, uint64_t rig
     wort_node_scan(t->root, left, right, 0, res);
     return res;
 }
+
+#ifdef WORT_PROFILE
+double wort_profile(){
+    return visited_node;
+}
+#endif
