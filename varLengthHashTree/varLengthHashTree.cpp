@@ -138,9 +138,16 @@ VarLengthHashTree::crash_consistent_put(VarLengthHashTreeNode *_node, int length
             matchedPrefixLen = currentNode->header.computePrefix(key, length, pos);
         }
         if (pos + matchedPrefixLen == length) {
+#ifdef VLHT_PROFILE_TIME
+            gettimeofday(&start_time, NULL);
+#endif
             HashTreeKeyValue *kv = new_vlht_key_value(key, length, value);
             clflush((char *) kv, sizeof(HashTreeKeyValue));
             currentNode->node_put(matchedPrefixLen, kv);
+#ifdef VLHT_PROFILE_TIME
+            gettimeofday(&end_time, NULL);
+            t1 += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
             return;
         }
         if (matchedPrefixLen == currentNode->header.len) {
@@ -172,13 +179,23 @@ VarLengthHashTree::crash_consistent_put(VarLengthHashTreeNode *_node, int length
             pos += HT_NODE_LENGTH / SIZE_OF_CHAR;
             if (next == 0) {
                 //not exists
+#ifdef VLHT_PROFILE_TIME
+                gettimeofday(&start_time, NULL);
+#endif
                 HashTreeKeyValue *kv = new_vlht_key_value(key, length, value);
                 clflush((char *) kv, sizeof(HashTreeKeyValue));
                 currentNode->put(subkey, (uint64_t) kv, tmp_seg, tmp_bucket, dir_index, seg_index, beforeAddress);
+#ifdef VLHT_PROFILE_TIME
+                gettimeofday(&end_time, NULL);
+                t1 += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
                 return;
             } else {
                 if (((bool *) next)[0]) {
                     // next is key value pair, which means collides
+#ifdef VLHT_PROFILE_TIME
+                    gettimeofday(&start_time, NULL);
+#endif
                     unsigned char *preKey = ((HashTreeKeyValue *) next)->key;
                     unsigned int preLength = ((HashTreeKeyValue *) next)->len;
                     uint64_t preValue = ((HashTreeKeyValue *) next)->value;
@@ -186,6 +203,10 @@ VarLengthHashTree::crash_consistent_put(VarLengthHashTreeNode *_node, int length
                         //same key, update the value
                         ((HashTreeKeyValue *) next)->value = value;
                         clflush((char *) &(((HashTreeKeyValue *) next)->value), 8);
+#ifdef VLHT_PROFILE_TIME
+                        gettimeofday(&end_time, NULL);
+                        t1 += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
                         return;
                     } else {
                         //not same key: needs to create a new node
@@ -204,6 +225,10 @@ VarLengthHashTree::crash_consistent_put(VarLengthHashTreeNode *_node, int length
 
                         tmp_bucket->counter[i].value = (uint64_t) newNode;
                         clflush((char *) &tmp_bucket->counter[i].value, 8);
+#ifdef VLHT_PROFILE_TIME
+                        gettimeofday(&end_time, NULL);
+                        t1 += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
                         return;
                     }
                 } else {

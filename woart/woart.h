@@ -50,7 +50,7 @@
 extern uint64_t woart_visited_node;
 #endif
 
-#define WOART_PROFILE_TIME
+//#define WOART_PROFILE_TIME
 
 #ifdef WOART_PROFILE_TIME
 extern timeval start_time, end_time;

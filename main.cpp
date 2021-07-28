@@ -230,14 +230,15 @@ void profile() {
     }
 
     timeval start, ends;
-    gettimeofday(&start, NULL);
+//    gettimeofday(&start, NULL);
     for (int i = 0; i < testNum; ++i) {
-        cceh->put(mykey[i], value);
+//        cceh->put(mykey[i], value);
 //        ff->put(mykey[i], (char *) &value);
 //        roart->put(mykey[i], value);
 //        woart_put(woart, mykey[i], 8, &value);
 //        wort_put(wort, mykey[i], 8, &value);
 //        vlht->crash_consistent_put(NULL, lengths[i], keys[i], 1);
+        vlht->crash_consistent_put(NULL, 8, (unsigned char *)&mykey[i], 1);
 //        ht->crash_consistent_put(NULL, mykey[i], i + 1, 0);
 //        if (i % 10000 == 0) {
 //            out << i << ", " << cceh->dir_size << ", "
@@ -246,9 +247,11 @@ void profile() {
 //                << (double) i / (ht_seg_num * HT_MAX_BUCKET_NUM * HT_BUCKET_SIZE) << endl;
 //        }
     }
-    gettimeofday(&ends, NULL);
-    double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
-    cout << timeCost << endl;
+//    gettimeofday(&ends, NULL);
+//    double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
+//    cout << timeCost << endl;
+//    woart_profile();
+    vlht->profile();
 //    cceh->profile();
 //    gettimeofday(&start, NULL);
 //    for (int i = 0; i < testNum; ++i) {

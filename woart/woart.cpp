@@ -898,7 +898,9 @@ vector<woart_key_value> woart_scan(const woart_tree *t, uint64_t left, uint64_t 
 }
 
 double woart_profile() {
+#ifdef WOART_PROFOLE_TIME
     cout << t1 << ", " << t2 << ", " << t3 << endl;
+#endif
 #ifdef WOART_PROFILE
     return woart_visited_node;
 #else
