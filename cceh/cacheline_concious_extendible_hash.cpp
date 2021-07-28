@@ -171,7 +171,7 @@ void cacheline_concious_extendible_hash::put(Key_t key, Value_t value) {
             clflush((char *) &(tmp_seg->depth), sizeof(tmp_seg->depth));
 #ifdef CCEH_PROFILE_TIME
             gettimeofday(&end_time, NULL);
-            t2+=(end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+            t2 += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
 #endif
             put(key, value);
             return;
@@ -221,7 +221,7 @@ void cacheline_concious_extendible_hash::put(Key_t key, Value_t value) {
             clflush((char *) &(tmp_seg->depth), sizeof(tmp_seg->depth));
 #ifdef CCEH_PROFILE_TIME
             gettimeofday(&end_time, NULL);
-            t3+=(end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+            t3 += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
 #endif
 
             put(key, value);
@@ -245,7 +245,7 @@ void cacheline_concious_extendible_hash::put(Key_t key, Value_t value) {
         }
 #ifdef CCEH_PROFILE_TIME
         gettimeofday(&end_time, NULL);
-        t1+=(end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+        t1 += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
 #endif
     }
 }
@@ -263,4 +263,10 @@ cacheline_concious_extendible_hash *new_cceh(uint64_t _global_depth, uint64_t _k
             sizeof(cacheline_concious_extendible_hash)));
     _new_cceh->init(_global_depth, _key_len);
     return _new_cceh;
+}
+
+void cacheline_concious_extendible_hash::profile() {
+#ifdef CCEH_PROFILE_TIME
+    cout << "CCEH, " << t1 << ", " << t2 << ", " << t3 << endl;
+#endif
 }

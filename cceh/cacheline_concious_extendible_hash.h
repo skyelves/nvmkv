@@ -20,12 +20,15 @@
 #define CCEH_BUCKET_MASK_LEN 8
 #define CCEH_MAX_BUCKET_NUM (1<<CCEH_BUCKET_MASK_LEN)
 
-//#define CCEH_PROFILE_TIME 1
+#define CCEH_PROFILE_TIME 1
 //#define CCEH_PROFILE_LOAD_FACTOR 1
 
 #ifdef CCEH_PROFILE_TIME
 extern timeval start_time, end_time;
 extern uint64_t t1, t2, t3;
+// t1: insertion
+// t2: segment split
+// t3: directory double
 #endif
 
 #ifdef CCEH_PROFILE_LOAD_FACTOR
@@ -81,6 +84,8 @@ public:
     void put(Key_t key, Value_t value);
 
     Value_t get(Key_t key);
+
+    void profile();
 };
 
 cacheline_concious_extendible_hash *new_cceh(uint64_t _global_depth = 0, uint64_t _key_len = 64);
