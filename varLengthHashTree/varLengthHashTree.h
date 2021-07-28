@@ -7,7 +7,7 @@
 
 #include "varLengthHashTree_node.h"
 
-//#define VLHT_PROFILE
+#define VLHT_PROFILE
 
 #ifdef VLHT_PROFILE
 extern uint64_t vlht_visited_node;

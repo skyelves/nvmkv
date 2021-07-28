@@ -206,7 +206,11 @@ VarLengthHashTree::crash_consistent_put(VarLengthHashTreeNode *_node, int length
             }
         } else {
             // if prefix is not match (shorter)
-            // split a new tree node and insert 
+            // split a new tree node and insert
+
+#ifdef VLHT_PROFILE
+            vlht_visited_node++;
+#endif
 
             // build new tree node
             VarLengthHashTreeNode *newNode = new_varlengthhashtree_node(HT_NODE_LENGTH, headerDepth);
