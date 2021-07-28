@@ -17,13 +17,13 @@
 #define unlikely(x) (__builtin_expect(!!(x), 0))
 
 
-#define GET_SUB_KEY(key, begin, len)  (((key)>>(64-(begin)-(len)))&(((uint64_t)1<<(len))-1))
-#define GET_SEG_NUM(key, key_len, depth)  ((key>>(key_len-depth))&(((uint64_t)1<<depth)-1))
-#define GET_BUCKET_NUM(key, bucket_mask_len) ((key)&(((uint64_t)1<<bucket_mask_len)-1))
+#define GET_SUB_KEY(key, begin, len)  (((key)>>(64-(begin)-(len)))&((0x1ull<<(len))-1))
+#define GET_SEG_NUM(key, key_len, depth)  ((key>>(key_len-depth))&((0x1ull<<depth)-1))
+#define GET_BUCKET_NUM(key, bucket_mask_len) ((key)&((0x1ull<<bucket_mask_len)-1))
 
 #define GET_SEG_POS(currentNode,dir_index) (((uint64_t)(currentNode) + sizeof(VarLengthHashTreeNode) + dir_index*sizeof(HashTreeSegment*)))
 
-#define GET_SUBKEY(key, start, length) ( (key>>(64 - start - length) & (((uint64_t)1<<length)-1)))
+#define GET_SUBKEY(key, start, length) ( (key>>(64 - start - length) & ((0x1ull<<length)-1)))
 
 #define HT_INIT_GLOBAL_DEPTH 0
 #define HT_BUCKET_SIZE 4
@@ -180,7 +180,7 @@ class Length64HashTreeHeader{
     public:
         unsigned char len = 7;
         unsigned char depth;
-        unsigned char array[6]; 
+        unsigned char array[6];
 
         void init(Length64HashTreeHeader* oldHeader, unsigned char length, unsigned char depth);
 
