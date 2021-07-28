@@ -633,8 +633,15 @@ static void *recursive_insert(woart_node *n, woart_node **ref, const unsigned lo
 
     // If we are at a NULL node, inject a leaf
     if (!n) {
+#ifdef WOART_PROFILE_TIME
+        gettimeofday(&start_time, NULL);
+#endif
         *ref = (woart_node *) SET_LEAF(make_leaf(key, key_len, value, true));
         flush_buffer(ref, sizeof(uintptr_t), true);
+#ifdef WOART_PROFILE_TIME
+        gettimeofday(&end_time, NULL);
+        t1 += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
         return NULL;
     }
 
@@ -751,7 +758,7 @@ static void *recursive_insert(woart_node *n, woart_node **ref, const unsigned lo
         flush_buffer(&n->path, sizeof(path_comp), false);
         flush_buffer(ref, sizeof(uintptr_t), false);
         mfence();
-#ifdef CCEH_PROFILE_TIME
+#ifdef WOART_PROFILE_TIME
         gettimeofday(&end_time, NULL);
         t3 += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
 #endif
