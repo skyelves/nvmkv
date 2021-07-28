@@ -776,7 +776,7 @@ static void *recursive_insert(woart_node *n, woart_node **ref, const unsigned lo
     add_child(n, ref, get_index(key, depth), SET_LEAF(l));
 #ifdef WOART_PROFILE_TIME
     gettimeofday(&end_time, NULL);
-    t1 += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+    t2 += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
 #endif
     return NULL;
 }
