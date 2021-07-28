@@ -47,10 +47,10 @@ int numThread = 1;
 int test_algorithms_num = 10;
 bool test_case[10] = {0, // ht
                       0, // art
-                      0, // wort
-                      0, // woart
+                      1, // wort
+                      1, // woart
                       0, // cacheline_concious_extendible_hash
-                      0, // fast&fair
+                      1, // fast&fair
                       0, // roart
                       1, // vlht
                       0};
@@ -118,7 +118,7 @@ void speedTest() {
     rng r;
     rng_init(&r, 1, 2);
     for (int i = 0; i < testNum; ++i) {
-        mykey[i] = rng_next(&r);
+//        mykey[i] = rng_next(&r);
 //        mykey[i] = rng_next(&r) & 0xffffffff00000000;
         mykey[i] = rng_next(&r) % testNum;
     }
@@ -165,7 +165,7 @@ void speedTest() {
     Time_BODY(test_case[6], "roart put ", { roart->put(mykey[i], value); })
 
     // insert speed for vlht
-    Time_BODY(test_case[7], "vlht put  ", { vlht->crash_consistent_put(NULL, 8, (unsigned char *)&mykey[i], 1); })
+    Time_BODY(test_case[7], "vlht put  ", { vlht->crash_consistent_put(NULL, 8, (unsigned char *) &mykey[i], 1); })
 
     // query speed for ht
     Time_BODY(test_case[0], "hash tree get ", { ht->get(mykey[i]); })
@@ -212,14 +212,31 @@ void profile() {
     rng r;
     rng_init(&r, 1, 2);
     for (int i = 0; i < testNum; ++i) {
-        mykey[i] = rng_next(&r) % testNum;
+        mykey[i] = rng_next(&r);
     }
     uint64_t value = 1;
+
+    int span[] = {4, 8, 16, 32, 64, 128};
+    unsigned char **keys = new unsigned char *[testNum];
+    int *lengths = new int[testNum];
+
+    for (int i = 0; i < testNum; i++) {
+//        lengths[i] = span[0];
+        lengths[i] = span[rng_next(&r) % 6];
+        keys[i] = static_cast<unsigned char *>(malloc(lengths[i]));
+        for (int j = 0; j < lengths[i]; j++) {
+            keys[i][j] = rng_next(&r);
+        }
+    }
+
     timeval start, ends;
-    gettimeofday(&start, NULL);
     for (int i = 0; i < testNum; ++i) {
-//        cceh->put(mykey[i], value);
-        vlht->crash_consistent_put(NULL, 8, (unsigned char *)&mykey[i], 1);
+        cceh->put(mykey[i], value);
+//        ff->put(mykey[i], (char *) &value);
+//        roart->put(mykey[i], value);
+//        woart_put(woart, mykey[i], 8, &value);
+//        wort_put(wort, mykey[i], 8, &value);
+//        vlht->crash_consistent_put(NULL, lengths[i], keys[i], 1);
 //        ht->crash_consistent_put(NULL, mykey[i], i + 1, 0);
 //        if (i % 10000 == 0) {
 //            out << i << ", " << cceh->dir_size << ", "
@@ -228,12 +245,22 @@ void profile() {
 //                << (double) i / (ht_seg_num * HT_MAX_BUCKET_NUM * HT_BUCKET_SIZE) << endl;
 //        }
     }
-    gettimeofday(&ends, NULL);
-    double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
-    double throughPut = (double) testNum / timeCost;
-    cout << "varLengthHashTree get " << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;
-    cout << "varLengthHashTree get " << "ThroughPut: " << throughPut << " Mops" << endl;
-//    out << t1 << endl << t2 << endl << t3 << endl;
+    cceh->profile();
+//    gettimeofday(&start, NULL);
+//    for (int i = 0; i < testNum; ++i) {
+//        woart_get(woart, mykey[i], 8);
+//        wort_get(wort, mykey[i], 8);
+//        vlht->get(lengths[i], keys[i]);
+//    }
+//    gettimeofday(&ends, NULL);
+//    double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
+//    double throughPut = (double) testNum / timeCost;
+//    double avg_visited_node = vlht->profile() / testNum;
+//    double avg_time = timeCost / avg_visited_node;
+//    cout << avg_visited_node << ", " << avg_time;
+//    cout << "varLengthHashTree get " << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;
+//    cout << "varLengthHashTree get " << "ThroughPut: " << throughPut << " Mops" << endl;
+    //    out << t1 << endl << t2 << endl << t3 << endl;
 //    out << timeCost << endl;
 //    out.close();
 }
@@ -299,10 +326,10 @@ int main(int argc, char *argv[]) {
 //    mt = new_mass_tree();
     vlht = new_varLengthHashtree();
 //    bt = new_blink_tree(numThread);
-    speedTest();
+//    speedTest();
 //
 //    varLengthTest();
-//    profile();
+    profile();
 //    range_query_correctness_test();
 //    cout << ht->node_cnt << endl;
 //    cout << ht->get_access << endl;
