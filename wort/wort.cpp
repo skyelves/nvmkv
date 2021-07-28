@@ -18,7 +18,7 @@
 #define CACHE_LINE_SIZE 64
 
 #ifdef WORT_PROFILE
-uint64_t visited_node;
+uint64_t wort_visited_node;
 #endif
 
 
@@ -71,7 +71,7 @@ int wort_tree_init(wort_tree *t) {
     t->root = NULL;
     t->size = 0;
 #ifdef WORT_PROFILE
-    visited_node = 0;
+    wort_visited_node = 0;
 #endif
 
     return 0;
@@ -287,7 +287,7 @@ static void *recursive_insert(wort_node *n, wort_node **ref, const unsigned long
                               int key_len, void *value, int depth, int *old) {
 
 #ifdef WORT_PROFILE
-    visited_node++;
+    wort_visited_node++;
 #endif
 
     // If we are at a NULL node, inject a leaf
@@ -521,6 +521,6 @@ vector<wort_key_value> wort_scan(const wort_tree *t, uint64_t left, uint64_t rig
 
 #ifdef WORT_PROFILE
 double wort_profile(){
-    return visited_node;
+    return wort_visited_node;
 }
 #endif

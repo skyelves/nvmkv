@@ -34,7 +34,7 @@
 //#define WORT_PROFILE
 
 #ifdef WORT_PROFILE
-extern uint64_t visited_node;
+extern uint64_t wort_visited_node;
 #endif
 
 typedef int(*wort_callback)(void *data, const unsigned char *key, uint32_t key_len, void *value);

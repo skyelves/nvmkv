@@ -110,9 +110,9 @@ VarLengthHashTree::crash_consistent_put(VarLengthHashTreeNode *_node, int length
     while (length > pos) {
         int matchedPrefixLen;
 
-#ifdef VLHT_PROFILE
-        vlht_visited_node++;
-#endif
+//#ifdef VLHT_PROFILE
+//        vlht_visited_node++;
+//#endif
 
         // init a number bigger than HT_NODE_PREFIX_MAX_LEN to represent there is no value
         if (currentNode->header.len > HT_NODE_PREFIX_MAX_BYTES) {
@@ -208,9 +208,9 @@ VarLengthHashTree::crash_consistent_put(VarLengthHashTreeNode *_node, int length
             // if prefix is not match (shorter)
             // split a new tree node and insert
 
-#ifdef VLHT_PROFILE
-            vlht_visited_node++;
-#endif
+//#ifdef VLHT_PROFILE
+//            vlht_visited_node++;
+//#endif
 
             // build new tree node
             VarLengthHashTreeNode *newNode = new_varlengthhashtree_node(HT_NODE_LENGTH, headerDepth);
@@ -251,6 +251,9 @@ uint64_t VarLengthHashTree::get(int length, unsigned char *key) {
     }
     int pos = 0;
     while (pos != length) {
+#ifdef VLHT_PROFILE
+        vlht_visited_node++;
+#endif
         if (length - pos <= currentNode->header.len) {
             if (!strncmp((char *) key + pos,
                          (char *) currentNode->treeNodeValues[currentNode->header.len - length + pos].key + pos,
