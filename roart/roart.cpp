@@ -4,6 +4,10 @@
 
 #include "roart.h"
 
+#ifdef PROFILE
+uint64_t roart_visited_node;
+#endif
+
 inline void mfence(void) {
     asm volatile("mfence":: :"memory");
 }
@@ -18,6 +22,10 @@ inline void clflush(char *data, size_t len) {
 }
 
 ROART::ROART() {
+
+#ifdef PROFILE
+    roart_visited_node = 0;
+#endif
 //    std::cout << "[P-ART]\tnew P-ART\n";
 
     //    Epoch_Mgr * epoch_mgr = new Epoch_Mgr();
@@ -742,6 +750,9 @@ typename ROART::OperationResults ROART::put(uint64_t key, uint64_t value) {
     uint32_t level = 0;
 
     while (true) {
+#ifdef PROFILE
+        roart_visited_node++;
+#endif
         parentNode = node;
         parentKey = nodeKey;
         node = nextNode;
@@ -1314,4 +1325,8 @@ void ROART::graphviz_debug() {
 ROART *new_roart() {
     ROART *_new_roart = new(fast_alloc(sizeof(ROART))) ROART();
     return _new_roart;
+}
+
+double ROART::profile() {
+    return roart_visited_node;
 }

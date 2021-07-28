@@ -11,6 +11,12 @@
 
 #define LEAF_ARRAY
 
+#define PROFILE
+
+#ifdef PROFILE
+    extern uint64_t roart_visited_node;
+#endif
+
 class ROART {
 public:
     N *root;
@@ -80,6 +86,8 @@ public:
     OperationResults remove(const ROART_KEY *k);
 
     ROART_Leaf *allocLeaf(const ROART_KEY *k) const;
+
+    double profile();
 
     void graphviz_debug();
 } __attribute__((aligned(64)));

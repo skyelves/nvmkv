@@ -22,7 +22,7 @@
 #define LEAF_RAW(x) ((woart_leaf*)((void*)((uintptr_t)x & ~1)))
 
 #ifdef WOART_PROFILE
-uint64_t visited_node;
+uint64_t woart_visited_node;
 #endif
 
 void flush_buffer(void *buf, unsigned long len, bool fence) {
@@ -179,7 +179,7 @@ int woart_tree_init(woart_tree *t) {
     t->root = NULL;
     t->size = 0;
 #ifdef WOART_PROFILE
-    visited_node = 0;
+    woart_visited_node = 0;
 #endif
 
     return 0;
@@ -623,7 +623,7 @@ static int prefix_mismatch(const woart_node *n, const unsigned long key, int key
 static void *recursive_insert(woart_node *n, woart_node **ref, const unsigned long key,
                               int key_len, void *value, int depth, int *old) {
 #ifdef WOART_PROFILE
-    visited_node++;
+    woart_visited_node++;
 #endif
 
     // If we are at a NULL node, inject a leaf
@@ -860,6 +860,6 @@ vector<woart_key_value> woart_scan(const woart_tree *t, uint64_t left, uint64_t 
 
 #ifdef WOART_PROFILE
 double woart_profile(){
-    return visited_node;
+    return woart_visited_node;
 }
 #endif

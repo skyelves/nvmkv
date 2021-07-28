@@ -28,6 +28,12 @@
 
 #define IS_FORWARD(c) (c % 2 == 0)
 
+#define FF_PROFILE
+
+#ifdef FF_PROFILE
+extern uint64_t ff_visited_node;
+#endif
+
 using namespace std;
 
 inline void mfence() { asm volatile("mfence":: : "memory"); }
@@ -84,6 +90,8 @@ public:
     vector<ff_key_value> scan(uint64_t min, uint64_t max);
 
     void printAll();
+
+    double profile();
 
     friend class page;
 };

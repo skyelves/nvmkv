@@ -44,10 +44,10 @@
 # endif
 #endif
 
-#define WOART_PROFILE
+//#define WOART_PROFILE
 
 #ifdef WOART_PROFILE
-extern uint64_t visited_node;
+extern uint64_t woart_visited_node;
 #endif
 
 static inline unsigned long __ffs(unsigned long word) {

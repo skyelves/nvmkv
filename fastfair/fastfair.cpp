@@ -4,6 +4,10 @@
 
 #include "fastfair.h"
 
+#ifdef FF_PROFILE
+uint64_t ff_visited_node;
+#endif
+
 ff_key_value::ff_key_value() {
 
 }
@@ -15,6 +19,9 @@ ff_key_value::ff_key_value(uint64_t _key, uint64_t _value) : key(_key), value(_v
 fastfair *new_fastfair() {
     fastfair *new_ff = static_cast<fastfair *>(fast_alloc(sizeof(fastfair)));
     new_ff->init();
+#ifdef FF_PROFILE
+    ff_visited_node = 0;
+#endif
     return new_ff;
 }
 
@@ -69,6 +76,9 @@ void fastfair::put(uint64_t key, char *value, int value_len) { // need to be str
 
     while (p->hdr.leftmost_ptr != NULL) {
         p = (page *) p->linear_search(key);
+#ifdef FF_PROFILE
+        ff_visited_node++;
+#endif
     }
 
     if (!p->store(this, NULL, key, value_allocated, true)) { // store
@@ -200,4 +210,12 @@ void fastfair::printAll() {
     }
 
     printf("total number of keys: %d\n", total_keys);
+}
+
+double fastfair::profile() {
+#ifdef FF_PROFILE
+    return ff_visited_node;
+#else
+    return 0;
+#endif
 }
