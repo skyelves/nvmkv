@@ -84,6 +84,13 @@ void fastalloc::free() {
     }
 }
 
+uint64_t fastalloc::profile(bool _on_nvm) {
+    if (_on_nvm)
+        return nvm_cnt * ALLOC_SIZE - nvm_left;
+    else
+        return dram_cnt * ALLOC_SIZE - dram_left;
+}
+
 void init_fast_allocator() {
     myallocator = new fastalloc;
     myallocator->init();
@@ -97,4 +104,10 @@ void *fast_alloc(uint64_t size, bool _on_nvm) {
 void fast_free() {
     myallocator->free();
     delete myallocator;
+}
+
+uint64_t fastalloc_profile(){
+    if(myallocator!=NULL){
+        return myallocator->profile();
+    }
 }

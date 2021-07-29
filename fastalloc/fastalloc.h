@@ -39,16 +39,20 @@ public:
 
     void init();
 
-    void *alloc(uint64_t size, bool _on_nvm = false);
+    void *alloc(uint64_t size, bool _on_nvm = true);
 
     void free();
+
+    uint64_t profile(bool _on_nvm= true);
 };
 
 void init_fast_allocator();
 
-void *fast_alloc(uint64_t size, bool _on_nvm = false);
+void *fast_alloc(uint64_t size, bool _on_nvm = true);
 
 void fast_free();
+
+uint64_t fastalloc_profile();
 
 
 #endif //NVMKV_FASTALLOC_H
