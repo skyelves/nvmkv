@@ -9,7 +9,7 @@ fastalloc *myallocator;
 
 // int currenct_allocator_pos=0;
 // bool false_flag = false;
-thread_local concurrency_fastalloc* concurrency_myallocator;
+thread_local concurrency_fastalloc *concurrency_myallocator;
 
 fastalloc::fastalloc() {}
 
@@ -108,7 +108,7 @@ void *concurrency_fastalloc::alloc(uint64_t size, bool _on_nvm) {
         if (unlikely(size > nvm_left)) {
 #ifdef __linux__
             std::thread::id this_id = std::this_thread::get_id();
-	        unsigned int t = *(unsigned int*)&this_id;// threadid 转成 unsigned int
+            unsigned int t = *(unsigned int*)&this_id;// threadid 转成 unsigned int
             string nvm_filename = "/mnt/aep1/test"+to_string(t);
             nvm_filename = nvm_filename + to_string(nvm_cnt);
             int nvm_fd = open(nvm_filename.c_str(), O_CREAT | O_RDWR, 0644);
@@ -159,23 +159,32 @@ void fastalloc::free() {
         dram_curr = NULL;
     }
 }
-void concurrency_fastalloc::lock(){
+
+uint64_t fastalloc::profile(bool _on_nvm) {
+    if (_on_nvm)
+        return nvm_cnt * ALLOC_SIZE + ALLOC_SIZE - nvm_left;
+    else
+        return dram_cnt * ALLOC_SIZE + ALLOC_SIZE - dram_left;
+}
+
+
+void concurrency_fastalloc::lock() {
     bool val = false;
-    while(!mtx.compare_exchange_weak(val,true)){
+    while (!mtx.compare_exchange_weak(val, true)) {
         val = false;
     }
 }
 
-void concurrency_fastalloc::free_lock(){
+void concurrency_fastalloc::free_lock() {
     mtx.store(false);
 }
 
 
 void init_fast_allocator(bool isMultiThread) {
-    if(isMultiThread){
+    if (isMultiThread) {
         concurrency_myallocator = new concurrency_fastalloc;
         concurrency_myallocator->init();
-        
+
         // myallocator = new concurrency_fastalloc;
         // myallocator->init();
         // concurrency_myallocator = new concurrency_fastalloc*[64] ;
@@ -183,7 +192,7 @@ void init_fast_allocator(bool isMultiThread) {
         //     concurrency_myallocator[i] = new concurrency_fastalloc;
         //     concurrency_myallocator[i]->init();
         // }
-    }else{
+    } else {
         myallocator = new fastalloc;
         myallocator->init();
     }
@@ -194,7 +203,7 @@ void *fast_alloc(uint64_t size, bool _on_nvm) {
     return myallocator->alloc(size, _on_nvm);
 }
 
-void *concurrency_fast_alloc(uint64_t size, bool _on_nvm){
+void *concurrency_fast_alloc(uint64_t size, bool _on_nvm) {
     // return malloc(size);
     return concurrency_myallocator->alloc(size, _on_nvm);
     // while(true){
@@ -209,14 +218,13 @@ void *concurrency_fast_alloc(uint64_t size, bool _on_nvm){
 }
 
 
-
 void fast_free() {
-    if(myallocator!=NULL){
+    if (myallocator != NULL) {
         myallocator->free();
         delete myallocator;
     }
-    
-    if(concurrency_myallocator!=NULL){
+
+    if (concurrency_myallocator != NULL) {
         concurrency_myallocator->free();
         delete concurrency_myallocator;
     }

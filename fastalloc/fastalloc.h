@@ -15,7 +15,7 @@
 #define NVMKV_FASTALLOC_H
 
 #define ALLOC_SIZE ((size_t)4<<30) // 4GB
-#define CONCURRENCY_ALLOC_SIZE ((size_t)4<<28)  
+#define CONCURRENCY_ALLOC_SIZE ((size_t)4<<28)
 #define CACHELINESIZE (64)
 
 
@@ -52,22 +52,24 @@ public:
     virtual void *alloc(uint64_t size, bool _on_nvm = true);
 
     virtual void free();
+
+    uint64_t profile(bool _on_nvm = true);
 };
 
 
-class concurrency_fastalloc :public fastalloc {
+class concurrency_fastalloc : public fastalloc {
 
-    public:
+public:
 
-        atomic<bool> mtx = false;
+    atomic<bool> mtx = false;
 
-        void init();
+    void init();
 
-        void * alloc(uint64_t size, bool _on_nvm = true);
+    void *alloc(uint64_t size, bool _on_nvm = true);
 
-        void lock();
-        
-        void free_lock();
+    void lock();
+
+    void free_lock();
 
 };
 
