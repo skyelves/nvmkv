@@ -162,9 +162,9 @@ void fastalloc::free() {
 
 uint64_t fastalloc::profile(bool _on_nvm) {
     if (_on_nvm)
-        return nvm_cnt * ALLOC_SIZE + ALLOC_SIZE - nvm_left;
+        return nvm_cnt * ALLOC_SIZE - nvm_left;
     else
-        return dram_cnt * ALLOC_SIZE + ALLOC_SIZE - dram_left;
+        return dram_cnt * ALLOC_SIZE - dram_left;
 }
 
 
@@ -228,4 +228,9 @@ void fast_free() {
         concurrency_myallocator->free();
         delete concurrency_myallocator;
     }
+}
+
+uint64_t fastalloc_profile() {
+    if (myallocator != NULL)
+        return myallocator->profile();
 }

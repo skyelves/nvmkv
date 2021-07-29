@@ -83,5 +83,6 @@ void *concurrency_fast_alloc(uint64_t size, bool _on_nvm = false);
 
 void fast_free();
 
+uint64_t fastalloc_profile();
 
 #endif //NVMKV_FASTALLOC_H
