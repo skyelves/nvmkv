@@ -26,14 +26,20 @@
 
 #define GET_SEG_POS(currentNode, dir_index) (((uint64_t)(currentNode) + sizeof(VarLengthHashTreeNode) + dir_index*sizeof(HashTreeSegment*)))
 
+#define GET_64BITS(pointer, pos) (*((uint64_t *)(pointer+pos)))
 #define GET_32BITS(pointer, pos) (*((uint32_t *)(pointer+pos)))
 // #define GET_32BITS(pointer,pos) ((*(pointer+pos))<<24 | (*(pointer+pos+1))<< 16 | (*(pointer+pos+2))<<8 | *(pointer+pos+3))
 #define GET_16BITS(pointer, pos) (*((uint16_t *)(pointer+pos)))
 #define GET_8BITS(pointer, pos) (*((uint8_t *)(pointer+pos)))
 
-
+#define _8_BITS_OF_BYTES 1
 #define _16_BITS_OF_BYTES 2
 #define _32_BITS_OF_BYTES 4
+#define _64_BITS_OF_BYTES 8
+
+#define BITS_TO_BYTES(bits) (bits>>3)
+
+#define SPAN 16
 
 #ifdef VLHT_PROFILE
 uint64_t vlht_visited_node;
@@ -158,8 +164,8 @@ VarLengthHashTree::crash_consistent_put(VarLengthHashTreeNode *_node, int length
             pos += currentNode->header.len;
 
             // compute subkey (16bits as default)
-            // uint64_t subkey = GET_16BITS(key,pos);
-            uint64_t subkey = GET_32BITS(key, pos);
+            uint64_t subkey = GET_16BITS(key, pos);
+//            uint64_t subkey = GET_32BITS(key, pos);
 
             // use the subkey to search in a cceh node
             uint64_t next = 0;
@@ -257,14 +263,13 @@ VarLengthHashTree::crash_consistent_put(VarLengthHashTreeNode *_node, int length
                 newNode->node_put(j, &currentNode->treeNodeValues[currentNode->header.len - j]);
             }
 
-            // uint64_t subkey = GET_16BITS(key,matchedPrefixLen);
-            uint64_t subkey = GET_32BITS(key, matchedPrefixLen);
+            uint64_t subkey = GET_16BITS(key, matchedPrefixLen);
+//            uint64_t subkey = GET_32BITS(key, matchedPrefixLen);
             HashTreeKeyValue *kv = new_vlht_key_value(key, length, value);
             clflush((char *) kv, sizeof(HashTreeKeyValue));
             newNode->put(subkey, (uint64_t) kv, (uint64_t) &newNode);
-            // newNode->put(GET_16BITS(currentNode->header.array,matchedPrefixLen),(uint64_t)currentNode);
-            newNode->put(GET_32BITS(currentNode->header.array, matchedPrefixLen), (uint64_t) currentNode,
-                         (uint64_t) &newNode);
+            newNode->put(GET_16BITS(currentNode->header.array, matchedPrefixLen), (uint64_t) currentNode,(uint64_t) &newNode);
+//            newNode->put(GET_32BITS(currentNode->header.array, matchedPrefixLen), (uint64_t) currentNode,(uint64_t) &newNode);
 
             // modify currentNode 
             currentNode->header.depth -= matchedPrefixLen * SIZE_OF_CHAR / HT_NODE_LENGTH;
@@ -309,12 +314,13 @@ uint64_t VarLengthHashTree::get(int length, unsigned char *key) {
             return 0;
         }
         pos += currentNode->header.len;
-        // uint64_t subkey = GET_16BITS(key,pos);
-        uint64_t subkey = GET_32BITS(key, pos);
+        uint64_t subkey = GET_16BITS(key, pos);
+//        uint64_t subkey = GET_32BITS(key, pos);
 
         auto next = currentNode->get(subkey);
         // pos+=_16_BITS_OF_BYTES;
-        pos += _32_BITS_OF_BYTES;
+//        pos += _32_BITS_OF_BYTES;
+        pos += BITS_TO_BYTES(SPAN);
         if (next == 0) {
             return 0;
         }
@@ -463,9 +469,8 @@ void Length64HashTree::crash_consistent_put(Length64HashTreeNode *_node, uint64_
             clflush((char *) kv, sizeof(Length64HashTreeKeyValue));
 
             newNode->put(subkey, (uint64_t) kv, (uint64_t) &newNode);
-            // newNode->put(GET_16BITS(currentNode->header.array,matchedPrefixLen),(uint64_t)currentNode);
-            newNode->put(GET_32BITS(currentNode->header.array, matchedPrefixLen), (uint64_t) currentNode,
-                         (uint64_t) &newNode);
+            newNode->put(GET_16BITS(currentNode->header.array, matchedPrefixLen), (uint64_t) currentNode,(uint64_t) &newNode);
+//            newNode->put(GET_32BITS(currentNode->header.array, matchedPrefixLen), (uint64_t) currentNode,(uint64_t) &newNode);
 
             // modify currentNode 
             currentNode->header.depth -= matchedPrefixLen * SIZE_OF_CHAR / HT_NODE_LENGTH;
@@ -506,7 +511,8 @@ uint64_t Length64HashTree::get(uint64_t key) {
         uint64_t subkey = GET_SUBKEY(key, pos * SIZE_OF_CHAR, HT_NODE_LENGTH);
         auto next = currentNode->get(subkey);
         // pos+=_16_BITS_OF_BYTES;
-        pos += _32_BITS_OF_BYTES;
+//        pos += _32_BITS_OF_BYTES;
+        pos += BITS_TO_BYTES(SPAN);
         if (next == 0) {
             return 0;
         }

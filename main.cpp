@@ -36,8 +36,7 @@ ofstream out;
         gettimeofday(&ends, NULL);                                                              \
         double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;\
         double throughPut = (double) testNum / timeCost;                                        \
-        cout << name << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;        \
-        cout << name << "ThroughPut: " << throughPut << " Mops" << endl;                        \
+        cout << throughPut << ", " << endl;                        \
     }
 
 
@@ -355,7 +354,7 @@ void varLengthTest() {
     fast_free();
 }
 
-void TestExpe() {
+void effect1(){
     mykey = new uint64_t[testNum];
     rng r;
     rng_init(&r, 1, 2);
@@ -363,6 +362,24 @@ void TestExpe() {
         mykey[i] = rng_next(&r);
 //        mykey[i] = rng_next(&r) & 0xffffffff00000000;
 //        mykey[i] = rng_next(&r) % testNum;
+    }
+    uint64_t value = 1;
+
+    Time_BODY(1, "vlht put  ", { vlht->crash_consistent_put(NULL, 8, (unsigned char *) &mykey[i], 1); })
+
+    Time_BODY(1, "vlht get ", { vlht->get(8, (unsigned char *) &(mykey[i])); })
+
+    cout<<fastalloc_profile()<<endl;
+}
+
+void effect2() {
+    mykey = new uint64_t[testNum];
+    rng r;
+    rng_init(&r, 1, 2);
+    for (int i = 0; i < testNum; ++i) {
+//        mykey[i] = rng_next(&r);
+//        mykey[i] = rng_next(&r) & 0xffffffff00000000;
+        mykey[i] = rng_next(&r) % testNum;
     }
     uint64_t value = 1;
 
@@ -435,7 +452,8 @@ int main(int argc, char *argv[]) {
 //
 //    varLengthTest();
 //    profile();
-    TestExpe();
+    effect1();
+//    effect2();
 //    range_query_correctness_test();
 //    cout << ht->node_cnt << endl;
 //    cout << ht->get_access << endl;
