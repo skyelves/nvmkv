@@ -61,6 +61,23 @@ ofstream out;
         cout<<endl;\
     }
 
+#define MEMORY_BODY_EXPE(condition, name, func)                                                        \
+    if(condition) {                                                                             \
+        sleep(1);                                                                               \
+        timeval start, ends;                                                                    \
+        cout<<name<<", ";\
+        uint64_t memory=0;                                                             \
+        int interval = testNum/10;                                                              \
+        for (int i = 0; i < testNum; ++i) {                                                     \
+            func                                                                                \
+            if (i%interval==interval-1){\
+                memory=fastalloc_profile();                                                               \
+                cout << memory << ", ";\
+            }\
+        }\
+        cout<<endl;\
+    }
+
 int testNum = 100000;
 
 int numThread = 1;
@@ -338,7 +355,7 @@ void varLengthTest() {
     fast_free();
 }
 
-void speedTestExpe() {
+void TestExpe() {
     mykey = new uint64_t[testNum];
     rng r;
     rng_init(&r, 1, 2);
@@ -350,52 +367,52 @@ void speedTestExpe() {
     uint64_t value = 1;
 
     // insert speed for ht
-    Time_BODY_EXPE(test_case[0], "hash tree put ", { ht->crash_consistent_put(NULL, mykey[i], 1, 0); })
+    MEMORY_BODY_EXPE(test_case[0], "hash tree put ", { ht->crash_consistent_put(NULL, mykey[i], 1, 0); })
 
     // insert speed for art
-    Time_BODY_EXPE(test_case[1], "art tree put ", { art_put(art, (unsigned char *) &(mykey[i]), 8, &value); })
+    MEMORY_BODY_EXPE(test_case[1], "art tree put ", { art_put(art, (unsigned char *) &(mykey[i]), 8, &value); })
 
     // insert speed for wort
-    Time_BODY_EXPE(test_case[2], "wort put ", { wort_put(wort, mykey[i], 8, &value); })
+    MEMORY_BODY_EXPE(test_case[2], "wort put ", { wort_put(wort, mykey[i], 8, &value); })
 
     // insert speed for woart
-    Time_BODY_EXPE(test_case[3], "woart put ", { woart_put(woart, mykey[i], 8, &value); })
+    MEMORY_BODY_EXPE(test_case[3], "woart put ", { woart_put(woart, mykey[i], 8, &value); })
 
     // insert speed for cceh
-    Time_BODY_EXPE(test_case[4], "cceh put ", { cceh->put(mykey[i], value); })
+    MEMORY_BODY_EXPE(test_case[4], "cceh put ", { cceh->put(mykey[i], value); })
 
     // insert speed for fast&fair
-    Time_BODY_EXPE(test_case[5], "fast&fair put ", { ff->put(mykey[i], (char *) &value); })
+    MEMORY_BODY_EXPE(test_case[5], "fast&fair put ", { ff->put(mykey[i], (char *) &value); })
 
     // insert speed for fast&fair
-    Time_BODY_EXPE(test_case[6], "roart put ", { roart->put(mykey[i], value); })
+    MEMORY_BODY_EXPE(test_case[6], "roart put ", { roart->put(mykey[i], value); })
 
     // insert speed for vlht
-    Time_BODY_EXPE(test_case[7], "vlht put  ", { vlht->crash_consistent_put(NULL, 8, (unsigned char *) &mykey[i], 1); })
+    MEMORY_BODY_EXPE(test_case[7], "vlht put  ", { vlht->crash_consistent_put(NULL, 8, (unsigned char *) &mykey[i], 1); })
 
-    // query speed for ht
-    Time_BODY_EXPE(test_case[0], "hash tree get ", { ht->get(mykey[i]); })
-
-    // query speed for art
-    Time_BODY_EXPE(test_case[1], "art tree get ", { art_get(art, (unsigned char *) &(mykey[i]), 8); })
-
-    // query speed for wort
-    Time_BODY_EXPE(test_case[2], "wort get ", { wort_get(wort, mykey[i], 8); })
-
-    // query speed for woart
-    Time_BODY_EXPE(test_case[3], "woart get ", { woart_get(woart, mykey[i], 8); })
-
-    // query speed for cceh
-    Time_BODY_EXPE(test_case[4], "cceh get ", { cceh->get(mykey[i]); })
-
-    // query speed for fast&fair
-    Time_BODY_EXPE(test_case[5], "fast&fair get ", { ff->get(mykey[i]); })
-
-    // query speed for fast&fair
-    Time_BODY_EXPE(test_case[6], "roart get ", { roart->get(mykey[i]); })
-
-    // query speed for vlht
-    Time_BODY_EXPE(test_case[7], "vlht get ", { vlht->get(8, (unsigned char *) &(mykey[i])); })
+//    // query speed for ht
+//    MEMORY_BODY_EXPE(test_case[0], "hash tree get ", { ht->get(mykey[i]); })
+//
+//    // query speed for art
+//    MEMORY_BODY_EXPE(test_case[1], "art tree get ", { art_get(art, (unsigned char *) &(mykey[i]), 8); })
+//
+//    // query speed for wort
+//    MEMORY_BODY_EXPE(test_case[2], "wort get ", { wort_get(wort, mykey[i], 8); })
+//
+//    // query speed for woart
+//    MEMORY_BODY_EXPE(test_case[3], "woart get ", { woart_get(woart, mykey[i], 8); })
+//
+//    // query speed for cceh
+//    MEMORY_BODY_EXPE(test_case[4], "cceh get ", { cceh->get(mykey[i]); })
+//
+//    // query speed for fast&fair
+//    MEMORY_BODY_EXPE(test_case[5], "fast&fair get ", { ff->get(mykey[i]); })
+//
+//    // query speed for fast&fair
+//    MEMORY_BODY_EXPE(test_case[6], "roart get ", { roart->get(mykey[i]); })
+//
+//    // query speed for vlht
+//    MEMORY_BODY_EXPE(test_case[7], "vlht get ", { vlht->get(8, (unsigned char *) &(mykey[i])); })
 }
 
 int main(int argc, char *argv[]) {
@@ -418,7 +435,7 @@ int main(int argc, char *argv[]) {
 //
 //    varLengthTest();
 //    profile();
-    speedTestExpe();
+    TestExpe();
 //    range_query_correctness_test();
 //    cout << ht->node_cnt << endl;
 //    cout << ht->get_access << endl;
