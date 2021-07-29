@@ -22,6 +22,7 @@
 #include "varLengthHashTree/varLengthHashTree.h"
 #include "fastfair/varlengthfastfair.h"
 #include "woart/varLengthWoart.h"
+#include "wort/varLengthWort.h"
 
 using namespace std;
 
@@ -80,7 +81,7 @@ int test_algorithms_num = 10;
 bool test_case[10] = {0, // ht
                       0, // art
                       0, // wort
-                      0, // woart
+                      1, // woart
                       0, // cacheline_concious_extendible_hash
                       0, // fast&fair
                       1, // roart
@@ -110,6 +111,7 @@ VarLengthHashTree* vlht;
 Length64HashTree* l64ht;
 varlength_fastfair* vlff;
 var_length_woart_tree* vlwt;
+var_length_wort_tree* vlwot;
 
 
 concurrencyhashtree * cht;
@@ -527,27 +529,27 @@ void concurrencyTest(){
 void varLengthTest(){
     int span[] = {8};
     testNum = 10000000;
-    // unsigned char** keys = new unsigned char* [testNum] ;
-    // int* lengths = new int [testNum];
-    // rng r;
-    // rng_init(&r, 1, 2);
-
-    // for(int i=0;i<testNum;i++){
-    //     lengths[i] = span[0];
-    //     // lengths[i] = span[rng_next(&r)%7];
-    //     keys[i] = static_cast<unsigned char*>( fast_alloc(lengths[i]));
-
-    //     for(int j=0;j<lengths[i];j++){
-    //         keys[i][j] = rng_next(&r);
-    //     }
-    // }
-
-    mykey = new uint64_t[testNum];
+    unsigned char** keys = new unsigned char* [testNum] ;
+    int* lengths = new int [testNum];
     rng r;
     rng_init(&r, 1, 2);
-    for (int i = 0; i < testNum; ++i) {
-        mykey[i] = rng_next(&r);
+
+    for(int i=0;i<testNum;i++){
+        // lengths[i] = span[0];
+        lengths[i] = span[rng_next(&r)%1];
+        keys[i] = static_cast<unsigned char*>( fast_alloc(lengths[i]));
+
+        for(int j=0;j<lengths[i];j++){
+            keys[i][j] = (char)rng_next(&r);
+        }
     }
+
+    // mykey = new uint64_t[testNum];
+    // rng r;
+    // rng_init(&r, 1, 2);
+    // for (int i = 0; i < testNum; ++i) {
+    //     mykey[i] = rng_next(&r);
+    // }
 
     
     // Time_BODY(1,"varLengthHashTree put " , { vlht->crash_consistent_put(NULL,lengths[i],keys[i],1); })
@@ -561,13 +563,20 @@ void varLengthTest(){
     //     }; 
     // })
 
-    Time_BODY(1,"varLengthWoart put " , { var_length_woart_put(vlwt,(char*)&mykey[i],64,(char *) &value); })
-    Time_BODY(1,"varLengthWoart get " , { 
-        if(*(char*)(var_length_woart_get(vlwt,(char*)&mykey[i],64))!=1){
+    // Time_BODY(1,"varLengthWoart put " , { var_length_woart_put(vlwt,(char*)keys[i],lengths[i]*8,(char *) &value); })
+    // Time_BODY(1,"varLengthWoart get " , { 
+    //     if(*(char*)(var_length_woart_get(vlwt,(char*)keys[i],lengths[i]*8))!=1){
+    //         cout<<*(uint64_t*)&mykey[i]<<endl;
+    //     }; 
+    // })
+
+
+    Time_BODY(1,"varLengthWort put " , { var_length_wort_put(vlwot,(char*)keys[i],lengths[i],(char *) &value); })
+    Time_BODY(1,"varLengthWort get " , { 
+        if(*(char*)(var_length_wort_get(vlwot,(char*)keys[i],lengths[i]))!=1){
             cout<<*(uint64_t*)&mykey[i]<<endl;
         }; 
     })
-
     fast_free();
 }
 
@@ -583,7 +592,8 @@ int main(int argc, char *argv[]) {
      ff = new_fastfair();
      roart = new_roart();
      l64ht = new_length64HashTree();
-//    vlwt = new_var_length_woart_tree();
+    vlwt = new_var_length_woart_tree();
+    vlwot = new_var_length_wort_tree();
 //    mt = new_mass_tree();
     // vlht = new_varLengthHashtree();
     // vlff = new_varlengthfastfair();
