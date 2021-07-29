@@ -359,9 +359,9 @@ void effect1(){
     rng r;
     rng_init(&r, 1, 2);
     for (int i = 0; i < testNum; ++i) {
-        mykey[i] = rng_next(&r);
+//        mykey[i] = rng_next(&r);
 //        mykey[i] = rng_next(&r) & 0xffffffff00000000;
-//        mykey[i] = rng_next(&r) % testNum;
+        mykey[i] = rng_next(&r) % testNum;
     }
     uint64_t value = 1;
 
