@@ -43,6 +43,20 @@ ofstream out;
     }
 
 
+#define Scan_Time_BODY(condition, name, func)                                                        \
+    if(condition) {                                                                             \
+        sleep(1);                                                                               \
+        timeval start, ends;                                                                    \
+        gettimeofday(&start, NULL);                                                             \
+        for (int i = 0; i < 500; i++) {                                                     \
+            func                                                                                \
+        }                                                                                       \
+        gettimeofday(&ends, NULL);                                                              \
+        double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;\
+        double throughPut = (double) 500 / timeCost;                                        \
+        cout << name << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;        \
+        cout << name << "ThroughPut: " << throughPut << " Mops" << endl;                        \
+    }
 
 #define CONCURRENCY_Time_BODY( name, func)                                                        \
         sleep(1);                                                                               \
@@ -69,15 +83,17 @@ bool test_case[10] = {0, // ht
                       0, // woart
                       0, // cacheline_concious_extendible_hash
                       0, // fast&fair
-                      0, // roart
-                      1}; // l64ht
+                      1, // roart
+                      0, // ert
+                      0};
 
 bool range_query_test_case[10] = {
         0, // ht
         0, // wort
         0, // woart
         0, // fast&fair
-        0, // roart
+        1, // roart
+        0, // ert
         0
 };
 
@@ -141,8 +157,10 @@ void speedTest() {
         mykey[i] = rng_next(&r);
 //        mykey[i] = rng_next(&r) & 0xffffffff00000000;
 //        mykey[i] = rng_next(&r) % testNum;
+//        mykey[i] = rng_next(&r) % 100000000;
     }
     uint64_t value = 1;
+    vector<Length64HashTreeKeyValue> res;
 //    timeval start, ends;
 //    gettimeofday(&start, NULL);
 //    put();
@@ -184,7 +202,8 @@ void speedTest() {
     // insert speed for fast&fair
     Time_BODY(test_case[6], "roart put ", { roart->put(mykey[i], value); })
 
-    Time_BODY(test_case[7], "l64ht put  ", { l64ht->crash_consistent_put(NULL,mykey[i], value); })
+    // insert speed for ert
+    Time_BODY(test_case[7], "l64ht put  ", { l64ht->crash_consistent_put(NULL, mykey[i],1); })
 
     // query speed for ht
     Time_BODY(test_case[0], "hash tree get ", { ht->get(mykey[i]); })
@@ -207,20 +226,26 @@ void speedTest() {
     // query speed for fast&fair
     Time_BODY(test_case[6], "roart get ", { roart->get(mykey[i]); })
 
-    Time_BODY(test_case[7], "l64ht get ", { l64ht->get(mykey[i]); })
+    Time_BODY(test_case[7], "ert get ", { l64ht->get(mykey[i]); })
 
     //range query speed for ht
-    Time_BODY(range_query_test_case[0], "hash tree range query ", { ht->scan(mykey[i], mykey[i] + 1024); })
+    Scan_Time_BODY(range_query_test_case[0], "hash tree range query ", { ht->scan(mykey[i], mykey[i] + 101); })
 
     //range query speed for wort
-    Time_BODY(range_query_test_case[1], "wort range query ", { wort_scan(wort, mykey[i], mykey[i] + 1024); })
+    Scan_Time_BODY(range_query_test_case[1], "wort range query ", { wort_scan(wort, mykey[i], mykey[i] + 101); })
 
     //range query speed for woart
-    Time_BODY(range_query_test_case[2], "woart tree range query ", { woart_scan(woart, mykey[i], mykey[i] + 1024); })
+    Scan_Time_BODY(range_query_test_case[2], "woart tree range query ", { woart_scan(woart, mykey[i], mykey[i] + 101); })
 
     //range query speed for fast&fair
-    Time_BODY(range_query_test_case[3], "fast&fair range query ", { ff->scan(mykey[i], mykey[i] + 1024); })
+    Scan_Time_BODY(range_query_test_case[3], "fast&fair range query ", { ff->scan(mykey[i], mykey[i] + 101); })
 
+    //range query speed for roart
+    Scan_Time_BODY(range_query_test_case[4], "roart tree range query ", { roart->scan(mykey[i], mykey[i] + 101); })
+
+    //range query speed for ert
+    Scan_Time_BODY(range_query_test_case[5], "ert range query ", { l64ht->node_scan(NULL, mykey[i], mykey[i] + 101, res); })
+    
     out.close();
 }
 
@@ -360,7 +385,7 @@ void range_query_correctness_test() {
     cout << "HT_SCAN " << "ThroughPut: " << throughPut << " Mops" << endl;  
 
     // Time_BODY(1,"HT_SCAN ",{
-    //      l64ht ->node_scan(NULL,mykey[i],mykey[i]+100,res,0);
+    //      l64ht ->node_scan(NULL,mykey[i],mykey[i]+10000,res,0);
     // })
     cout<<res.size()<<endl;
 }
@@ -401,14 +426,14 @@ void concurrencyTest(){
     for( int i =1;i<=16;i*=2){
         init_fast_allocator(true);
         numThread = i;
-        
+
         // cht = new_concurrency_hashtree(64, 0);
         // con_cceh = new_concurrency_cceh();
         con_fastfair = new_concurrency_fastfair();
-        
-        CONCURRENCY_Time_BODY("concurrency fast fair ", {    
+
+        CONCURRENCY_Time_BODY("concurrency fast fair ", {
             for(int i=0;i<numThread;i++){
-                threads[i]  = new std::thread(concurrency_fastfair_put,i);     
+                threads[i]  = new std::thread(concurrency_fastfair_put,i);
             }
 
             for(int i=0;i<numThread;i++){
@@ -432,22 +457,22 @@ void concurrencyTest(){
             }
         }
 
-        // timeval start, ends;                                                                    
-        // gettimeofday(&start, NULL);    
+        // timeval start, ends;
+        // gettimeofday(&start, NULL);
 
         // for(int i=0;i<numThread;i++){
-        //     threads[i]  = new std::thread(concurrency_put_with_thread,i);     
+        //     threads[i]  = new std::thread(concurrency_put_with_thread,i);
         // }
 
         // for(int i=0;i<numThread;i++){
         //     threads[i]->join();
         // }
 
-        // gettimeofday(&ends, NULL);                                                              
+        // gettimeofday(&ends, NULL);
         // double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
-        // double throughPut = (double) testNum / timeCost;  
-        // cout << "concurrency hash tree put " << testNum << " kv pais with "<<numThread<<" threads in " << timeCost / 1000000 << " s" << endl;        
-        // cout << "concurrency hash tree" << "ThroughPut: " << throughPut << " Mops" << endl;  
+        // double throughPut = (double) testNum / timeCost;
+        // cout << "concurrency hash tree put " << testNum << " kv pais with "<<numThread<<" threads in " << timeCost / 1000000 << " s" << endl;
+        // cout << "concurrency hash tree" << "ThroughPut: " << throughPut << " Mops" << endl;
 
         // int failed = 0;
         // vector<uint64_t> failed_key;
@@ -466,18 +491,18 @@ void concurrencyTest(){
         //     }
         // }
         // for(int i=0;i<numThread;i++){
-        //     threads[i]  = new std::thread(concurrency_cceh_put,i);     
+        //     threads[i]  = new std::thread(concurrency_cceh_put,i);
         // }
 
         // for(int i=0;i<numThread;i++){
         //     threads[i]->join();
         // }
 
-        // gettimeofday(&ends, NULL);                                                              
+        // gettimeofday(&ends, NULL);
         // double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
-        // double throughPut = (double) testNum / timeCost;  
-        // cout << "concurrency CCEH put " << testNum << " kv pais with "<<numThread<<" threads in " << timeCost / 1000000 << " s" << endl;        
-        // cout << "concurrency CCEH" << "ThroughPut: " << throughPut << " Mops" << endl;  
+        // double throughPut = (double) testNum / timeCost;
+        // cout << "concurrency CCEH put " << testNum << " kv pais with "<<numThread<<" threads in " << timeCost / 1000000 << " s" << endl;
+        // cout << "concurrency CCEH" << "ThroughPut: " << throughPut << " Mops" << endl;
 
 
         // int failed = 0;
@@ -552,21 +577,21 @@ int main(int argc, char *argv[]) {
     init_fast_allocator(false);
     // ht = new_hashtree(64, 0);
     // art = new_art_tree();
-    // wort = new_wort_tree();
-    // woart = new_woart_tree();
+     wort = new_wort_tree();
+     woart = new_woart_tree();
     // cceh = new_cceh();
-    // ff = new_fastfair();
-    // roart = new_roart();
-    // l64ht = new_length64HashTree();
-    vlwt = new_var_length_woart_tree();
+     ff = new_fastfair();
+     roart = new_roart();
+     l64ht = new_length64HashTree();
+//    vlwt = new_var_length_woart_tree();
 //    mt = new_mass_tree();
     // vlht = new_varLengthHashtree();
     // vlff = new_varlengthfastfair();
 //    bt = new_blink_tree(numThread);
     // correctnessTest();
-    // speedTest();
+     speedTest();
 
-    varLengthTest();
+//    varLengthTest();
 
 // build for cocurrencyTest
 
