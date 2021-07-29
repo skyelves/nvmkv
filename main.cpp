@@ -21,6 +21,7 @@
 #include "concurrencyhashtree/concurrency_hashtree.h"
 #include "varLengthHashTree/varLengthHashTree.h"
 #include "fastfair/varlengthfastfair.h"
+#include "woart/varLengthWoart.h"
 
 using namespace std;
 
@@ -92,6 +93,8 @@ ROART *roart;
 VarLengthHashTree* vlht;
 Length64HashTree* l64ht;
 varlength_fastfair* vlff;
+var_length_woart_tree* vlwt;
+
 
 concurrencyhashtree * cht;
 concurrency_cceh *con_cceh;
@@ -499,33 +502,46 @@ void concurrencyTest(){
 void varLengthTest(){
     int span[] = {8};
     testNum = 10000000;
-    unsigned char** keys = new unsigned char* [testNum] ;
-    int* lengths = new int [testNum];
+    // unsigned char** keys = new unsigned char* [testNum] ;
+    // int* lengths = new int [testNum];
+    // rng r;
+    // rng_init(&r, 1, 2);
+
+    // for(int i=0;i<testNum;i++){
+    //     lengths[i] = span[0];
+    //     // lengths[i] = span[rng_next(&r)%7];
+    //     keys[i] = static_cast<unsigned char*>( fast_alloc(lengths[i]));
+
+    //     for(int j=0;j<lengths[i];j++){
+    //         keys[i][j] = rng_next(&r);
+    //     }
+    // }
+
+    mykey = new uint64_t[testNum];
     rng r;
     rng_init(&r, 1, 2);
-
-    for(int i=0;i<testNum;i++){
-        lengths[i] = span[0];
-        // lengths[i] = span[rng_next(&r)%7];
-        keys[i] = static_cast<unsigned char*>( fast_alloc(lengths[i]));
-        for(int j=0;j<lengths[i];j++){
-            keys[i][j] = rng_next(&r);
-        }
+    for (int i = 0; i < testNum; ++i) {
+        mykey[i] = rng_next(&r);
     }
-
 
     
     // Time_BODY(1,"varLengthHashTree put " , { vlht->crash_consistent_put(NULL,lengths[i],keys[i],1); })
     // Time_BODY(1,"varLengthHashTree get " , { vlht->get(lengths[i],keys[i]); })
 
 
-    Time_BODY(1,"varLengthFast&Fair put " , { vlff->put((char*)keys[i],lengths[i],(char *) &value); })
-    Time_BODY(1,"varLengthFast&Fair get " , { 
-        if(*(char*)(vlff->get((char*)keys[i],lengths[i]))!=1){
-            cout<<*(uint64_t*)keys[i]<<endl;
+    // Time_BODY(1,"varLengthFast&Fair put " , { vlff->put((char*)keys[i],lengths[i],(char *) &value); })
+    // Time_BODY(1,"varLengthFast&Fair get " , { 
+    //     if(*(char*)(vlff->get((char*)keys[i],lengths[i]))!=1){
+    //         cout<<*(uint64_t*)keys[i]<<endl;
+    //     }; 
+    // })
+
+    Time_BODY(1,"varLengthWoart put " , { var_length_woart_put(vlwt,(char*)&mykey[i],64,(char *) &value); })
+    Time_BODY(1,"varLengthWoart get " , { 
+        if(*(char*)(var_length_woart_get(vlwt,(char*)&mykey[i],64))!=1){
+            cout<<*(uint64_t*)&mykey[i]<<endl;
         }; 
     })
-
 
     fast_free();
 }
@@ -541,8 +557,8 @@ int main(int argc, char *argv[]) {
     // cceh = new_cceh();
     // ff = new_fastfair();
     // roart = new_roart();
-    l64ht = new_length64HashTree();
-
+    // l64ht = new_length64HashTree();
+    vlwt = new_var_length_woart_tree();
 //    mt = new_mass_tree();
     // vlht = new_varLengthHashtree();
     // vlff = new_varlengthfastfair();
@@ -550,7 +566,7 @@ int main(int argc, char *argv[]) {
     // correctnessTest();
     // speedTest();
 
-    // varLengthTest();
+    varLengthTest();
 
 // build for cocurrencyTest
 
@@ -563,7 +579,7 @@ int main(int argc, char *argv[]) {
     //     fast_free();
     // }
 //    profile();
-   range_query_correctness_test();
+//    range_query_correctness_test();
 //    cout << ht->node_cnt << endl;
 //    cout << ht->get_access << endl;
     // fast_free();

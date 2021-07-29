@@ -1,4 +1,4 @@
-set(FASTFAIR_SOURCES fastfair.cpp fastfair.h concurrency_fastfair.cpp concurrency_fastfair.h)
+set(FASTFAIR_SOURCES fastfair.cpp fastfair.h concurrency_fastfair.cpp concurrency_fastfair.h varlengthfastfair.h varlengthfastfair.cpp)
 
 add_library(nvmkv-fastfair STATIC ${FASTFAIR_SOURCES})
 
