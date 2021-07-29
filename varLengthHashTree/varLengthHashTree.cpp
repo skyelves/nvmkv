@@ -28,7 +28,9 @@
 
 #define GET_32BITS(pointer, pos) (*((uint32_t *)(pointer+pos)))
 // #define GET_32BITS(pointer,pos) ((*(pointer+pos))<<24 | (*(pointer+pos+1))<< 16 | (*(pointer+pos+2))<<8 | *(pointer+pos+3))
-#define GET_16BITS(pointer, pos) ((*(pointer+pos))<<8 | (*(pointer+pos+1)))
+#define GET_16BITS(pointer, pos) (*((uint16_t *)(pointer+pos)))
+#define GET_8BITS(pointer, pos) (*((uint8_t *)(pointer+pos)))
+
 
 #define _16_BITS_OF_BYTES 2
 #define _32_BITS_OF_BYTES 4

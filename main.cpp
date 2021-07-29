@@ -40,6 +40,27 @@ ofstream out;
         cout << name << "ThroughPut: " << throughPut << " Mops" << endl;                        \
     }
 
+
+#define Time_BODY_EXPE(condition, name, func)                                                        \
+    if(condition) {                                                                             \
+        sleep(1);                                                                               \
+        timeval start, ends;                                                                    \
+        cout<<name<<", ";\
+        gettimeofday(&start, NULL);                                                             \
+        int interval = testNum/10;                                                              \
+        for (int i = 0; i < testNum; ++i) {                                                     \
+            func                                                                                \
+            if (i%interval==interval-1){\
+                gettimeofday(&ends, NULL);                                                              \
+                double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;\
+                double throughPut = (double) interval / timeCost;                                        \
+                cout << throughPut << ", ";\
+                gettimeofday(&start, NULL);       \
+            }\
+        }\
+        cout<<endl;\
+    }
+
 int testNum = 100000;
 
 int numThread = 1;
@@ -47,10 +68,10 @@ int numThread = 1;
 int test_algorithms_num = 10;
 bool test_case[10] = {0, // ht
                       0, // art
-                      1, // wort
-                      1, // woart
+                      0, // wort
+                      0, // woart
                       0, // cacheline_concious_extendible_hash
-                      1, // fast&fair
+                      0, // fast&fair
                       0, // roart
                       1, // vlht
                       0};
@@ -317,6 +338,66 @@ void varLengthTest() {
     fast_free();
 }
 
+void speedTestExpe() {
+    mykey = new uint64_t[testNum];
+    rng r;
+    rng_init(&r, 1, 2);
+    for (int i = 0; i < testNum; ++i) {
+        mykey[i] = rng_next(&r);
+//        mykey[i] = rng_next(&r) & 0xffffffff00000000;
+//        mykey[i] = rng_next(&r) % testNum;
+    }
+    uint64_t value = 1;
+
+    // insert speed for ht
+    Time_BODY_EXPE(test_case[0], "hash tree put ", { ht->crash_consistent_put(NULL, mykey[i], 1, 0); })
+
+    // insert speed for art
+    Time_BODY_EXPE(test_case[1], "art tree put ", { art_put(art, (unsigned char *) &(mykey[i]), 8, &value); })
+
+    // insert speed for wort
+    Time_BODY_EXPE(test_case[2], "wort put ", { wort_put(wort, mykey[i], 8, &value); })
+
+    // insert speed for woart
+    Time_BODY_EXPE(test_case[3], "woart put ", { woart_put(woart, mykey[i], 8, &value); })
+
+    // insert speed for cceh
+    Time_BODY_EXPE(test_case[4], "cceh put ", { cceh->put(mykey[i], value); })
+
+    // insert speed for fast&fair
+    Time_BODY_EXPE(test_case[5], "fast&fair put ", { ff->put(mykey[i], (char *) &value); })
+
+    // insert speed for fast&fair
+    Time_BODY_EXPE(test_case[6], "roart put ", { roart->put(mykey[i], value); })
+
+    // insert speed for vlht
+    Time_BODY_EXPE(test_case[7], "vlht put  ", { vlht->crash_consistent_put(NULL, 8, (unsigned char *) &mykey[i], 1); })
+
+    // query speed for ht
+    Time_BODY_EXPE(test_case[0], "hash tree get ", { ht->get(mykey[i]); })
+
+    // query speed for art
+    Time_BODY_EXPE(test_case[1], "art tree get ", { art_get(art, (unsigned char *) &(mykey[i]), 8); })
+
+    // query speed for wort
+    Time_BODY_EXPE(test_case[2], "wort get ", { wort_get(wort, mykey[i], 8); })
+
+    // query speed for woart
+    Time_BODY_EXPE(test_case[3], "woart get ", { woart_get(woart, mykey[i], 8); })
+
+    // query speed for cceh
+    Time_BODY_EXPE(test_case[4], "cceh get ", { cceh->get(mykey[i]); })
+
+    // query speed for fast&fair
+    Time_BODY_EXPE(test_case[5], "fast&fair get ", { ff->get(mykey[i]); })
+
+    // query speed for fast&fair
+    Time_BODY_EXPE(test_case[6], "roart get ", { roart->get(mykey[i]); })
+
+    // query speed for vlht
+    Time_BODY_EXPE(test_case[7], "vlht get ", { vlht->get(8, (unsigned char *) &(mykey[i])); })
+}
+
 int main(int argc, char *argv[]) {
     sscanf(argv[1], "%d", &numThread);
     sscanf(argv[2], "%d", &testNum);
@@ -336,7 +417,8 @@ int main(int argc, char *argv[]) {
 //    speedTest();
 //
 //    varLengthTest();
-    profile();
+//    profile();
+    speedTestExpe();
 //    range_query_correctness_test();
 //    cout << ht->node_cnt << endl;
 //    cout << ht->get_access << endl;

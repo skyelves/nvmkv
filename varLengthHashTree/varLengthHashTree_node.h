@@ -36,7 +36,7 @@
 #define HT_NODE_PREFIX_MAX_BITS 48
 #define HT_KEY_LENGTH 64
 
-#define VLHT_PROFILE_TIME
+//#define VLHT_PROFILE_TIME
 #ifdef VLHT_PROFILE_TIME
 extern timeval start_time, end_time;
 extern uint64_t t1, t2, t3, t4;
