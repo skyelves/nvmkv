@@ -204,14 +204,14 @@ VarLengthHashTree::crash_consistent_put(VarLengthHashTreeNode *_node, int length
             } else {
                 if (((bool *) next)[0]) {
                     // next is key value pair, which means collides
-#ifdef VLHT_PROFILE_TIME
-                    gettimeofday(&start_time, NULL);
-#endif
                     unsigned char *preKey = ((HashTreeKeyValue *) next)->key;
                     unsigned int preLength = ((HashTreeKeyValue *) next)->len;
                     uint64_t preValue = ((HashTreeKeyValue *) next)->value;
                     if (unlikely(keyIsSame(key, length, preKey, preLength))) {
                         //same key, update the value
+#ifdef VLHT_PROFILE_TIME
+                        gettimeofday(&start_time, NULL);
+#endif
                         ((HashTreeKeyValue *) next)->value = value;
                         clflush((char *) &(((HashTreeKeyValue *) next)->value), 8);
 #ifdef VLHT_PROFILE_TIME
@@ -221,6 +221,9 @@ VarLengthHashTree::crash_consistent_put(VarLengthHashTreeNode *_node, int length
                         return;
                     } else {
                         //not same key: needs to create a new node
+#ifdef VLHT_PROFILE_TIME
+                        gettimeofday(&start_time, NULL);
+#endif
                         VarLengthHashTreeNode *newNode = new_varlengthhashtree_node(HT_NODE_LENGTH, headerDepth + 1);
 
                         // put pre kv
