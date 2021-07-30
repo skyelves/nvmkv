@@ -39,7 +39,7 @@
 
 #define BITS_TO_BYTES(bits) (bits>>3)
 
-#define SPAN 8
+#define SPAN 32
 
 #ifdef VLHT_PROFILE
 uint64_t vlht_visited_node;
@@ -164,9 +164,11 @@ VarLengthHashTree::crash_consistent_put(VarLengthHashTreeNode *_node, int length
             pos += currentNode->header.len;
 
             // compute subkey (16bits as default)
-            uint64_t subkey = GET_8BITS(key, pos);
+//            uint64_t subkey = GET_8BITS(key, pos);
 //            uint64_t subkey = GET_16BITS(key, pos);
-//            uint64_t subkey = GET_32BITS(key, pos);
+            uint64_t subkey = GET_32BITS(key, pos);
+//            uint64_t subkey = GET_64BITS(key, pos);
+
 
             // use the subkey to search in a cceh node
             uint64_t next = 0;
@@ -236,7 +238,7 @@ VarLengthHashTree::crash_consistent_put(VarLengthHashTreeNode *_node, int length
                         clflush((char *) &tmp_bucket->counter[i].value, 8);
 #ifdef VLHT_PROFILE_TIME
                         gettimeofday(&end_time, NULL);
-                        t1 += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+                        t4 += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
 #endif
                         return;
                     }
@@ -264,15 +266,17 @@ VarLengthHashTree::crash_consistent_put(VarLengthHashTreeNode *_node, int length
                 newNode->node_put(j, &currentNode->treeNodeValues[currentNode->header.len - j]);
             }
 
-            uint64_t subkey = GET_8BITS(key, matchedPrefixLen);
+//            uint64_t subkey = GET_8BITS(key, matchedPrefixLen);
 //            uint64_t subkey = GET_16BITS(key, matchedPrefixLen);
-//            uint64_t subkey = GET_32BITS(key, matchedPrefixLen);
+            uint64_t subkey = GET_32BITS(key, matchedPrefixLen);
+//            uint64_t subkey = GET_64BITS(key, matchedPrefixLen);
             HashTreeKeyValue *kv = new_vlht_key_value(key, length, value);
             clflush((char *) kv, sizeof(HashTreeKeyValue));
             newNode->put(subkey, (uint64_t) kv, (uint64_t) &newNode);
-            newNode->put(GET_8BITS(currentNode->header.array, matchedPrefixLen), (uint64_t) currentNode,(uint64_t) &newNode);
+//            newNode->put(GET_8BITS(currentNode->header.array, matchedPrefixLen), (uint64_t) currentNode,(uint64_t) &newNode);
 //            newNode->put(GET_16BITS(currentNode->header.array, matchedPrefixLen), (uint64_t) currentNode,(uint64_t) &newNode);
-//            newNode->put(GET_32BITS(currentNode->header.array, matchedPrefixLen), (uint64_t) currentNode,(uint64_t) &newNode);
+            newNode->put(GET_32BITS(currentNode->header.array, matchedPrefixLen), (uint64_t) currentNode,(uint64_t) &newNode);
+//            newNode->put(GET_64BITS(currentNode->header.array, matchedPrefixLen), (uint64_t) currentNode,(uint64_t) &newNode);
 
             // modify currentNode 
             currentNode->header.depth -= matchedPrefixLen * SIZE_OF_CHAR / HT_NODE_LENGTH;
@@ -317,14 +321,16 @@ uint64_t VarLengthHashTree::get(int length, unsigned char *key) {
             return 0;
         }
         pos += currentNode->header.len;
-        uint64_t subkey = GET_8BITS(key, pos);
+//        uint64_t subkey = GET_8BITS(key, pos);
 //        uint64_t subkey = GET_16BITS(key, pos);
-//        uint64_t subkey = GET_32BITS(key, pos);
+        uint64_t subkey = GET_32BITS(key, pos);
+//        uint64_t subkey = GET_64BITS(key, pos);
+
 
         auto next = currentNode->get(subkey);
         // pos+=_16_BITS_OF_BYTES;
-//        pos += _32_BITS_OF_BYTES;
-        pos += BITS_TO_BYTES(SPAN);
+        pos += _32_BITS_OF_BYTES;
+//        pos += BITS_TO_BYTES(SPAN);
         if (next == 0) {
             return 0;
         }
@@ -473,9 +479,10 @@ void Length64HashTree::crash_consistent_put(Length64HashTreeNode *_node, uint64_
             clflush((char *) kv, sizeof(Length64HashTreeKeyValue));
 
             newNode->put(subkey, (uint64_t) kv, (uint64_t) &newNode);
-            newNode->put(GET_8BITS(currentNode->header.array, matchedPrefixLen), (uint64_t) currentNode,(uint64_t) &newNode);
+//            newNode->put(GET_8BITS(currentNode->header.array, matchedPrefixLen), (uint64_t) currentNode,(uint64_t) &newNode);
 //            newNode->put(GET_16BITS(currentNode->header.array, matchedPrefixLen), (uint64_t) currentNode,(uint64_t) &newNode);
-//            newNode->put(GET_32BITS(currentNode->header.array, matchedPrefixLen), (uint64_t) currentNode,(uint64_t) &newNode);
+            newNode->put(GET_32BITS(currentNode->header.array, matchedPrefixLen), (uint64_t) currentNode,(uint64_t) &newNode);
+//            newNode->put(GET_64BITS(currentNode->header.array, matchedPrefixLen), (uint64_t) currentNode,(uint64_t) &newNode);
 
             // modify currentNode 
             currentNode->header.depth -= matchedPrefixLen * SIZE_OF_CHAR / HT_NODE_LENGTH;
@@ -516,8 +523,8 @@ uint64_t Length64HashTree::get(uint64_t key) {
         uint64_t subkey = GET_SUBKEY(key, pos * SIZE_OF_CHAR, HT_NODE_LENGTH);
         auto next = currentNode->get(subkey);
         // pos+=_16_BITS_OF_BYTES;
-//        pos += _32_BITS_OF_BYTES;
-        pos += BITS_TO_BYTES(SPAN);
+        pos += _32_BITS_OF_BYTES;
+//        pos += BITS_TO_BYTES(SPAN);
         if (next == 0) {
             return 0;
         }

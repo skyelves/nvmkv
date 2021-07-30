@@ -31,12 +31,12 @@
 #define HT_MAX_BUCKET_NUM (1<<HT_BUCKET_MASK_LEN)
 
 #define SIZE_OF_CHAR 8
-#define HT_NODE_LENGTH 8
+#define HT_NODE_LENGTH 32
 #define HT_NODE_PREFIX_MAX_BYTES 6
 #define HT_NODE_PREFIX_MAX_BITS 48
 #define HT_KEY_LENGTH 64
 
-//#define VLHT_PROFILE_TIME
+#define VLHT_PROFILE_TIME
 #ifdef VLHT_PROFILE_TIME
 extern timeval start_time, end_time;
 extern uint64_t t1, t2, t3, t4;

@@ -275,7 +275,7 @@ void profile() {
 //        woart_put(woart, mykey[i], 8, &value);
 //        wort_put(wort, mykey[i], 8, &value);
 //        vlht->crash_consistent_put(NULL, lengths[i], keys[i], 1);
-        vlht->crash_consistent_put(NULL, 8, (unsigned char *)&mykey[i], 1);
+        vlht->crash_consistent_put(NULL, 8, (unsigned char *) &mykey[i], 1);
 //        ht->crash_consistent_put(NULL, mykey[i], i + 1, 0);
 //        if (i % 10000 == 0) {
 //            out << i << ", " << cceh->dir_size << ", "
@@ -354,22 +354,25 @@ void varLengthTest() {
     fast_free();
 }
 
-void effect1(){
+void effect1() {
     mykey = new uint64_t[testNum];
     rng r;
     rng_init(&r, 1, 2);
     for (int i = 0; i < testNum; ++i) {
 //        mykey[i] = rng_next(&r);
 //        mykey[i] = rng_next(&r) & 0xffffffff00000000;
-        mykey[i] = rng_next(&r) % testNum;
+//        mykey[i] = rng_next(&r) % testNum;
+        mykey[i] = rng_next(&r) % testNum + 0x10000000000;
+
     }
     uint64_t value = 1;
+
 
     Time_BODY(1, "vlht put  ", { vlht->crash_consistent_put(NULL, 8, (unsigned char *) &mykey[i], 1); })
 
     Time_BODY(1, "vlht get ", { vlht->get(8, (unsigned char *) &(mykey[i])); })
 
-    cout<<fastalloc_profile()<<endl;
+    cout << fastalloc_profile() << endl;
 }
 
 void effect2() {
@@ -405,7 +408,8 @@ void effect2() {
     MEMORY_BODY_EXPE(test_case[6], "roart put ", { roart->put(mykey[i], value); })
 
     // insert speed for vlht
-    MEMORY_BODY_EXPE(test_case[7], "vlht put  ", { vlht->crash_consistent_put(NULL, 8, (unsigned char *) &mykey[i], 1); })
+    MEMORY_BODY_EXPE(test_case[7], "vlht put  ",
+                     { vlht->crash_consistent_put(NULL, 8, (unsigned char *) &mykey[i], 1); })
 
 //    // query speed for ht
 //    MEMORY_BODY_EXPE(test_case[0], "hash tree get ", { ht->get(mykey[i]); })
@@ -451,8 +455,8 @@ int main(int argc, char *argv[]) {
 //    speedTest();
 //
 //    varLengthTest();
-//    profile();
-    effect1();
+    profile();
+//    effect1();
 //    effect2();
 //    range_query_correctness_test();
 //    cout << ht->node_cnt << endl;
