@@ -361,8 +361,8 @@ void effect1() {
     for (int i = 0; i < testNum; ++i) {
 //        mykey[i] = rng_next(&r);
 //        mykey[i] = rng_next(&r) & 0xffffffff00000000;
-//        mykey[i] = rng_next(&r) % testNum;
-        mykey[i] = rng_next(&r) % testNum + 0x10000000000;
+        mykey[i] = rng_next(&r) % testNum;
+//        mykey[i] = rng_next(&r) % testNum + 0x10000000000;
 
     }
     uint64_t value = 1;
@@ -455,8 +455,8 @@ int main(int argc, char *argv[]) {
 //    speedTest();
 //
 //    varLengthTest();
-    profile();
-//    effect1();
+//    profile();
+    effect1();
 //    effect2();
 //    range_query_correctness_test();
 //    cout << ht->node_cnt << endl;

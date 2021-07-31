@@ -332,8 +332,8 @@ uint64_t VarLengthHashTree::get(int length, unsigned char *key) {
 
         auto next = currentNode->get(subkey);
         // pos+=_16_BITS_OF_BYTES;
-        pos += _32_BITS_OF_BYTES;
-//        pos += BITS_TO_BYTES(SPAN);
+//        pos += _32_BITS_OF_BYTES;
+        pos += BITS_TO_BYTES(SPAN);
         if (next == 0) {
             return 0;
         }
@@ -526,8 +526,8 @@ uint64_t Length64HashTree::get(uint64_t key) {
         uint64_t subkey = GET_SUBKEY(key, pos * SIZE_OF_CHAR, HT_NODE_LENGTH);
         auto next = currentNode->get(subkey);
         // pos+=_16_BITS_OF_BYTES;
-        pos += _32_BITS_OF_BYTES;
-//        pos += BITS_TO_BYTES(SPAN);
+//        pos += _32_BITS_OF_BYTES;
+        pos += BITS_TO_BYTES(SPAN);
         if (next == 0) {
             return 0;
         }
