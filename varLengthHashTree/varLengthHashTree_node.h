@@ -44,6 +44,11 @@ public:
     unsigned int len;
     uint64_t value = 0;
 
+    HashTreeKeyValue(){
+        key = NULL;
+        len = 0;
+    }
+
     void operator =(HashTreeKeyValue a){
         this->type = a.type;
         this->key = a.key;
@@ -58,6 +63,11 @@ class BucketKeyValue{
     public:
         uint64_t subkey = 0;
         uint64_t value = 0;
+
+        BucketKeyValue(){
+            subkey = 0;
+            value = 0;
+        }
 };
 
 class HashTreeBucket {
@@ -65,6 +75,8 @@ public:
    
     BucketKeyValue counter[HT_BUCKET_SIZE];
     int64_t lock_meta = 0;
+
+    HashTreeBucket();
 
     uint64_t get(uint64_t key);
 
@@ -132,14 +144,16 @@ public:
     uint32_t dir_size = 1;
     int64_t lock_meta = 0;
     VarLengthHashTreeHeader header;
-    HashTreeKeyValue* treeNodeValues;
+    HashTreeKeyValue** treeNodeValues;
     // used to represent the elements in the treenode prefix, but not in CCEH
 
     VarLengthHashTreeNode();
 
     ~VarLengthHashTreeNode();
 
-    void init(unsigned char headerDepth = 0, unsigned char global_depth = 0);
+    void init(int prefixLen, unsigned char headerDepth = 0, unsigned char global_depth = 0);
+
+    void init(VarLengthHashTreeNode* oldNode);
 
     void put(uint64_t subKey, uint64_t value, uint64_t beforeAddress);//value is limited to non-zero number, zero is used to define empty counter in bucket
 
@@ -164,7 +178,7 @@ public:
     bool is_read_locked();
 };
 
-VarLengthHashTreeNode *new_varlengthhashtree_node( int _key_len, unsigned char headerDepth = 1, unsigned char globalDepth = HT_INIT_GLOBAL_DEPTH);
+VarLengthHashTreeNode *new_varlengthhashtree_node(int prefixLen, unsigned char headerDepth = 1, unsigned char globalDepth = HT_INIT_GLOBAL_DEPTH);
 
 class Length64HashTreeKeyValue {
 public:

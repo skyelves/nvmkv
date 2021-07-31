@@ -80,13 +80,13 @@ VarLengthHashTree::~VarLengthHashTree() {
     delete root;
 }
 
-void VarLengthHashTree::init() {
-    root = new_varlengthhashtree_node(HT_NODE_LENGTH);
+void VarLengthHashTree::init(int prefixLen) {
+    root = new_varlengthhashtree_node(prefixLen);
 }
 
 VarLengthHashTree *new_varLengthHashtree() {
     VarLengthHashTree *_new_hash_tree = static_cast<VarLengthHashTree *>(fast_alloc(sizeof(VarLengthHashTree)));
-    _new_hash_tree->init();
+    _new_hash_tree->init(0);
     return _new_hash_tree;
 }
 
@@ -97,18 +97,10 @@ void VarLengthHashTree:: crash_consistent_put(VarLengthHashTreeNode *_node, int 
 
 
 void VarLengthHashTree:: crash_consistent_put(VarLengthHashTreeNode *_node, int length, unsigned char* key, uint64_t value, uint64_t beforeAddress, int pos){
-    VarLengthHashTreeNode *currentNode = _node;
-    
-    // lock root
-    // if(_node==NULL){
-    //    currentNode = root;
-    // }
-    // // TODO move!
-    // unsigned char headerDepth = currentNode->header.depth;
     HashTreeBucket* lock_bucket = NULL;
     HashTreeSegment* lock_segment = NULL;
 
-    while(length>pos){
+    while(length>=pos){
         PUT_RETRY:
             VarLengthHashTreeNode *currentNode = *(VarLengthHashTreeNode**)beforeAddress;
             unsigned char headerDepth = currentNode->header.depth;
@@ -124,7 +116,7 @@ void VarLengthHashTree:: crash_consistent_put(VarLengthHashTreeNode *_node, int 
                 goto PUT_RETRY;
             }
 
-            int matchedPrefixLen;
+            int matchedPrefixLen = 0;
             // init a number bigger than HT_NODE_PREFIX_MAX_LEN to represent there is no value
             if(currentNode->header.len>HT_NODE_PREFIX_MAX_BYTES){
                 currentNode->free_read_lock();
@@ -134,31 +126,31 @@ void VarLengthHashTree:: crash_consistent_put(VarLengthHashTreeNode *_node, int 
                 }
 
                 // double check
-                if(currentNode->header.len<=HT_NODE_PREFIX_MAX_BYTES||(*(VarLengthHashTreeNode**)beforeAddress!=currentNode)){
+                if((*(VarLengthHashTreeNode**)beforeAddress!=currentNode)||currentNode->header.len<=HT_NODE_PREFIX_MAX_BYTES){
                     currentNode->free_write_lock();
                     std::this_thread::yield();
                     goto PUT_RETRY;
                 }
 
-                currentNode->header.len = (length - (pos+1)*SIZE_OF_CHAR)>HT_NODE_PREFIX_MAX_BITS?HT_NODE_PREFIX_MAX_BITS:(length - (pos+1)*SIZE_OF_CHAR);
-                currentNode->header.assign(key+pos);
-                // pos += HT_NODE_PREFIX_MAX_BYTES;
+                int maxSize = HT_NODE_PREFIX_MAX_BYTES - HT_NODE_PREFIX_MAX_BYTES%(HT_NODE_LENGTH/SIZE_OF_CHAR);
+                currentNode->header.len = min((length - pos),maxSize);
+                currentNode->header.assign(key+pos,currentNode->header.len);
 
                 currentNode->free_write_lock();
-                continue;
+                goto PUT_RETRY;
             }else{
                 // compute this prefix
                 matchedPrefixLen = currentNode->header.computePrefix(key,length,pos);
             }
 
             if(pos + matchedPrefixLen == length){
+                HashTreeKeyValue *kv = new_vlht_key_value(key, length, value);
+                clflush((char *) kv, sizeof(HashTreeKeyValue));
+                currentNode->node_put(matchedPrefixLen,kv);
                 if(lock_bucket!=NULL){
                     lock_bucket->free_read_lock();
                     lock_segment->free_read_lock();
                 }
-                HashTreeKeyValue *kv = new_vlht_key_value(key, length, value);
-                clflush((char *) kv, sizeof(HashTreeKeyValue));
-                currentNode->node_put(matchedPrefixLen,kv);
                 currentNode->free_read_lock();
                 return;
             }
@@ -167,9 +159,8 @@ void VarLengthHashTree:: crash_consistent_put(VarLengthHashTreeNode *_node, int 
                 // if prefix is match 
                 // move the pos
 
-                currentNode->free_read_lock();
-
                 pos += currentNode->header.len;
+                currentNode->free_read_lock();
 
                 // compute subkey (16bits as default)
                 // uint64_t subkey = GET_16BITS(key,pos);
@@ -189,7 +180,10 @@ void VarLengthHashTree:: crash_consistent_put(VarLengthHashTreeNode *_node, int 
                         goto CCEH_RETRY;
                     }
 
-                    if(*(HashTreeSegment **)GET_SEG_POS((*(VarLengthHashTreeNode**)beforeAddress),dir_index)!=tmp_seg){
+                    uint64_t old_dir_index = GET_SEG_NUM(subkey, HT_NODE_LENGTH, (*(VarLengthHashTreeNode**)beforeAddress)->global_depth);
+                    HashTreeSegment * old_seg = *(HashTreeSegment **)GET_SEG_POS((*(VarLengthHashTreeNode**)beforeAddress),old_dir_index);
+
+                    if(old_seg!=tmp_seg||old_seg->depth != tmp_seg->depth){
                         tmp_seg->free_read_lock();
                         std::this_thread::yield();
                         goto CCEH_RETRY;
@@ -256,13 +250,13 @@ void VarLengthHashTree:: crash_consistent_put(VarLengthHashTreeNode *_node, int 
                                 clflush((char *) &(((HashTreeKeyValue *) next)->value), 8);
                             } else {
                                 //not same key: needs to create a new node
-                                VarLengthHashTreeNode *newNode = new_varlengthhashtree_node(HT_NODE_LENGTH,headerDepth+1);
+                                VarLengthHashTreeNode *newNode = new_varlengthhashtree_node(HT_NODE_PREFIX_MAX_BYTES+1,headerDepth+1);
 
                                 // put pre kv
                                 // uint64_t preSubkey = GET_16BITS(preKey,pos);
-                                crash_consistent_put_without_lock(newNode,preLength,preKey,preValue,(uint64_t)&tmp_bucket->counter[i].value,pos + HT_NODE_LENGTH/SIZE_OF_CHAR);
+                                crash_consistent_put_without_lock(newNode,preLength,preKey,preValue,(uint64_t)&newNode,pos + HT_NODE_LENGTH/SIZE_OF_CHAR);
                                 // put new kv
-                                crash_consistent_put_without_lock(newNode,length,key,value,(uint64_t)&tmp_bucket->counter[i].value,pos + HT_NODE_LENGTH/SIZE_OF_CHAR);
+                                crash_consistent_put_without_lock(newNode,length,key,value,(uint64_t)&newNode,pos + HT_NODE_LENGTH/SIZE_OF_CHAR);
                                 clflush((char *) newNode, sizeof(VarLengthHashTreeNode));
 
                                 tmp_bucket->counter[i].value = (uint64_t)newNode;
@@ -281,6 +275,7 @@ void VarLengthHashTree:: crash_consistent_put(VarLengthHashTreeNode *_node, int 
                             // next is next extendible hash
 
                             pos += HT_NODE_LENGTH/SIZE_OF_CHAR;
+
                             if(lock_bucket!=NULL){
                                 lock_bucket->free_read_lock();
                                 lock_segment->free_read_lock();
@@ -304,40 +299,37 @@ void VarLengthHashTree:: crash_consistent_put(VarLengthHashTreeNode *_node, int 
                     goto PUT_RETRY;
                 }
 
+                // double check
                 if(*(VarLengthHashTreeNode**)beforeAddress!=currentNode){
                     currentNode->free_write_lock();
                     std::this_thread::yield();
                     goto PUT_RETRY;
                 }
 
-                // double check
-                // if(currentNode->header.computePrefix(key,length,pos)!=matchedPrefixLen){
-                //     currentNode->free_write_lock();
-                //     std::this_thread::yield();
-                //     goto PUT_RETRY;
-                // }
-
                 // build new tree node
-                VarLengthHashTreeNode *newNode = new_varlengthhashtree_node(HT_NODE_LENGTH,headerDepth);
+                VarLengthHashTreeNode *newNode = new_varlengthhashtree_node(0,headerDepth);
                 newNode->header.init(&currentNode->header,matchedPrefixLen,currentNode->header.depth);
-                for(int j=0;j<matchedPrefixLen;j++){
-                    newNode->node_put(j,&currentNode->treeNodeValues[currentNode->header.len-j]);
+                for(int j=currentNode->header.len - matchedPrefixLen;j<=currentNode->header.len;j++){
+                    newNode->treeNodeValues[j - currentNode->header.len + matchedPrefixLen] = currentNode->treeNodeValues[j];
                 }
 
                 // uint64_t subkey = GET_16BITS(key,matchedPrefixLen);
-                uint64_t subkey = GET_32BITS(key,matchedPrefixLen);
+                uint64_t subkey = GET_32BITS(key,pos+matchedPrefixLen);
                 HashTreeKeyValue *kv = new_vlht_key_value(key, length, value);
                 clflush((char *) kv, sizeof(HashTreeKeyValue));
+
                 newNode->put(subkey,(uint64_t)kv,(uint64_t)&newNode);
                 // newNode->put(GET_16BITS(currentNode->header.array,matchedPrefixLen),(uint64_t)currentNode);
                 newNode->put(GET_32BITS(currentNode->header.array,matchedPrefixLen),(uint64_t)currentNode,(uint64_t)&newNode);
 
                 // modify currentNode 
-                currentNode->header.depth -= matchedPrefixLen*SIZE_OF_CHAR/HT_NODE_LENGTH;
-                currentNode->header.len -= matchedPrefixLen;
+                matchedPrefixLen += 4;
                 for(int i=0;i<HT_NODE_PREFIX_MAX_BYTES-matchedPrefixLen;i++){
                     currentNode->header.array[i] = currentNode->header.array[i+matchedPrefixLen];
                 }
+                currentNode->header.depth -= matchedPrefixLen;
+                currentNode->header.len -= matchedPrefixLen;
+
                 clflush((char*)&(currentNode->header),8);
                 clflush((char *) newNode, sizeof(VarLengthHashTreeNode));
 
@@ -356,37 +348,36 @@ void VarLengthHashTree:: crash_consistent_put(VarLengthHashTreeNode *_node, int 
 
 
 void VarLengthHashTree:: crash_consistent_put_without_lock(VarLengthHashTreeNode *_node, int length, unsigned char* key, uint64_t value, uint64_t beforeAddress, int pos){
-    VarLengthHashTreeNode *currentNode = _node;
-    if (_node == NULL){
-        currentNode = root;
-    }
-    unsigned char headerDepth = currentNode->header.depth;
-    while(length>pos){
-        int matchedPrefixLen;
+    while(length>=pos){
+            VarLengthHashTreeNode *currentNode = *(VarLengthHashTreeNode**)beforeAddress;
+            unsigned char headerDepth = currentNode->header.depth;
 
-        // init a number bigger than HT_NODE_PREFIX_MAX_LEN to represent there is no value
-        if(currentNode->header.len>HT_NODE_PREFIX_MAX_BYTES){
-            currentNode->header.len = (length - (pos+1)*SIZE_OF_CHAR)>HT_NODE_PREFIX_MAX_BITS?HT_NODE_PREFIX_MAX_BITS:(length - (pos+1)*SIZE_OF_CHAR);
-            currentNode->header.assign(key+pos);
-            pos += HT_NODE_PREFIX_MAX_BYTES;
-            continue;
-        }else{
-            // compute this prefix
-            matchedPrefixLen = currentNode->header.computePrefix(key,length,pos);
-        }
-        if(pos + matchedPrefixLen == length){
-            HashTreeKeyValue *kv = new_vlht_key_value(key, length, value);
-            clflush((char *) kv, sizeof(HashTreeKeyValue));
-            currentNode->node_put(matchedPrefixLen,kv);
-            return;
-        }
-        if(matchedPrefixLen == currentNode->header.len){
-            // if prefix is match 
-            // move the pos
+            int matchedPrefixLen = 0;
+            // init a number bigger than HT_NODE_PREFIX_MAX_LEN to represent there is no value
+            if(currentNode->header.len>HT_NODE_PREFIX_MAX_BYTES){
+                int maxSize = HT_NODE_PREFIX_MAX_BYTES - HT_NODE_PREFIX_MAX_BYTES%(HT_NODE_LENGTH/SIZE_OF_CHAR);
+                currentNode->header.len = min((length - pos),maxSize);
+                currentNode->header.assign(key+pos,currentNode->header.len);
+                // pos += HT_NODE_PREFIX_MAX_BYTES;
+                continue;
+            }else{
+                // compute this prefix
+                matchedPrefixLen = currentNode->header.computePrefix(key,length,pos);
+            }
+            if(pos + matchedPrefixLen == length){
+                HashTreeKeyValue *kv = new_vlht_key_value(key, length, value);
+                clflush((char *) kv, sizeof(HashTreeKeyValue));
+                currentNode->node_put(matchedPrefixLen,kv);
+                return;
+            }
+            if(matchedPrefixLen == currentNode->header.len){
+                // if prefix is match 
+                // move the pos
+
             pos += currentNode->header.len;
-
             // compute subkey (16bits as default)
             // uint64_t subkey = GET_16BITS(key,pos);
+
             uint64_t subkey = GET_32BITS(key,pos);
 
             // use the subkey to search in a cceh node
@@ -396,6 +387,7 @@ void VarLengthHashTree:: crash_consistent_put_without_lock(VarLengthHashTreeNode
             HashTreeSegment *tmp_seg = *(HashTreeSegment **)GET_SEG_POS(currentNode,dir_index);
             uint64_t seg_index = GET_BUCKET_NUM(subkey, HT_BUCKET_MASK_LEN);
             HashTreeBucket *tmp_bucket = &(tmp_seg->bucket[seg_index]);
+
             int i;
             uint64_t beforeA;
             for (i = 0; i < HT_BUCKET_SIZE; ++i) {
@@ -405,8 +397,6 @@ void VarLengthHashTree:: crash_consistent_put_without_lock(VarLengthHashTreeNode
                     break;
                 }
             }
-
-            pos += HT_NODE_LENGTH/SIZE_OF_CHAR;
             if (next == 0) {
                 //not exists
                 HashTreeKeyValue *kv = new_vlht_key_value(key, length, value);
@@ -423,26 +413,24 @@ void VarLengthHashTree:: crash_consistent_put_without_lock(VarLengthHashTreeNode
                         //same key, update the value
                         ((HashTreeKeyValue *) next)->value = value;
                         clflush((char *) &(((HashTreeKeyValue *) next)->value), 8);
-                        return;
                     } else {
                         //not same key: needs to create a new node
-                        VarLengthHashTreeNode *newNode = new_varlengthhashtree_node(HT_NODE_LENGTH,headerDepth+1);
+                        VarLengthHashTreeNode *newNode = new_varlengthhashtree_node(HT_NODE_PREFIX_MAX_BYTES+1,headerDepth+1);
 
                         // put pre kv
                         // uint64_t preSubkey = GET_16BITS(preKey,pos);
-                        crash_consistent_put(newNode,preLength,preKey,preValue,(uint64_t)&tmp_bucket->counter[i].value,pos);
-
+                        crash_consistent_put_without_lock(newNode,preLength,preKey,preValue,(uint64_t)&newNode,pos + HT_NODE_LENGTH/SIZE_OF_CHAR);
                         // put new kv
-                        crash_consistent_put(newNode,length,key,value,(uint64_t)&tmp_bucket->counter[i].value,pos);
-
+                        crash_consistent_put_without_lock(newNode,length,key,value,(uint64_t)&newNode,pos + HT_NODE_LENGTH/SIZE_OF_CHAR);
                         clflush((char *) newNode, sizeof(VarLengthHashTreeNode));
 
                         tmp_bucket->counter[i].value = (uint64_t)newNode;
                         clflush((char*)&tmp_bucket->counter[i].value,8);
-                        return;
                     }
+                    return;
                 } else {
                     // next is next extendible hash
+                    pos += HT_NODE_LENGTH/SIZE_OF_CHAR;
                     currentNode = (VarLengthHashTreeNode *) next;
                     beforeAddress =  beforeA;
                     headerDepth = currentNode->header.depth;
@@ -453,26 +441,30 @@ void VarLengthHashTree:: crash_consistent_put_without_lock(VarLengthHashTreeNode
             // split a new tree node and insert 
 
             // build new tree node
-            VarLengthHashTreeNode *newNode = new_varlengthhashtree_node(HT_NODE_LENGTH,headerDepth);
+            VarLengthHashTreeNode *newNode = new_varlengthhashtree_node(0,headerDepth);
             newNode->header.init(&currentNode->header,matchedPrefixLen,currentNode->header.depth);
-            for(int j=0;j<matchedPrefixLen;j++){
-                newNode->node_put(j,&currentNode->treeNodeValues[currentNode->header.len-j]);
+            for(int j=currentNode->header.len - matchedPrefixLen;j<=currentNode->header.len;j++){
+                newNode->treeNodeValues[j - currentNode->header.len + matchedPrefixLen] = currentNode->treeNodeValues[j];
             }
 
             // uint64_t subkey = GET_16BITS(key,matchedPrefixLen);
-            uint64_t subkey = GET_32BITS(key,matchedPrefixLen);
+            uint64_t subkey = GET_32BITS(key,(pos+matchedPrefixLen));
             HashTreeKeyValue *kv = new_vlht_key_value(key, length, value);
             clflush((char *) kv, sizeof(HashTreeKeyValue));
+
             newNode->put(subkey,(uint64_t)kv,(uint64_t)&newNode);
             // newNode->put(GET_16BITS(currentNode->header.array,matchedPrefixLen),(uint64_t)currentNode);
+
             newNode->put(GET_32BITS(currentNode->header.array,matchedPrefixLen),(uint64_t)currentNode,(uint64_t)&newNode);
 
+            matchedPrefixLen += 4;
             // modify currentNode 
-            currentNode->header.depth -= matchedPrefixLen*SIZE_OF_CHAR/HT_NODE_LENGTH;
-            currentNode->header.len -= matchedPrefixLen;
-            for(int i=0;i<HT_NODE_PREFIX_MAX_BYTES-matchedPrefixLen;i++){
+            for(int i=0;i<HT_NODE_PREFIX_MAX_BYTES-matchedPrefixLen ;i++){
                 currentNode->header.array[i] = currentNode->header.array[i+matchedPrefixLen];
             }
+            currentNode->header.depth -= matchedPrefixLen;
+            currentNode->header.len -= matchedPrefixLen;
+
             clflush((char*)&(currentNode->header),8);
             clflush((char *) newNode, sizeof(VarLengthHashTreeNode));
 
@@ -489,10 +481,13 @@ uint64_t VarLengthHashTree::get(int length, unsigned char* key){
         return 0;
     }
     int  pos  = 0;
-    while(pos!=length){
+    while(pos<=length){
         if(length-pos <= currentNode->header.len){
-            if(!strncmp((char *)key+pos,(char *)currentNode->treeNodeValues[currentNode->header.len - length+pos].key+pos,length-pos)){
-                return (uint64_t)currentNode->treeNodeValues[currentNode->header.len - length+pos].value;
+            if(currentNode->treeNodeValues[currentNode->header.len - length+pos] == NULL){
+                return 0;
+            }
+            if(keyIsSame(key,length,(currentNode->treeNodeValues[currentNode->header.len - length+pos]->key),currentNode->treeNodeValues[currentNode->header.len - length+pos]->len)){
+                return currentNode->treeNodeValues[currentNode->header.len - length+pos]->value;
             }else{
                 return 0;
             }
@@ -669,8 +664,9 @@ void Length64HashTree:: crash_consistent_put(Length64HashTreeNode *_node, uint64
             // build new tree node
             Length64HashTreeNode *newNode = new_length64hashtree_node(HT_NODE_LENGTH,headerDepth);
             newNode->header.init(&currentNode->header,matchedPrefixLen,currentNode->header.depth);
-            for(int j=0;j<matchedPrefixLen;j++){
-                newNode->node_put(j,&currentNode->treeNodeValues[currentNode->header.len-j]);
+
+            for(int j=currentNode->header.len - matchedPrefixLen;j<=currentNode->header.len;j++){
+                newNode->treeNodeValues[j - currentNode->header.len + matchedPrefixLen] = currentNode->treeNodeValues[j];
             }
 
             uint64_t subkey = GET_SUBKEY(key,(len+matchedPrefixLen)*SIZE_OF_CHAR,HT_NODE_LENGTH);

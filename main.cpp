@@ -417,9 +417,10 @@ void * concurrency_fastfair_put(int threadNum){
 }
 
 void * concurrency_vlht_put(int threadNum){
-    init_fast_allocator(true);
+    // init_fast_allocator(true);
     for (int i = threadNum*(testNum/numThread); i < (threadNum+1)*(testNum/numThread); ++i) {                                                     
-            vlht->crash_consistent_put(NULL,64,(unsigned char*)&mykey[i],1);
+            vlht->crash_consistent_put(NULL,8,(unsigned char*)&mykey[i],1);
+            // vlht->crash_consistent_put_without_lock(NULL,8,(unsigned char*)&mykey[i],1,(uint64_t)&vlht->root);
     }
 }
 
@@ -445,7 +446,6 @@ void concurrencyTest(){
             for(int i=0;i<numThread;i++){
                 threads[i]  = new std::thread(concurrency_vlht_put,i);
             }
-
             for(int i=0;i<numThread;i++){
                 threads[i]->join();
             }
@@ -456,16 +456,16 @@ void concurrencyTest(){
         int failed = 0;
         vector<uint64_t> failed_key;
         for(int i=0;i<testNum;i++){
-            int res = vlht->get(64,(unsigned char*)&mykey[i]);
+            int res = vlht->get(8,(unsigned char*)&mykey[i]);
             if(res!=1){
                 failed++;
-                cout<<"failed : "<<i<< " key : "<< mykey[i]<<" value: "<< res <<endl;
-                vlht->crash_consistent_put(NULL,64,(unsigned char*)&mykey[i],1);
-                if(vlht->get(64,(unsigned char*)&mykey[i])!=1){
-                    cout<<"still wrong!"<<endl;
-                }else{
-                    cout<<"fixed"<<endl;
-                }
+                // cout<<"failed : "<<i<< " key : "<< mykey[i]<<" value: "<< res <<endl;
+                // vlht->crash_consistent_put_without_lock(NULL,8,(unsigned char*)&mykey[i],1,(uint64_t)&vlht->root);
+                // if(vlht->get(8,(unsigned char*)&mykey[i])!=1){
+                //     cout<<"still wrong!"<<endl;
+                // }else{
+                //     cout<<"fixed"<<endl;
+                // }
             }
         }
 

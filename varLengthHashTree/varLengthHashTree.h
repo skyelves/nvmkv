@@ -8,12 +8,12 @@
 #include "varLengthHashTree_node.h"
 
 class VarLengthHashTree {
-private:
+
+public:
+
     int init_depth = 0; //represent extendible hash initial global depth
     VarLengthHashTreeNode *root = NULL;
     int64_t lock_meta = 0;
-//    extendible_hash *root = NULL;
-public:
 
     VarLengthHashTree();
 
@@ -21,7 +21,7 @@ public:
 
     ~VarLengthHashTree();
 
-    void init();
+    void init(int prefixLen);
 
     //support variable values, for convenience, we set v to 8 byte
     void crash_consistent_put(VarLengthHashTreeNode *_node, int length, unsigned char* key, uint64_t value, uint64_t beforeAddress, int pos = 0);
