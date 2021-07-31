@@ -64,10 +64,23 @@ class HashTreeBucket {
 public:
    
     BucketKeyValue counter[HT_BUCKET_SIZE];
+    int64_t lock_meta = 0;
 
     uint64_t get(uint64_t key);
 
     int find_place(uint64_t _key, uint64_t _key_len, uint64_t _depth);
+
+    bool read_lock();
+
+    bool write_lock();
+
+    void free_read_lock();
+
+    void free_write_lock();
+
+    bool is_write_locked();
+
+    bool is_read_locked();
 };
 
 HashTreeBucket *new_vlht_bucket(int _depth = 0);
@@ -75,14 +88,25 @@ HashTreeBucket *new_vlht_bucket(int _depth = 0);
 class HashTreeSegment {
 public:
     uint64_t depth = 0;
-   HashTreeBucket *bucket;
+    HashTreeBucket *bucket;
     // HashTreeBucket bucket[HT_MAX_BUCKET_NUM];
+    int64_t lock_meta = 0;
+
 
     HashTreeSegment();
 
     ~HashTreeSegment();
 
     void init(uint64_t _depth);
+
+    bool read_lock();
+
+    bool write_lock();
+
+    void free_read_lock();
+
+    void free_write_lock();
+
 };
 
 HashTreeSegment *new_vlht_segment(uint64_t _depth = 0);
@@ -106,6 +130,7 @@ public:
     bool type = 0;
     unsigned char global_depth = 0;
     uint32_t dir_size = 1;
+    int64_t lock_meta = 0;
     VarLengthHashTreeHeader header;
     HashTreeKeyValue* treeNodeValues;
     // used to represent the elements in the treenode prefix, but not in CCEH
@@ -120,10 +145,23 @@ public:
 
     void put(uint64_t subkey, uint64_t value, HashTreeSegment* tmp_seg, HashTreeBucket* tmp_bucket, uint64_t dir_index, uint64_t seg_index, uint64_t beforeAddress);
 
+    bool put_with_read_lock(uint64_t subkey, uint64_t value, HashTreeSegment* tmp_seg, HashTreeBucket* tmp_bucket, uint64_t dir_index, uint64_t seg_index, uint64_t beforeAddress);
+    
     void node_put(int pos, HashTreeKeyValue* kv);
     
     uint64_t get(uint64_t key);
 
+    bool read_lock();
+
+    bool write_lock();
+
+    void free_read_lock();
+
+    void free_write_lock();
+
+    bool is_write_locked();
+
+    bool is_read_locked();
 };
 
 VarLengthHashTreeNode *new_varlengthhashtree_node( int _key_len, unsigned char headerDepth = 1, unsigned char globalDepth = HT_INIT_GLOBAL_DEPTH);

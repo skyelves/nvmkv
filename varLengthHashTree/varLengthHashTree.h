@@ -11,6 +11,7 @@ class VarLengthHashTree {
 private:
     int init_depth = 0; //represent extendible hash initial global depth
     VarLengthHashTreeNode *root = NULL;
+    int64_t lock_meta = 0;
 //    extendible_hash *root = NULL;
 public:
 
@@ -27,6 +28,8 @@ public:
     
     void crash_consistent_put(VarLengthHashTreeNode *_node, int length, unsigned char* key, uint64_t value, int pos = 0);
 
+    void crash_consistent_put_without_lock(VarLengthHashTreeNode *_node, int length, unsigned char* key, uint64_t value, uint64_t beforeAddress, int pos = 0);
+
     uint64_t get(int length, unsigned char* key);
 
     void all_subtree_kv(VarLengthHashTreeNode *tmp, vector<HashTreeKeyValue> &res);
@@ -36,6 +39,14 @@ public:
     void update(uint64_t k, uint64_t v);
 
     uint64_t del(uint64_t k);
+
+    bool read_lock();
+
+    bool write_lock();
+
+    void free_read_lock();
+
+    void free_write_lock();
 };
 
 VarLengthHashTree *new_varLengthHashtree();

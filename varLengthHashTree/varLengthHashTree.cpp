@@ -98,6 +98,265 @@ void VarLengthHashTree:: crash_consistent_put(VarLengthHashTreeNode *_node, int 
 
 void VarLengthHashTree:: crash_consistent_put(VarLengthHashTreeNode *_node, int length, unsigned char* key, uint64_t value, uint64_t beforeAddress, int pos){
     VarLengthHashTreeNode *currentNode = _node;
+    
+    // lock root
+    // if(_node==NULL){
+    //    currentNode = root;
+    // }
+    // // TODO move!
+    // unsigned char headerDepth = currentNode->header.depth;
+    HashTreeBucket* lock_bucket = NULL;
+    HashTreeSegment* lock_segment = NULL;
+
+    while(length>pos){
+        PUT_RETRY:
+            VarLengthHashTreeNode *currentNode = *(VarLengthHashTreeNode**)beforeAddress;
+            unsigned char headerDepth = currentNode->header.depth;
+
+            if(!currentNode->read_lock()){
+                std::this_thread::yield();
+                goto PUT_RETRY;
+            }
+
+            if(*(VarLengthHashTreeNode**)beforeAddress!=currentNode){
+                currentNode->free_read_lock();
+                std::this_thread::yield();
+                goto PUT_RETRY;
+            }
+
+            int matchedPrefixLen;
+            // init a number bigger than HT_NODE_PREFIX_MAX_LEN to represent there is no value
+            if(currentNode->header.len>HT_NODE_PREFIX_MAX_BYTES){
+                currentNode->free_read_lock();
+                if(!currentNode->write_lock()){
+                    std::this_thread::yield();
+                    goto PUT_RETRY;
+                }
+
+                // double check
+                if(currentNode->header.len<=HT_NODE_PREFIX_MAX_BYTES||(*(VarLengthHashTreeNode**)beforeAddress!=currentNode)){
+                    currentNode->free_write_lock();
+                    std::this_thread::yield();
+                    goto PUT_RETRY;
+                }
+
+                currentNode->header.len = (length - (pos+1)*SIZE_OF_CHAR)>HT_NODE_PREFIX_MAX_BITS?HT_NODE_PREFIX_MAX_BITS:(length - (pos+1)*SIZE_OF_CHAR);
+                currentNode->header.assign(key+pos);
+                // pos += HT_NODE_PREFIX_MAX_BYTES;
+
+                currentNode->free_write_lock();
+                continue;
+            }else{
+                // compute this prefix
+                matchedPrefixLen = currentNode->header.computePrefix(key,length,pos);
+            }
+
+            if(pos + matchedPrefixLen == length){
+                if(lock_bucket!=NULL){
+                    lock_bucket->free_read_lock();
+                    lock_segment->free_read_lock();
+                }
+                HashTreeKeyValue *kv = new_vlht_key_value(key, length, value);
+                clflush((char *) kv, sizeof(HashTreeKeyValue));
+                currentNode->node_put(matchedPrefixLen,kv);
+                currentNode->free_read_lock();
+                return;
+            }
+
+            if(matchedPrefixLen == currentNode->header.len){
+                // if prefix is match 
+                // move the pos
+
+                currentNode->free_read_lock();
+
+                pos += currentNode->header.len;
+
+                // compute subkey (16bits as default)
+                // uint64_t subkey = GET_16BITS(key,pos);
+
+                CCEH_RETRY:
+                    uint64_t subkey = GET_32BITS(key,pos);
+
+                    // use the subkey to search in a cceh node
+                    uint64_t next = 0;
+
+                    uint64_t dir_index = GET_SEG_NUM(subkey, HT_NODE_LENGTH, (*(VarLengthHashTreeNode**)beforeAddress)->global_depth);
+                    HashTreeSegment *tmp_seg = *(HashTreeSegment **)GET_SEG_POS((*(VarLengthHashTreeNode**)beforeAddress),dir_index);
+
+                    // read lock segment
+                    if(!tmp_seg->read_lock()){
+                        std::this_thread::yield();
+                        goto CCEH_RETRY;
+                    }
+
+                    if(*(HashTreeSegment **)GET_SEG_POS((*(VarLengthHashTreeNode**)beforeAddress),dir_index)!=tmp_seg){
+                        tmp_seg->free_read_lock();
+                        std::this_thread::yield();
+                        goto CCEH_RETRY;
+                    }
+                
+                    uint64_t seg_index = GET_BUCKET_NUM(subkey, HT_BUCKET_MASK_LEN);
+                    HashTreeBucket *tmp_bucket = &(tmp_seg->bucket[seg_index]);
+
+                    if(!tmp_bucket->read_lock()){
+                        tmp_seg->free_read_lock();
+                        std::this_thread::yield();
+                        goto CCEH_RETRY;
+                    }
+
+                    int i;
+                    uint64_t beforeA;
+                    for (i = 0; i < HT_BUCKET_SIZE; ++i) {
+                        if (subkey == tmp_bucket->counter[i].subkey) {
+                            next =  tmp_bucket->counter[i].value;
+                            beforeA = (uint64_t)&tmp_bucket->counter[i].value;
+                            break;
+                        }
+                    }
+
+                    if (next == 0) {
+                        //not exists
+                        HashTreeKeyValue *kv = new_vlht_key_value(key, length, value);
+                        clflush((char *) kv, sizeof(HashTreeKeyValue));
+                        if(!(*(VarLengthHashTreeNode**)beforeAddress)->put_with_read_lock(subkey, (uint64_t) kv, tmp_seg, tmp_bucket, dir_index, seg_index, beforeAddress)){
+                            goto CCEH_RETRY;
+                        }
+                        if(lock_bucket!=NULL){
+                            lock_bucket->free_read_lock();
+                            lock_segment->free_read_lock();
+                        }
+                        return;
+                    } else {
+                        
+                        if (((bool *) next)[0]) {
+                            // next is key value pair, which means collides
+
+                            tmp_bucket->free_read_lock();
+
+                            if(!tmp_bucket->write_lock()){
+                                tmp_seg->free_read_lock();
+                                std::this_thread::yield();
+                                goto CCEH_RETRY;
+                            }
+
+                            if(tmp_bucket->counter[i].value!=next){
+                                tmp_bucket->free_write_lock();
+                                tmp_seg->free_read_lock();
+                                std::this_thread::yield();
+                                goto CCEH_RETRY;
+                            }   
+
+                            unsigned char* preKey = ((HashTreeKeyValue *) next)->key;
+                            unsigned int preLength = ((HashTreeKeyValue *) next)->len;
+                            uint64_t preValue = ((HashTreeKeyValue *) next)->value;
+
+                            if (unlikely(keyIsSame(key,length,preKey,preLength))) {
+                                //same key, update the value
+                                ((HashTreeKeyValue *) next)->value = value;
+                                clflush((char *) &(((HashTreeKeyValue *) next)->value), 8);
+                            } else {
+                                //not same key: needs to create a new node
+                                VarLengthHashTreeNode *newNode = new_varlengthhashtree_node(HT_NODE_LENGTH,headerDepth+1);
+
+                                // put pre kv
+                                // uint64_t preSubkey = GET_16BITS(preKey,pos);
+                                crash_consistent_put_without_lock(newNode,preLength,preKey,preValue,(uint64_t)&tmp_bucket->counter[i].value,pos + HT_NODE_LENGTH/SIZE_OF_CHAR);
+                                // put new kv
+                                crash_consistent_put_without_lock(newNode,length,key,value,(uint64_t)&tmp_bucket->counter[i].value,pos + HT_NODE_LENGTH/SIZE_OF_CHAR);
+                                clflush((char *) newNode, sizeof(VarLengthHashTreeNode));
+
+                                tmp_bucket->counter[i].value = (uint64_t)newNode;
+                                clflush((char*)&tmp_bucket->counter[i].value,8);
+                            }
+                                // TODO comfirm the order of clflush and unlock
+                            tmp_bucket->free_write_lock();
+                            tmp_seg->free_read_lock();
+
+                            if(lock_bucket!=NULL){
+                                lock_bucket->free_read_lock();
+                                lock_segment->free_read_lock();
+                            }
+                            return;
+                        } else {
+                            // next is next extendible hash
+
+                            pos += HT_NODE_LENGTH/SIZE_OF_CHAR;
+                            if(lock_bucket!=NULL){
+                                lock_bucket->free_read_lock();
+                                lock_segment->free_read_lock();
+                            }
+
+                            lock_bucket = tmp_bucket;
+                            lock_segment = tmp_seg;
+
+                            currentNode = (VarLengthHashTreeNode *) next;
+                            beforeAddress =  beforeA;
+                            headerDepth = currentNode->header.depth;
+                        }
+                    }
+            }else{
+                // if prefix is not match (shorter)
+                // split a new tree node and insert 
+                
+                currentNode->free_read_lock();
+                if(!currentNode->write_lock()){
+                    std::this_thread::yield();
+                    goto PUT_RETRY;
+                }
+
+                if(*(VarLengthHashTreeNode**)beforeAddress!=currentNode){
+                    currentNode->free_write_lock();
+                    std::this_thread::yield();
+                    goto PUT_RETRY;
+                }
+
+                // double check
+                // if(currentNode->header.computePrefix(key,length,pos)!=matchedPrefixLen){
+                //     currentNode->free_write_lock();
+                //     std::this_thread::yield();
+                //     goto PUT_RETRY;
+                // }
+
+                // build new tree node
+                VarLengthHashTreeNode *newNode = new_varlengthhashtree_node(HT_NODE_LENGTH,headerDepth);
+                newNode->header.init(&currentNode->header,matchedPrefixLen,currentNode->header.depth);
+                for(int j=0;j<matchedPrefixLen;j++){
+                    newNode->node_put(j,&currentNode->treeNodeValues[currentNode->header.len-j]);
+                }
+
+                // uint64_t subkey = GET_16BITS(key,matchedPrefixLen);
+                uint64_t subkey = GET_32BITS(key,matchedPrefixLen);
+                HashTreeKeyValue *kv = new_vlht_key_value(key, length, value);
+                clflush((char *) kv, sizeof(HashTreeKeyValue));
+                newNode->put(subkey,(uint64_t)kv,(uint64_t)&newNode);
+                // newNode->put(GET_16BITS(currentNode->header.array,matchedPrefixLen),(uint64_t)currentNode);
+                newNode->put(GET_32BITS(currentNode->header.array,matchedPrefixLen),(uint64_t)currentNode,(uint64_t)&newNode);
+
+                // modify currentNode 
+                currentNode->header.depth -= matchedPrefixLen*SIZE_OF_CHAR/HT_NODE_LENGTH;
+                currentNode->header.len -= matchedPrefixLen;
+                for(int i=0;i<HT_NODE_PREFIX_MAX_BYTES-matchedPrefixLen;i++){
+                    currentNode->header.array[i] = currentNode->header.array[i+matchedPrefixLen];
+                }
+                clflush((char*)&(currentNode->header),8);
+                clflush((char *) newNode, sizeof(VarLengthHashTreeNode));
+
+                // modify the successor 
+                *(VarLengthHashTreeNode**)beforeAddress = newNode;
+
+                currentNode->free_write_lock();
+                if(lock_bucket!=NULL){
+                    lock_bucket->free_read_lock();
+                    lock_segment->free_read_lock();
+                }
+                return;
+            }
+    }
+}
+
+
+void VarLengthHashTree:: crash_consistent_put_without_lock(VarLengthHashTreeNode *_node, int length, unsigned char* key, uint64_t value, uint64_t beforeAddress, int pos){
+    VarLengthHashTreeNode *currentNode = _node;
     if (_node == NULL){
         currentNode = root;
     }
@@ -253,11 +512,11 @@ uint64_t VarLengthHashTree::get(int length, unsigned char* key){
         }
         if((((bool *) next)[0])){
             // is value
-            if(pos==length){
-                return ((HashTreeKeyValue*)next)->value;
-            }else{
-                return 0;
-            }
+            // if(pos==length){
+            return ((HashTreeKeyValue*)next)->value;
+            // }else{
+            //     return 0;
+            // }
         }else{
             currentNode = (VarLengthHashTreeNode*)next;
         }
@@ -265,7 +524,47 @@ uint64_t VarLengthHashTree::get(int length, unsigned char* key){
     return 0;
 }
 
+bool VarLengthHashTree::read_lock(){
+    int64_t val = lock_meta;
+    while(val>-1){
+        if(cas(&lock_meta, &val, val+1)){
+            return true;
+        }
+        val = lock_meta;
+    }
+    return false;
+}
 
+bool VarLengthHashTree::write_lock(){
+    int64_t val = lock_meta;
+    if(val<0){
+        return false;
+    }
+
+    while(!cas(&lock_meta, &val, -1)){
+        val = lock_meta;
+        if(val<0){
+            return false;
+        }
+    }
+
+    while(val && lock_meta != 0-val-1){
+        asm("nop");
+    }
+
+    return true;
+}
+
+void VarLengthHashTree::free_read_lock(){
+    int64_t val = lock_meta;
+    while(!cas(&lock_meta, &val, val-1)){
+        val = lock_meta;
+    }
+}
+
+void VarLengthHashTree::free_write_lock(){
+    lock_meta = 0;
+}
 
 void Length64HashTree:: crash_consistent_put(Length64HashTreeNode *_node, uint64_t key, uint64_t value, int len){
     // 0-index of current bytes
