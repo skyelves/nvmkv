@@ -63,6 +63,51 @@ HashTreeBucket *new_vlht_bucket(int _depth) {
     return _new_bucket;
 }
 
+
+bool HashTreeBucket::read_lock(){
+    int64_t val = lock_meta;
+    while(val>-1){
+        if(cas(&lock_meta, &val, val+1)){
+            return true;
+        }
+        val = lock_meta;
+    }
+    return false;
+}
+
+bool HashTreeBucket::write_lock(){
+    int64_t val = lock_meta;
+    if(val<0){
+        return false;
+    }
+
+    while(!cas(&lock_meta, &val, -1)){
+        val = lock_meta;
+        if(val<0){
+            return false;
+        }
+    }
+
+    while(val && lock_meta != 0-val-1){
+        asm("nop");
+    }
+
+    return true;
+
+}
+
+void HashTreeBucket::free_read_lock(){
+    int64_t val = lock_meta;
+    while(!cas(&lock_meta, &val, val-1)){
+        val = lock_meta;
+    }
+}
+
+void HashTreeBucket::free_write_lock(){
+    lock_meta = 0;
+}
+
+
 HashTreeSegment::HashTreeSegment() {
     depth = 0;
     bucket = static_cast<HashTreeBucket *>(fast_alloc(sizeof(HashTreeBucket) * HT_MAX_BUCKET_NUM));
@@ -79,6 +124,49 @@ HashTreeSegment *new_vlht_segment(uint64_t _depth) {
     HashTreeSegment *_new_ht_segment = static_cast<HashTreeSegment *>(fast_alloc(sizeof(HashTreeSegment)));
     _new_ht_segment->init(_depth);
     return _new_ht_segment;
+}
+
+
+bool HashTreeSegment::read_lock(){
+    int64_t val = lock_meta;
+    while(val>-1){
+        if(cas(&lock_meta, &val, val+1)){
+            return true;
+        }
+        val = lock_meta;
+    }
+    return false;
+}
+
+bool HashTreeSegment::write_lock(){
+    int64_t val = lock_meta;
+    if(val<0){
+        return false;
+    }
+
+    while(!cas(&lock_meta, &val, -1)){
+        val = lock_meta;
+        if(val<0){
+            return false;
+        }
+    }
+
+    while(val && lock_meta != 0-val-1){
+        asm("nop");
+    }
+
+    return true;
+}
+
+void HashTreeSegment::free_read_lock(){
+    int64_t val = lock_meta;
+    while(!cas(&lock_meta, &val, val-1)){
+        val = lock_meta;
+    }
+}
+
+void HashTreeSegment::free_write_lock(){
+   lock_meta = 0;
 }
 
 VarLengthHashTreeNode::VarLengthHashTreeNode() {
@@ -187,6 +275,164 @@ void VarLengthHashTreeNode::put(uint64_t subkey, uint64_t value, HashTreeSegment
     return;
 }
 
+
+bool VarLengthHashTreeNode::put_with_read_lock(uint64_t subkey, uint64_t value, HashTreeSegment* tmp_seg, HashTreeBucket* tmp_bucket, uint64_t dir_index, uint64_t seg_index, uint64_t beforeAddress){
+    int bucket_index = tmp_bucket->find_place(subkey, HT_NODE_LENGTH, tmp_seg->depth);
+    if (bucket_index == -1) {
+        //condition: full
+        if (likely(tmp_seg->depth < global_depth)) {
+            
+            if(!read_lock()){
+                tmp_bucket->free_read_lock();
+                tmp_seg->free_read_lock();
+                std::this_thread::yield();
+                return false;
+            }
+
+            uint64_t dir_index = GET_SEG_NUM(subkey, HT_NODE_LENGTH, global_depth);
+            uint64_t seg_index = GET_BUCKET_NUM(subkey, HT_BUCKET_MASK_LEN);
+
+            if(*(HashTreeSegment **)GET_SEG_POS((*(VarLengthHashTreeNode**)beforeAddress),dir_index)!=tmp_seg){
+                tmp_bucket->free_read_lock();
+                tmp_seg->free_read_lock();
+                free_read_lock();
+                std::this_thread::yield();
+                return false;
+            }
+
+            uint64_t old_depth = tmp_seg->depth;
+
+            tmp_seg->free_read_lock();
+
+            if(!tmp_seg->write_lock()){
+                tmp_bucket->free_read_lock();
+                free_read_lock();
+                std::this_thread::yield();
+                return false;
+            }
+            
+            if(tmp_seg->depth!=old_depth){
+                tmp_bucket->free_read_lock();
+                tmp_seg->free_write_lock();
+                free_read_lock();
+                std::this_thread::yield();
+               return false;
+            }
+
+            HashTreeSegment *new_seg = new_vlht_segment(tmp_seg->depth + 1);
+            int64_t stride = pow(2, global_depth - tmp_seg->depth);
+            int64_t left = dir_index - dir_index % stride;
+            int64_t mid = left + stride / 2, right = left + stride;
+
+            //migrate previous data to the new bucket
+            for (int i = 0; i < HT_MAX_BUCKET_NUM; ++i) {
+                uint64_t bucket_cnt = 0;
+                for (int j = 0; j < HT_BUCKET_SIZE; ++j) {
+                    uint64_t tmp_key = tmp_seg->bucket[i].counter[j].subkey;
+                    uint64_t tmp_value = tmp_seg->bucket[i].counter[j].value;
+                    dir_index = GET_SEG_NUM(tmp_key, HT_NODE_LENGTH, global_depth);
+                    if (dir_index >= mid) {
+                        HashTreeSegment *dst_seg = new_seg;
+                        seg_index = i;
+                        HashTreeBucket *dst_bucket = &(dst_seg->bucket[seg_index]);
+                        dst_bucket->counter[bucket_cnt].value = tmp_value;
+                        dst_bucket->counter[bucket_cnt].subkey = tmp_key;
+                        bucket_cnt++;
+                    }
+                }
+            }
+            clflush((char *) new_seg, sizeof(HashTreeSegment));
+
+            // set dir[mid, right) to the new bucket
+            for (int i = right - 1; i >= mid; --i) {
+                *(HashTreeSegment **)GET_SEG_POS(this,i) = new_seg;
+            }
+            clflush((char *) GET_SEG_POS(this,right-1), sizeof(HashTreeSegment *)*(right-mid));
+
+            tmp_seg->depth = tmp_seg->depth + 1;
+            clflush((char *) &(tmp_seg->depth), sizeof(tmp_seg->depth));
+            // this->put(subkey, value, beforeAddress);
+
+            tmp_bucket->free_read_lock();
+            tmp_seg->free_write_lock();
+            free_read_lock();
+
+            return false;
+        } else {
+            //condition: tmp_bucket->depth == global_depth
+
+            if(!write_lock()){
+                tmp_bucket->free_read_lock();
+                tmp_seg->free_read_lock();
+                std::this_thread::yield();
+                return false;
+            }
+
+            if((*(VarLengthHashTreeNode**)beforeAddress)!=this){
+                tmp_bucket->free_read_lock();
+                tmp_seg->free_read_lock();
+                free_write_lock();
+                std::this_thread::yield();
+                return false;
+            }
+
+            VarLengthHashTreeNode *newNode = static_cast<VarLengthHashTreeNode *>(fast_alloc(sizeof(VarLengthHashTreeNode)+sizeof(HashTreeSegment *)*dir_size*2));
+            newNode->global_depth = global_depth+1;
+            newNode->dir_size = dir_size*2;
+            newNode->header.init(&this->header,this->header.len,this->header.depth);
+            //set dir
+            for (int i = 0; i < newNode->dir_size; ++i) {
+                *(HashTreeSegment **)GET_SEG_POS(newNode,i) = *(HashTreeSegment **) GET_SEG_POS(this,(i / 2));
+            }
+            clflush((char *) newNode, sizeof(VarLengthHashTreeNode)+sizeof(HashTreeSegment *)*newNode->dir_size);
+            *(VarLengthHashTreeNode**)beforeAddress = newNode;
+            clflush((char *) beforeAddress, sizeof(VarLengthHashTreeNode*));
+
+            tmp_bucket->free_read_lock();
+            tmp_seg->free_read_lock();
+            free_write_lock();
+            // newNode->put(subkey, value, beforeAddress);
+            return false;
+        }
+    } else {
+        uint64_t old_value = tmp_bucket->counter[bucket_index].value;
+        // free bucket read lock
+        tmp_bucket->free_read_lock();
+  
+        if(!tmp_bucket->write_lock()){
+            tmp_seg->free_read_lock();
+            std::this_thread::yield();
+            return false;
+        }
+
+        if(tmp_bucket->counter[bucket_index].value!=old_value){
+            tmp_bucket->free_write_lock();
+            tmp_seg->free_read_lock();
+            std::this_thread::yield();
+            return false;
+        }
+
+        if (unlikely(tmp_bucket->counter[bucket_index].subkey == subkey)) {
+            //key exists
+            tmp_bucket->counter[bucket_index].value = value;
+            clflush((char *) &(tmp_bucket->counter[bucket_index].value), 8);
+        } else {
+            // there is a place to insert
+            tmp_bucket->counter[bucket_index].value = value;
+            mfence();
+            tmp_bucket->counter[bucket_index].subkey = subkey;
+            // Here we clflush 16bytes rather than two 8 bytes because all counter are set to 0.
+            // If crash after key flushed, then the value is 0. When we return the value, we would find that the key is not inserted.
+            clflush((char *) &(tmp_bucket->counter[bucket_index].subkey), 16);
+        }
+
+        tmp_bucket->free_write_lock();
+        tmp_seg->free_read_lock();
+    }
+    return true;
+}
+
+
 uint64_t VarLengthHashTreeNode::get(uint64_t subkey) {
     uint64_t dir_index = GET_SEG_NUM(subkey, HT_NODE_LENGTH, global_depth);
     HashTreeSegment *tmp_seg = *(HashTreeSegment **)GET_SEG_POS(this,dir_index);
@@ -230,6 +476,49 @@ void VarLengthHashTreeHeader::assign(unsigned char* key, unsigned char assignedL
     }
 }
 
+
+bool VarLengthHashTreeNode::read_lock(){
+    int64_t val = lock_meta;
+    while(val>-1){
+        if(cas(&lock_meta, &val, val+1)){
+            return true;
+        }
+        val = lock_meta;
+    }
+    return false;
+}
+
+bool VarLengthHashTreeNode::write_lock(){
+    int64_t val = lock_meta;
+    if(val<0){
+        return false;
+    }
+
+    while(!cas(&lock_meta, &val, -1)){
+        val = lock_meta;
+        if(val<0){
+            return false;
+        }
+    }
+
+    while(val && lock_meta != 0-val-1){
+        asm("nop");
+    }
+
+    return true;
+
+}
+
+void VarLengthHashTreeNode::free_read_lock(){
+    int64_t val = lock_meta;
+    while(!cas(&lock_meta, &val, val-1)){
+        val = lock_meta;
+    }
+}
+
+void VarLengthHashTreeNode::free_write_lock(){
+   lock_meta = 0;
+}
 
 Length64HashTreeKeyValue *new_l64ht_key_value(uint64_t key ,uint64_t value ){
     Length64HashTreeKeyValue *_new_key_value = static_cast<Length64HashTreeKeyValue *>(fast_alloc(sizeof(Length64HashTreeKeyValue)));

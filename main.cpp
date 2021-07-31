@@ -418,6 +418,13 @@ void *concurrency_fastfair_put(int threadNum) {
     }
 }
 
+void * concurrency_vlht_put(int threadNum){
+    init_fast_allocator(true);
+    for (int i = threadNum*(testNum/numThread); i < (threadNum+1)*(testNum/numThread); ++i) {                                                     
+            vlht->crash_consistent_put(NULL,64,(unsigned char*)&mykey[i],1);
+    }
+}
+
 
 void concurrencyTest() {
     mykey = new uint64_t[testNum];
@@ -430,14 +437,15 @@ void concurrencyTest() {
     for (int i = 1; i <= 16; i *= 2) {
         init_fast_allocator(true);
         numThread = i;
+        vlht = new_varLengthHashtree();
 
         // cht = new_concurrency_hashtree(64, 0);
         // con_cceh = new_concurrency_cceh();
-        con_fastfair = new_concurrency_fastfair();
+        // con_fastfair = new_concurrency_fastfair();
 
-        CONCURRENCY_Time_BODY("concurrency fast fair ", {
-            for (int i = 0; i < numThread; i++) {
-                threads[i] = new std::thread(concurrency_fastfair_put, i);
+        CONCURRENCY_Time_BODY("concurrency varLength hash tree " + to_string(i) + " threads ", {
+            for(int i=0;i<numThread;i++){
+                threads[i]  = new std::thread(concurrency_vlht_put,i);
             }
 
             for (int i = 0; i < numThread; i++) {
@@ -445,21 +453,50 @@ void concurrencyTest() {
             }
         })
 
+        // concurrency_vlht_put(0);
+
         int failed = 0;
         vector<uint64_t> failed_key;
-        for (int i = 0; i < testNum; i++) {
-            int res = *(int *) con_fastfair->get(mykey[i]);
-            if (res != 1) {
+        for(int i=0;i<testNum;i++){
+            int res = vlht->get(64,(unsigned char*)&mykey[i]);
+            if(res!=1){
                 failed++;
-                cout << "failed : " << i << " key : " << mykey[i] << " value: " << res << endl;
-                con_fastfair->put(mykey[i], (char *) &value);
-                if ((*(int *) con_fastfair->get(mykey[i])) != 1) {
-                    cout << "still wrong!" << endl;
-                } else {
-                    cout << "fixed" << endl;
+                cout<<"failed : "<<i<< " key : "<< mykey[i]<<" value: "<< res <<endl;
+                vlht->crash_consistent_put(NULL,64,(unsigned char*)&mykey[i],1);
+                if(vlht->get(64,(unsigned char*)&mykey[i])!=1){
+                    cout<<"still wrong!"<<endl;
+                }else{
+                    cout<<"fixed"<<endl;
                 }
             }
         }
+
+        cout<<"failed : "<<failed<<endl;
+        // CONCURRENCY_Time_BODY("concurrency fast fair ", {
+        //     for(int i=0;i<numThread;i++){
+        //         threads[i]  = new std::thread(concurrency_fastfair_put,i);
+        //     }
+
+        //     for(int i=0;i<numThread;i++){
+        //         threads[i]->join();
+        //     }
+        // })
+
+        // int failed = 0;
+        // vector<uint64_t> failed_key;
+        // for(int i=0;i<testNum;i++){
+        //     int res = *(int*)con_fastfair->get(mykey[i]);
+        //     if(res!=1){
+        //         failed++;
+        //         cout<<"failed : "<<i<< " key : "<< mykey[i]<<" value: "<< res <<endl;
+        //         con_fastfair->put(mykey[i],(char *) &value);
+        //         if((*(int*)con_fastfair->get(mykey[i]))!=1){
+        //             cout<<"still wrong!"<<endl;
+        //         }else{
+        //             cout<<"fixed"<<endl;
+        //         }
+        //     }
+        // }
 
         // timeval start, ends;
         // gettimeofday(&start, NULL);
@@ -585,7 +622,7 @@ void varLengthTest() {
 int main(int argc, char *argv[]) {
     sscanf(argv[1], "%d", &numThread);
     sscanf(argv[2], "%d", &testNum);
-    init_fast_allocator(false);
+    // init_fast_allocator(false);
     // ht = new_hashtree(64, 0);
     // art = new_art_tree();
     wort = new_wort_tree();
@@ -601,16 +638,17 @@ int main(int argc, char *argv[]) {
     // vlff = new_varlengthfastfair();
 //    bt = new_blink_tree(numThread);
     // correctnessTest();
-//     speedTest();
+
+    // speedTest();
 
     varLengthTest();
 
 // build for cocurrencyTest
 
-    // threads = new thread* [64];
+    threads = new thread* [64];
     // try{
 
-    // concurrencyTest();
+    concurrencyTest();
 
     // }catch(void*){
     //     fast_free();
