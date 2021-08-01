@@ -543,9 +543,9 @@ public:
             sibling->hdr.sibling_ptr = hdr.sibling_ptr;
             concurrency_clflush((char *) sibling, sizeof(concurrency_page));
 
-            if(hdr.leftmost_ptr == nullptr){
-                sibling->hdr.mtx->lock();
-            }
+            // if(hdr.leftmost_ptr == nullptr){
+            //     sibling->hdr.mtx->lock();
+            // }
             hdr.sibling_ptr = sibling;
             concurrency_clflush((char *) &hdr, sizeof(hdr));
 
@@ -579,19 +579,19 @@ public:
                         new concurrency_page((concurrency_page *) this, split_key, sibling, hdr.level + 1);
                 bt->setNewRoot((char *) new_root);
 
-                if(hdr.leftmost_ptr!=nullptr){
-                    hdr.mtx->unlock();
-                }
+                // if(hdr.leftmost_ptr!=nullptr){
+                //     hdr.mtx->unlock();
+                // }
             } else {
-                if(hdr.leftmost_ptr!=nullptr){
-                    hdr.mtx->unlock();
-                }
+                // if(hdr.leftmost_ptr!=nullptr){
+                //     hdr.mtx->unlock();
+                // }
                 bt->concurrency_fastfair_insert_internal(NULL, split_key, (char *) sibling,
                                              hdr.level + 1);
             }
 
             hdr.mtx->unlock();
-            sibling->hdr.mtx->unlock();
+            // sibling->hdr.mtx->unlock();
             return ret;
         }
     }

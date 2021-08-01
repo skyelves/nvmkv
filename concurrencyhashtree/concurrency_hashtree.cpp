@@ -331,6 +331,7 @@ uint64_t concurrencyhashtree::get(uint64_t k) {
     int64_t next;
     for (int i = 0, j = 0; i < 64; i += span_test[j], j++) {
         uint64_t sub_key = GET_SUB_KEY(k, i, span_test[j]);
+        
         next = tmp->get(sub_key);
 //        get_access++;
         if (next == 0) {

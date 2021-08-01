@@ -435,10 +435,37 @@ void concurrency_cceh::put(Key_t key, Value_t value) {
 }
 
 Value_t concurrency_cceh::get(Key_t key) {
+
+    GET_RETRY:
     uint64_t dir_index = GET_SEG_NUM(key, key_len, directory->global_depth);
     concurrency_cceh_segment *tmp_seg = directory->dir[dir_index];
+     // read lock segment
+    if(!tmp_seg->read_lock()){
+        std::this_thread::yield();
+        goto GET_RETRY;
+    }
+
+    // double check 
+    uint64_t check_dir_index = GET_SEG_NUM(key, key_len, directory->global_depth);
+
+    if(tmp_seg!=directory->dir[check_dir_index]){
+        tmp_seg->free_read_lock();
+        std::this_thread::yield();
+        goto GET_RETRY;
+    }
+
     uint64_t seg_index = GET_BUCKET_NUM(key, CCEH_BUCKET_MASK_LEN);
     concurrency_cceh_bucket *tmp_bucket = &(tmp_seg->bucket[seg_index]);
+
+    if(!tmp_bucket->read_lock()){
+        tmp_seg->free_read_lock();
+        std::this_thread::yield();
+        goto GET_RETRY;
+    }
+    
+    tmp_bucket->free_read_lock();
+    tmp_seg->free_read_lock();
+
     return tmp_bucket->get(key);
 }
 

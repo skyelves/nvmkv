@@ -678,17 +678,11 @@ uint64_t concurrency_hashtree_node::get(uint64_t key) {
 
     GET_RETRY:
 
-    if(!read_lock()){
-        std::this_thread::yield();
-        goto GET_RETRY;
-    }
-
     uint64_t dir_index = GET_SEG_NUM(key, key_len, global_depth);
     concurrency_ht_segment *tmp_seg = dir[dir_index];
     
     // read lock segment
     if(!tmp_seg->read_lock()){
-        free_read_lock();
         std::this_thread::yield();
         goto GET_RETRY;
     }
@@ -697,7 +691,6 @@ uint64_t concurrency_hashtree_node::get(uint64_t key) {
     uint64_t check_dir_index = GET_SEG_NUM(key, key_len, global_depth);
     if(tmp_seg!=dir[check_dir_index]){
         tmp_seg->free_read_lock();
-        free_read_lock();
         std::this_thread::yield();
         goto GET_RETRY;
     }
@@ -706,14 +699,12 @@ uint64_t concurrency_hashtree_node::get(uint64_t key) {
     concurrency_ht_bucket *tmp_bucket = &(tmp_seg->bucket[seg_index]);
     if(!tmp_bucket->read_lock()){
         tmp_seg->free_read_lock();
-        free_read_lock();
         std::this_thread::yield();
         goto GET_RETRY;
     }
     uint64_t value  = tmp_bucket->get(key);
     tmp_bucket->free_read_lock();
     tmp_seg->free_read_lock();
-    free_read_lock();
     return value;
 }
 

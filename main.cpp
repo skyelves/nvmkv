@@ -817,23 +817,22 @@ void ycsb_test(){
     parseYCSBRunFile(wlName, false);
 
 
-    for (int i = 1; i <= 36; i += 4) {
+    for (int i = 1; i <= 36; i>4? i+= 4 : i*=2) {
         init_fast_allocator(true);
         numThread = i;
         cht = new_concurrency_hashtree(64, 0);
+        con_cceh = new_concurrency_cceh();
+        con_fastfair = new_concurrency_fastfair();
+        conwoart = new_conwoart_tree();
+
+
         testNum = nLoadOp;
-
-
         CON_Time_BODY( "concurrency hash tree put "+ to_string(i)+" thread ", {
             cht->crash_consistent_put(NULL, allLoadKeys[k], allLoadValues[k], 0); 
         })                                                        
 
-        
-        
         testNum = nRunOp;
-
-        CON_Time_BODY("concurrency hash tree get "+ to_string(i)+" thread ",{
-                   
+        CON_Time_BODY("concurrent hash tree get "+ to_string(i)+" thread ",{         
             if (allRunOp[k] == YCSBRunOp::Update) {                                                   
                 { cht->crash_consistent_put(NULL, allRunKeys[k], allRunValues[k], 0); }                                                                     \
             } else if ( allRunOp[k]== YCSBRunOp::Get) {                                               
@@ -842,9 +841,25 @@ void ycsb_test(){
             } else if ( allRunOp[k]== YCSBRunOp::Scan) {                                              
                 { ; }                                                                    
             }                                                                                   
-        }  )
+        } )
         
 
+        CON_Time_BODY( "concurrent CCEH put "+ to_string(i)+" thread ", {
+            con_cceh->put(allLoadKeys[k],  allLoadValues[k]);
+        })                                                        
+      
+        testNum = nRunOp;
+        CON_Time_BODY("concurrent CCEH get "+ to_string(i)+" thread ",{      
+            if (allRunOp[k] == YCSBRunOp::Update) {                                                   
+                { con_cceh->put(allLoadKeys[k],  allLoadValues[k]); }                                                                     \
+            } else if ( allRunOp[k]== YCSBRunOp::Get) {                                               
+                { 
+                    con_cceh->get(allRunKeys[k]); 
+                }                                                                     
+            } else if ( allRunOp[k]== YCSBRunOp::Scan) {                                              
+                { ; }                                                                    
+            }                                                                                   
+        } )
 
         fast_free();
     }
