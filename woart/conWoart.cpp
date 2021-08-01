@@ -300,6 +300,25 @@ void *conwoart_get(const conwoart_tree *t, const unsigned long key, int key_len)
     conwoart_node **child;
     conwoart_node *n = t->root;
     int prefix_len, depth = 0;
+    shared_mutex * mtx;
+    switch (n->type) {
+        case NODE4:
+            ((conwoart_node4 *) n)->mtx->try_lock();
+            mtx = ((conwoart_node4 *) n)->mtx;
+            break;
+        case NODE16:
+           ((conwoart_node16 *) n)->mtx->try_lock();
+            mtx = ((conwoart_node16 *) n)->mtx;
+            break;
+        case NODE48:
+            ((conwoart_node48 *) n)->mtx->try_lock();
+            mtx = ((conwoart_node48 *) n)->mtx;
+            break;
+        case NODE256:
+           ((conwoart_node256 *) n)->mtx->try_lock();
+            mtx = ((conwoart_node256 *) n)->mtx;
+            break;
+    }
 
     while (n) {
         // Might be a leaf
@@ -309,6 +328,7 @@ void *conwoart_get(const conwoart_tree *t, const unsigned long key, int key_len)
             if (!leaf_matches((conwoart_leaf *) n, key, key_len, depth)) {
                 return ((conwoart_leaf *) n)->value;
             }
+            mtx->unlock();
             return NULL;
         }
 
@@ -317,6 +337,7 @@ void *conwoart_get(const conwoart_tree *t, const unsigned long key, int key_len)
             if (n->path.pwoartial_len) {
                 prefix_len = check_prefix(n, key, key_len, depth);
                 if (prefix_len != min(WOART_MAX_PREFIX_LEN, n->path.pwoartial_len))
+                    mtx->unlock();
                     return NULL;
                 depth = depth + n->path.pwoartial_len;
             }
@@ -328,8 +349,32 @@ void *conwoart_get(const conwoart_tree *t, const unsigned long key, int key_len)
         // Recursively search
         child = find_child(n, get_index(key, depth));
         n = (child) ? *child : NULL;
+        if(child){
+            shared_mutex * tmp_mtx;
+            switch (n->type) {
+            case NODE4:
+                ((conwoart_node4 *) n)->mtx->try_lock();
+                tmp_mtx = ((conwoart_node4 *) n)->mtx;
+                break;
+            case NODE16:
+            ((conwoart_node16 *) n)->mtx->try_lock();
+                tmp_mtx = ((conwoart_node16 *) n)->mtx;
+                break;
+            case NODE48:
+                ((conwoart_node48 *) n)->mtx->try_lock();
+                tmp_mtx = ((conwoart_node48 *) n)->mtx;
+                break;
+            case NODE256:
+            ((conwoart_node256 *) n)->mtx->try_lock();
+                tmp_mtx = ((conwoart_node256 *) n)->mtx;
+                break;
+            }
+            mtx->unlock();
+            mtx = tmp_mtx;
+        }
         depth++;
     }
+    mtx->unlock();
     return NULL;
 }
 
@@ -458,8 +503,9 @@ static void add_child16(conwoart_node16 *n, conwoart_node **ref, unsigned char c
 
         empty_idx = find_next_zero_bit(&n->bitmap, 16, 0);
         if (empty_idx == 16) {
-            printf("find next zero bit error add_child16\n");
-            abort();
+           // printf("find next zero bit error add_child16\n");
+           // abort();
+           return;
         }
 
         n->keys[empty_idx] = c;
@@ -512,8 +558,9 @@ static void add_child4(conwoart_node4 *n, conwoart_node **ref, unsigned char c, 
 
         p_idx = find_next_zero_bit(&p_idx, 4, 0);
         if (p_idx == 4) {
-            printf("find next zero bit error in child4\n");
-            abort();
+            // printf("find next zero bit error in child4\n");
+            // abort();
+            return;
         }
         n->children[p_idx] = static_cast<conwoart_node *>(child);
         flush_buffer(&n->children[p_idx], sizeof(uintptr_t), true);
@@ -578,8 +625,9 @@ static void add_child4_noflush(conwoart_node4 *n, conwoart_node **ref, unsigned 
 
     p_idx = find_next_zero_bit(&p_idx, 4, 0);
     if (p_idx == 4) {
-        printf("find next zero bit error in child4\n");
-        abort();
+        // printf("find next zero bit error in child4\n");
+        // abort();
+        return;
     }
 
     n->children[p_idx] = static_cast<conwoart_node *>(child);
