@@ -626,23 +626,23 @@ int main(int argc, char *argv[]) {
     // init_fast_allocator(false);
     // ht = new_hashtree(64, 0);
     // art = new_art_tree();
-    wort = new_wort_tree();
-    woart = new_woart_tree();
-    // cceh = new_cceh();
-    ff = new_fastfair();
-    roart = new_roart();
-    l64ht = new_length64HashTree();
-    vlwt = new_var_length_woart_tree();
-    vlwot = new_var_length_wort_tree();
-//    mt = new_mass_tree();
-     vlht = new_varLengthHashtree();
+//     wort = new_wort_tree();
+//     woart = new_woart_tree();
+//     // cceh = new_cceh();
+//     ff = new_fastfair();
+//     roart = new_roart();
+//     l64ht = new_length64HashTree();
+//     vlwt = new_var_length_woart_tree();
+//     vlwot = new_var_length_wort_tree();
+// //    mt = new_mass_tree();
+//      vlht = new_varLengthHashtree();
     // vlff = new_varlengthfastfair();
 //    bt = new_blink_tree(numThread);
     // correctnessTest();
 
     // speedTest();
 
-    varLengthTest();
+    // varLengthTest();
 
 // build for cocurrencyTest
 
