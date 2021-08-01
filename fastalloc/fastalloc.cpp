@@ -104,6 +104,7 @@ void *fastalloc::alloc(uint64_t size, bool _on_nvm) {
 }
 
 void *concurrency_fastalloc::alloc(uint64_t size, bool _on_nvm) {
+    lock();
     if (_on_nvm) {
         if (unlikely(size > nvm_left)) {
 #ifdef __linux__
@@ -124,11 +125,13 @@ void *concurrency_fastalloc::alloc(uint64_t size, bool _on_nvm) {
             nvm_left -= size;
             void *tmp = nvm_curr;
             nvm_curr = nvm_curr + size;
+            free_lock();
             return tmp;
         } else {
             nvm_left -= size;
             void *tmp = nvm_curr;
             nvm_curr = nvm_curr + size;
+            free_lock();
             return tmp;
         }
     } else {
@@ -140,11 +143,13 @@ void *concurrency_fastalloc::alloc(uint64_t size, bool _on_nvm) {
             dram_left -= size;
             void *tmp = dram_curr;
             dram_curr = dram_curr + size;
+            free_lock();
             return tmp;
         } else {
             dram_left -= size;
             void *tmp = dram_curr;
             dram_curr = dram_curr + size;
+            free_lock();
             return tmp;
         }
     }
@@ -173,11 +178,11 @@ void concurrency_fastalloc::free_lock(){
 
 void init_fast_allocator(bool isMultiThread) {
     if(isMultiThread){
-        concurrency_myallocator = new concurrency_fastalloc;
-        concurrency_myallocator->init();
+        // concurrency_myallocator = new concurrency_fastalloc;
+        // concurrency_myallocator->init();
         
-        // myallocator = new concurrency_fastalloc;
-        // myallocator->init();
+        myallocator = new concurrency_fastalloc;
+        myallocator->init();
         // concurrency_myallocator = new concurrency_fastalloc*[64] ;
         // for(int i=0;i<ALLOCATORNUM;i++){
         //     concurrency_myallocator[i] = new concurrency_fastalloc;
@@ -191,6 +196,7 @@ void init_fast_allocator(bool isMultiThread) {
 
 
 void *fast_alloc(uint64_t size, bool _on_nvm) {
+    // return malloc(size);
     return myallocator->alloc(size, _on_nvm);
 }
 

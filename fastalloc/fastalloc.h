@@ -75,7 +75,7 @@ void init_fast_allocator(bool isMultiThread);
 
 void concurrency_init_fast_allocator();
 
-void *fast_alloc(uint64_t size, bool _on_nvm = true);
+void *fast_alloc(uint64_t size, bool _on_nvm = false);
 
 void *concurrency_fast_alloc(uint64_t size, bool _on_nvm = false);
 
