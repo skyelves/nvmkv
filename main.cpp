@@ -825,7 +825,7 @@ void ycsb_test(){
         con_fastfair = new_concurrency_fastfair();
         conwoart = new_conwoart_tree();
 
-
+/**
         testNum = nLoadOp;
         CON_Time_BODY( "concurrency hash tree put "+ to_string(i)+" thread ", {
             cht->crash_consistent_put(NULL, allLoadKeys[k], allLoadValues[k], 0); 
@@ -869,10 +869,31 @@ void ycsb_test(){
         testNum = nRunOp;
         CON_Time_BODY("concurrent Fast&Fair get "+ to_string(i)+" thread ",{      
             if (allRunOp[k] == YCSBRunOp::Update) {                                                   
-                { con_fastfair->put(allLoadKeys[k], (char *)& allLoadValues[k]); }                                                                     \
+                { con_fastfair->put(allRunKeys[k], (char *)& allRunValues[k]); }                                                                     \
             } else if ( allRunOp[k]== YCSBRunOp::Get) {                                               
                 { 
                     con_fastfair->get(allRunKeys[k]); 
+                }                                                                     
+            } else if ( allRunOp[k]== YCSBRunOp::Scan) {                                              
+                { ; }                                                                    
+            }                                                                                   
+        })
+**/
+
+        testNum = nLoadOp;
+        CON_Time_BODY( "concurrent Woart put "+ to_string(i)+" thread ", {
+            conwoart_put(conwoart, allLoadKeys[k], 8, &allLoadValues[k]);
+        })                                                        
+      
+        testNum = nRunOp;
+        CON_Time_BODY("concurrent Woart get "+ to_string(i)+" thread ",{      
+            if (allRunOp[k] == YCSBRunOp::Update) {                                                   
+                { 
+                    conwoart_put(conwoart, allRunKeys[k], 8, &allRunValues[k]);
+                }                                                                     
+            } else if ( allRunOp[k]== YCSBRunOp::Get) {                                               
+                { 
+                    conwoart_get(conwoart, allRunKeys[k], 8); 
                 }                                                                     
             } else if ( allRunOp[k]== YCSBRunOp::Scan) {                                              
                 { ; }                                                                    
