@@ -85,7 +85,7 @@ void VarLengthHashTree::init(int prefixLen) {
 }
 
 VarLengthHashTree *new_varLengthHashtree() {
-    VarLengthHashTree *_new_hash_tree = static_cast<VarLengthHashTree *>(fast_alloc(sizeof(VarLengthHashTree)));
+    VarLengthHashTree *_new_hash_tree = static_cast<VarLengthHashTree *>(concurrency_fast_alloc(sizeof(VarLengthHashTree)));
     _new_hash_tree->init(0);
     return _new_hash_tree;
 }
@@ -835,7 +835,7 @@ void Length64HashTree::getAllNodes(Length64HashTreeNode *tmp, vector<Length64Has
 }
 
 Length64HashTree *new_length64HashTree(){
-    Length64HashTree *_new_hash_tree = static_cast<Length64HashTree *>(fast_alloc(sizeof(Length64HashTree)));
+    Length64HashTree *_new_hash_tree = static_cast<Length64HashTree *>(concurrency_fast_alloc(sizeof(Length64HashTree)));
     _new_hash_tree->init();
     return _new_hash_tree;
 }

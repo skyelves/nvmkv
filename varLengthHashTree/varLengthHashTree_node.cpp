@@ -24,7 +24,7 @@ inline void clflush(char *data, size_t len) {
 }
 
 HashTreeKeyValue *new_vlht_key_value(unsigned char* key, unsigned int len ,uint64_t value) {
-    HashTreeKeyValue *_new_key_value = static_cast<HashTreeKeyValue *>(fast_alloc(sizeof(HashTreeKeyValue)));
+    HashTreeKeyValue *_new_key_value = static_cast<HashTreeKeyValue *>(concurrency_fast_alloc(sizeof(HashTreeKeyValue)));
     _new_key_value->type = 1;
     _new_key_value->key = key;
     _new_key_value->len = len;
@@ -63,7 +63,7 @@ int HashTreeBucket::find_place(uint64_t _key, uint64_t _key_len, uint64_t _depth
 }
 
 HashTreeBucket *new_vlht_bucket(int _depth) {
-    HashTreeBucket *_new_bucket = static_cast<HashTreeBucket *>(fast_alloc(sizeof(HashTreeBucket)));
+    HashTreeBucket *_new_bucket = static_cast<HashTreeBucket *>(concurrency_fast_alloc(sizeof(HashTreeBucket)));
     return _new_bucket;
 }
 
@@ -115,7 +115,7 @@ void HashTreeBucket::free_write_lock(){
 HashTreeSegment::HashTreeSegment() {
     depth = 0;
     lock_meta = 0;
-    bucket = static_cast<HashTreeBucket *>(fast_alloc(sizeof(HashTreeBucket) * HT_MAX_BUCKET_NUM));
+    bucket = static_cast<HashTreeBucket *>(concurrency_fast_alloc(sizeof(HashTreeBucket) * HT_MAX_BUCKET_NUM));
 }
 
 HashTreeSegment::~HashTreeSegment() {}
@@ -123,11 +123,11 @@ HashTreeSegment::~HashTreeSegment() {}
 void HashTreeSegment::init(uint64_t _depth) {
     depth = _depth;
     lock_meta = 0;
-    bucket = static_cast<HashTreeBucket *>(fast_alloc(sizeof(HashTreeBucket) * HT_MAX_BUCKET_NUM));
+    bucket = static_cast<HashTreeBucket *>(concurrency_fast_alloc(sizeof(HashTreeBucket) * HT_MAX_BUCKET_NUM));
 }
 
 HashTreeSegment *new_vlht_segment(uint64_t _depth) {
-    HashTreeSegment *_new_ht_segment = static_cast<HashTreeSegment *>(fast_alloc(sizeof(HashTreeSegment)));
+    HashTreeSegment *_new_ht_segment = static_cast<HashTreeSegment *>(concurrency_fast_alloc(sizeof(HashTreeSegment)));
     _new_ht_segment->init(_depth);
     return _new_ht_segment;
 }
@@ -182,8 +182,8 @@ VarLengthHashTreeNode::VarLengthHashTreeNode() {
     header.depth = 1;
     lock_meta = 0;
     header.len = 0;
-    // dir = static_cast<HashTreeSegment **>(fast_alloc(sizeof(HashTreeSegment *) * dir_size));
-    treeNodeValues = static_cast<HashTreeKeyValue**>(fast_alloc(sizeof(HashTreeKeyValue* ) * (1+HT_NODE_PREFIX_MAX_BITS/HT_NODE_LENGTH)));
+    // dir = static_cast<HashTreeSegment **>(concurrency_fast_alloc(sizeof(HashTreeSegment *) * dir_size));
+    treeNodeValues = static_cast<HashTreeKeyValue**>(concurrency_fast_alloc(sizeof(HashTreeKeyValue* ) * (1+HT_NODE_PREFIX_MAX_BITS/HT_NODE_LENGTH)));
 
     for (int i = 0; i < dir_size; ++i) {
         *(HashTreeSegment **)GET_SEG_POS(this,i) = new_vlht_segment();
@@ -202,9 +202,9 @@ void VarLengthHashTreeNode::init(int prefixLen, unsigned char headerDepth, unsig
     header.depth = headerDepth;
     header.len = prefixLen;
     lock_meta = 0;
-    treeNodeValues = static_cast<HashTreeKeyValue**>(fast_alloc(sizeof(HashTreeKeyValue* ) * (1+HT_NODE_PREFIX_MAX_BITS/HT_NODE_LENGTH)));
+    treeNodeValues = static_cast<HashTreeKeyValue**>(concurrency_fast_alloc(sizeof(HashTreeKeyValue* ) * (1+HT_NODE_PREFIX_MAX_BITS/HT_NODE_LENGTH)));
 
-    // dir = static_cast<HashTreeSegment *>(fast_alloc(sizeof(HashTreeSegment *) * dir_size));
+    // dir = static_cast<HashTreeSegment *>(concurrency_fast_alloc(sizeof(HashTreeSegment *) * dir_size));
     for (int i = 0; i < this->dir_size; ++i) {
         *(HashTreeSegment **)GET_SEG_POS(this,i) = new_vlht_segment(global_depth);
     }
@@ -214,7 +214,7 @@ void VarLengthHashTreeNode::init(VarLengthHashTreeNode* oldNode){
     this->global_depth = oldNode->global_depth+1;
     this->dir_size = oldNode->dir_size*2;
     this->header.init(&oldNode->header,oldNode->header.len,oldNode->header.depth);
-    treeNodeValues = static_cast<HashTreeKeyValue**>(fast_alloc(sizeof(HashTreeKeyValue* ) * (1+HT_NODE_PREFIX_MAX_BITS/HT_NODE_LENGTH)));
+    treeNodeValues = static_cast<HashTreeKeyValue**>(concurrency_fast_alloc(sizeof(HashTreeKeyValue* ) * (1+HT_NODE_PREFIX_MAX_BITS/HT_NODE_LENGTH)));
     for(int i=0;i<1+HT_NODE_PREFIX_MAX_BITS/HT_NODE_LENGTH;i++){
         this->treeNodeValues[i] =  oldNode->treeNodeValues[i];
     }
@@ -268,7 +268,7 @@ void VarLengthHashTreeNode::put(uint64_t subkey, uint64_t value, HashTreeSegment
             return;
         } else {
             //condition: tmp_bucket->depth == global_depth
-            VarLengthHashTreeNode *newNode = static_cast<VarLengthHashTreeNode *>(fast_alloc(sizeof(VarLengthHashTreeNode)+sizeof(HashTreeSegment *)*dir_size*2));
+            VarLengthHashTreeNode *newNode = static_cast<VarLengthHashTreeNode *>(concurrency_fast_alloc(sizeof(VarLengthHashTreeNode)+sizeof(HashTreeSegment *)*dir_size*2));
             newNode->init(this);
 
             //set dir
@@ -406,7 +406,7 @@ bool VarLengthHashTreeNode::put_with_read_lock(uint64_t subkey, uint64_t value, 
                 return false;
             }
 
-            VarLengthHashTreeNode *newNode = static_cast<VarLengthHashTreeNode *>(fast_alloc(sizeof(VarLengthHashTreeNode)+sizeof(HashTreeSegment *)*dir_size*2));
+            VarLengthHashTreeNode *newNode = static_cast<VarLengthHashTreeNode *>(concurrency_fast_alloc(sizeof(VarLengthHashTreeNode)+sizeof(HashTreeSegment *)*dir_size*2));
             newNode->init(this);
             //set dir
             for (int i = 0; i < newNode->dir_size; ++i) {
@@ -469,7 +469,7 @@ uint64_t VarLengthHashTreeNode::get(uint64_t subkey) {
 }
 
 VarLengthHashTreeNode *new_varlengthhashtree_node( int prefixLen, unsigned char headerDepth, unsigned char globalDepth) {
-    VarLengthHashTreeNode *_new_node = static_cast<VarLengthHashTreeNode *>(fast_alloc(sizeof(VarLengthHashTreeNode)+sizeof(HashTreeSegment *)*pow(2, globalDepth)));
+    VarLengthHashTreeNode *_new_node = static_cast<VarLengthHashTreeNode *>(concurrency_fast_alloc(sizeof(VarLengthHashTreeNode)+sizeof(HashTreeSegment *)*pow(2, globalDepth)));
     _new_node->init(prefixLen,headerDepth,globalDepth);
     return _new_node;
 }
@@ -548,7 +548,7 @@ void VarLengthHashTreeNode::free_write_lock(){
 }
 
 Length64HashTreeKeyValue *new_l64ht_key_value(uint64_t key ,uint64_t value ){
-    Length64HashTreeKeyValue *_new_key_value = static_cast<Length64HashTreeKeyValue *>(fast_alloc(sizeof(Length64HashTreeKeyValue)));
+    Length64HashTreeKeyValue *_new_key_value = static_cast<Length64HashTreeKeyValue *>(concurrency_fast_alloc(sizeof(Length64HashTreeKeyValue)));
     _new_key_value->type = 1;
     _new_key_value->key = key;
     _new_key_value->value = value;
@@ -584,25 +584,25 @@ int Length64HashTreeBucket::find_place(uint64_t _key, uint64_t _key_len, uint64_
 
 
 Length64HashTreeBucket *new_l64ht_bucket(int _depth){
-    Length64HashTreeBucket *_new_bucket = static_cast<Length64HashTreeBucket *>(fast_alloc(sizeof(Length64HashTreeBucket)));
+    Length64HashTreeBucket *_new_bucket = static_cast<Length64HashTreeBucket *>(concurrency_fast_alloc(sizeof(Length64HashTreeBucket)));
     return _new_bucket;
 }
 
 Length64HashTreeSegment::Length64HashTreeSegment(){
     depth = 0;
-    bucket = static_cast<Length64HashTreeBucket *>(fast_alloc(sizeof(Length64HashTreeBucket) * HT_MAX_BUCKET_NUM));
+    bucket = static_cast<Length64HashTreeBucket *>(concurrency_fast_alloc(sizeof(Length64HashTreeBucket) * HT_MAX_BUCKET_NUM));
 }
 
 Length64HashTreeSegment::~Length64HashTreeSegment(){}
 
 void Length64HashTreeSegment::init(uint64_t _depth){
     depth = _depth;
-    bucket = static_cast<Length64HashTreeBucket *>(fast_alloc(sizeof(Length64HashTreeBucket) * HT_MAX_BUCKET_NUM));
+    bucket = static_cast<Length64HashTreeBucket *>(concurrency_fast_alloc(sizeof(Length64HashTreeBucket) * HT_MAX_BUCKET_NUM));
 }
 
 
 Length64HashTreeSegment *new_l64ht_segment(uint64_t _depth ){
-    Length64HashTreeSegment *_new_ht_segment = static_cast<Length64HashTreeSegment *>(fast_alloc(sizeof(Length64HashTreeSegment)));
+    Length64HashTreeSegment *_new_ht_segment = static_cast<Length64HashTreeSegment *>(concurrency_fast_alloc(sizeof(Length64HashTreeSegment)));
     _new_ht_segment->init(_depth);
     return _new_ht_segment;
 }
@@ -648,7 +648,7 @@ Length64HashTreeNode::Length64HashTreeNode(){
     type = 0;
     global_depth = 0;
     dir_size = pow(2, global_depth);
-    // dir = static_cast<HashTreeSegment **>(fast_alloc(sizeof(HashTreeSegment *) * dir_size));
+    // dir = static_cast<HashTreeSegment **>(concurrency_fast_alloc(sizeof(HashTreeSegment *) * dir_size));
     for (int i = 0; i < dir_size; ++i) {
         *(Length64HashTreeSegment **)GET_SEG_POS(this,i) = new_l64ht_segment();
     }
@@ -661,7 +661,7 @@ void Length64HashTreeNode::init(unsigned char headerDepth, unsigned char global_
     this->global_depth = global_depth;
     this->dir_size = pow(2, global_depth);
     header.depth = headerDepth;
-    treeNodeValues = static_cast<Length64HashTreeKeyValue*>(fast_alloc(sizeof(Length64HashTreeKeyValue ) * (1+HT_NODE_PREFIX_MAX_BITS/HT_NODE_LENGTH)));
+    treeNodeValues = static_cast<Length64HashTreeKeyValue*>(concurrency_fast_alloc(sizeof(Length64HashTreeKeyValue ) * (1+HT_NODE_PREFIX_MAX_BITS/HT_NODE_LENGTH)));
     // dir = static_cast<HashTreeSegment *>(fast_alloc(sizeof(HashTreeSegment *) * dir_size));
     for (int i = 0; i < this->dir_size; ++i) {
         *(Length64HashTreeSegment **)GET_SEG_POS(this,i) = new_l64ht_segment(global_depth);
@@ -717,7 +717,7 @@ void Length64HashTreeNode::put(uint64_t subkey, uint64_t value, Length64HashTree
             return;
         } else {
             //condition: tmp_bucket->depth == global_depth
-            Length64HashTreeNode *newNode = static_cast<Length64HashTreeNode *>(fast_alloc(sizeof(Length64HashTreeNode)+sizeof(HashTreeSegment *)*dir_size*2));
+            Length64HashTreeNode *newNode = static_cast<Length64HashTreeNode *>(concurrency_fast_alloc(sizeof(Length64HashTreeNode)+sizeof(HashTreeSegment *)*dir_size*2));
             newNode->global_depth = global_depth+1;
             newNode->dir_size = dir_size*2;
             newNode->header.init(&this->header,this->header.len,this->header.depth);
@@ -763,7 +763,7 @@ uint64_t Length64HashTreeNode::get(uint64_t subkey){
 
 
 Length64HashTreeNode *new_length64hashtree_node(int _key_len, unsigned char headerDepth, unsigned char globalDepth){
-    Length64HashTreeNode *_new_node = static_cast<Length64HashTreeNode *>(fast_alloc(sizeof(Length64HashTreeNode)+sizeof(Length64HashTreeSegment *)*pow(2, globalDepth)));
+    Length64HashTreeNode *_new_node = static_cast<Length64HashTreeNode *>(concurrency_fast_alloc(sizeof(Length64HashTreeNode)+sizeof(Length64HashTreeSegment *)*pow(2, globalDepth)));
     _new_node->init(headerDepth,globalDepth);
     return _new_node;
 }

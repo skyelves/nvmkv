@@ -419,7 +419,7 @@ void *concurrency_fastfair_put(int threadNum) {
 }
 
 void * concurrency_vlht_put(int threadNum){
-    // init_fast_allocator(true);
+    init_fast_allocator(true);
     for (int i = threadNum*(testNum/numThread); i < (threadNum+1)*(testNum/numThread); ++i) {                                                     
             vlht->crash_consistent_put(NULL,8,(unsigned char*)&mykey[i],1);
             // vlht->crash_consistent_put_without_lock(NULL,8,(unsigned char*)&mykey[i],1,(uint64_t)&vlht->root);
