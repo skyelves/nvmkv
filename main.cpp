@@ -474,6 +474,7 @@ void * concurrency_woart_put(int threadNum){
     init_fast_allocator(true);
     for (int i = threadNum*(testNum/numThread); i < (threadNum+1)*(testNum/numThread); ++i) {                                                     
             conwoart_put(conwoart, mykey[i], 8, &value);
+            conwoart_get(conwoart, mykey[i], 8);
     }
 }
 
@@ -506,15 +507,15 @@ void concurrencyTest() {
         //     }
         // })
 
-        CONCURRENCY_Time_BODY("concurrency woart  " + to_string(i) + " threads ", {
-            for(int i=0;i<numThread;i++){
-                threads[i]  = new std::thread(concurrency_woart_put,i);
-            }
+        // CONCURRENCY_Time_BODY("concurrency woart  " + to_string(i) + " threads ", {
+        //     for(int i=0;i<numThread;i++){
+        //         threads[i]  = new std::thread(concurrency_woart_put,i);
+        //     }
 
-            for (int i = 0; i < numThread; i++) {
-                threads[i]->join();
-            }
-        })
+        //     for (int i = 0; i < numThread; i++) {
+        //         threads[i]->join();
+        //     }
+        // })
 
         // concurrency_vlht_put(0);
 
@@ -910,10 +911,38 @@ void ycsb_test(){
 
 }
 
+void recoveryTest() {
+    mykey = new uint64_t[testNum];
+    rng r;
+    rng_init(&r, 1, 2);
+    for (int i = 0; i < testNum; ++i) {
+        mykey[i] = rng_next(&r);
+    }
+
+    for(int j=1000000; j<=10000000;j+=2000000){
+        vlht = new_varLengthHashtree();
+        testNum = j;
+        for (int i = 0; i < testNum; ++i) {
+            vlht->crash_consistent_put_without_lock(NULL,8,(unsigned char*)&mykey[i],1,(uint64_t)&vlht->root);    
+        }
+
+        timeval start, ends;
+        gettimeofday(&start, NULL);
+        recovery(vlht->root,0);
+        gettimeofday(&ends, NULL);
+        double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
+
+        cout << "vlht recovery test" << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;
+
+    }
+    
+
+}
+
 int main(int argc, char *argv[]) {
     sscanf(argv[1], "%d", &numThread);
     sscanf(argv[2], "%d", &testNum);
-    // init_fast_allocator(false);
+    init_fast_allocator(true);
     // ht = new_hashtree(64, 0);
     // art = new_art_tree();
 //     wort = new_wort_tree();
@@ -925,7 +954,7 @@ int main(int argc, char *argv[]) {
 //     vlwt = new_var_length_woart_tree();
 //     vlwot = new_var_length_wort_tree();
 // //    mt = new_mass_tree();
-//      vlht = new_varLengthHashtree();
+
     // vlff = new_varlengthfastfair();
 //    bt = new_blink_tree(numThread);
     // correctnessTest();
@@ -936,10 +965,11 @@ int main(int argc, char *argv[]) {
 
 // build for cocurrencyTest
 
-    threads = new thread* [64];
+    // threads = new thread* [64];
     // try{
 
-    concurrencyTest();
+        recoveryTest();
+    // concurrencyTest();
 
     // ycsb_test();
 

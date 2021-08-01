@@ -178,7 +178,7 @@ public:
     bool is_read_locked();
 };
 
-VarLengthHashTreeNode *new_varlengthhashtree_node(int prefixLen, unsigned char headerDepth = 1, unsigned char globalDepth = HT_INIT_GLOBAL_DEPTH);
+VarLengthHashTreeNode *new_varlengthhashtree_node(int prefixLen, unsigned char headerDepth = 0, unsigned char globalDepth = HT_INIT_GLOBAL_DEPTH);
 
 class Length64HashTreeKeyValue {
 public:

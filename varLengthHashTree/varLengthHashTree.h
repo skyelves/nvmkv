@@ -77,5 +77,5 @@ public:
 };
 
 Length64HashTree *new_length64HashTree();
-
+void recovery(VarLengthHashTreeNode* root, int depth);
 #endif

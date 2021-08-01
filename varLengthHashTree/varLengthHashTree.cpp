@@ -351,7 +351,7 @@ void VarLengthHashTree:: crash_consistent_put(VarLengthHashTreeNode *_node, int 
 void VarLengthHashTree:: crash_consistent_put_without_lock(VarLengthHashTreeNode *_node, int length, unsigned char* key, uint64_t value, uint64_t beforeAddress, int pos){
     while(length>=pos){
             VarLengthHashTreeNode *currentNode = *(VarLengthHashTreeNode**)beforeAddress;
-            unsigned char headerDepth = currentNode->header.depth;
+            
 
             int matchedPrefixLen = 0;
             // init a number bigger than HT_NODE_PREFIX_MAX_LEN to represent there is no value
@@ -416,7 +416,7 @@ void VarLengthHashTree:: crash_consistent_put_without_lock(VarLengthHashTreeNode
                         clflush((char *) &(((HashTreeKeyValue *) next)->value), 8);
                     } else {
                         //not same key: needs to create a new node
-                        VarLengthHashTreeNode *newNode = new_varlengthhashtree_node(HT_NODE_PREFIX_MAX_BYTES+1,headerDepth+1);
+                        VarLengthHashTreeNode *newNode = new_varlengthhashtree_node(HT_NODE_PREFIX_MAX_BYTES+1,currentNode->header.depth+matchedPrefixLen*SIZE_OF_CHAR/HT_NODE_LENGTH+1);
 
                         // put pre kv
                         // uint64_t preSubkey = GET_16BITS(preKey,pos);
@@ -434,7 +434,6 @@ void VarLengthHashTree:: crash_consistent_put_without_lock(VarLengthHashTreeNode
                     pos += HT_NODE_LENGTH/SIZE_OF_CHAR;
                     currentNode = (VarLengthHashTreeNode *) next;
                     beforeAddress =  beforeA;
-                    headerDepth = currentNode->header.depth;
                 }
             }
         }else{
@@ -442,7 +441,7 @@ void VarLengthHashTree:: crash_consistent_put_without_lock(VarLengthHashTreeNode
             // split a new tree node and insert 
 
             // build new tree node
-            VarLengthHashTreeNode *newNode = new_varlengthhashtree_node(0,headerDepth);
+            VarLengthHashTreeNode *newNode = new_varlengthhashtree_node(0,currentNode->header.depth);
             newNode->header.init(&currentNode->header,matchedPrefixLen,currentNode->header.depth);
             for(int j=currentNode->header.len - matchedPrefixLen;j<=currentNode->header.len;j++){
                 newNode->treeNodeValues[j - currentNode->header.len + matchedPrefixLen] = currentNode->treeNodeValues[j];
@@ -458,12 +457,20 @@ void VarLengthHashTree:: crash_consistent_put_without_lock(VarLengthHashTreeNode
 
             newNode->put(GET_32BITS(currentNode->header.array,matchedPrefixLen),(uint64_t)currentNode,(uint64_t)&newNode);
 
-            matchedPrefixLen += 4;
+            matchedPrefixLen += HT_NODE_LENGTH/SIZE_OF_CHAR;
+
             // modify currentNode 
+            unsigned char tmpHeader[HT_NODE_PREFIX_MAX_BYTES];
+            for(int i=0;i<matchedPrefixLen;i++){
+                tmpHeader[i] = currentNode->header.array[i];
+            }
             for(int i=0;i<HT_NODE_PREFIX_MAX_BYTES-matchedPrefixLen ;i++){
                 currentNode->header.array[i] = currentNode->header.array[i+matchedPrefixLen];
             }
-            currentNode->header.depth -= matchedPrefixLen;
+            for(int i=HT_NODE_PREFIX_MAX_BYTES-matchedPrefixLen;i<HT_NODE_PREFIX_MAX_BYTES;i++){
+                currentNode->header.array[i] = tmpHeader[i-HT_NODE_PREFIX_MAX_BYTES+matchedPrefixLen];
+            }
+            currentNode->header.depth += matchedPrefixLen*SIZE_OF_CHAR/HT_NODE_LENGTH;
             currentNode->header.len -= matchedPrefixLen;
 
             clflush((char*)&(currentNode->header),8);
@@ -560,6 +567,71 @@ void VarLengthHashTree::free_read_lock(){
 
 void VarLengthHashTree::free_write_lock(){
     lock_meta = 0;
+}
+
+
+void recovery(VarLengthHashTreeNode* root, int depth){
+    if(!root){
+        return;
+    }
+    if(root->header.depth!=depth){
+        int matchedPrefixLen = (depth - root->header.depth)*HT_NODE_LENGTH/SIZE_OF_CHAR;
+        unsigned char tmpHeader[HT_NODE_PREFIX_MAX_BYTES];
+        for(int i=0;i<HT_NODE_PREFIX_MAX_BYTES - matchedPrefixLen;i++){
+            tmpHeader[i] = root->header.array[i];
+        }
+        for(int i=HT_NODE_PREFIX_MAX_BYTES-matchedPrefixLen;i<HT_NODE_PREFIX_MAX_BYTES ;i++){
+            root->header.array[i] = root->header.array[i-HT_NODE_PREFIX_MAX_BYTES+matchedPrefixLen];
+        }
+        for(int i=0;i<matchedPrefixLen;i++){
+            root->header.array[i] = tmpHeader[i];
+        }
+        root->header.depth = depth;
+    }
+
+    for(int i=0;i<root->dir_size;i++){
+        HashTreeSegment* current_seg = *(HashTreeSegment **)GET_SEG_POS(root,i);
+        int64_t stride = pow(2, root->global_depth - current_seg->depth);
+        int64_t left = i - i % stride;
+        int64_t mid = left + stride / 2, right = left + stride;
+        for(int j =0;j<HT_MAX_BUCKET_NUM;j++){
+            for(int k=0;k<HT_BUCKET_SIZE;k++){
+                if(current_seg->bucket[j].counter[k].subkey!=0){
+                    if(!((bool *)current_seg->bucket[j].counter[k].value)[0]){
+                        recovery((VarLengthHashTreeNode*)current_seg->bucket[j].counter[k].value,depth+root->header.len*SIZE_OF_CHAR/HT_NODE_LENGTH+1);
+                    }
+                }
+            }
+        }
+        int64_t before = i;
+        int64_t flag  = -1;
+        for(int j = left;j<right;j++){
+            if((*(HashTreeSegment **)GET_SEG_POS(root,j))->depth!=(*(HashTreeSegment **)GET_SEG_POS(root,before))->depth){
+                if((*(HashTreeSegment **)GET_SEG_POS(root,before))->depth>(*(HashTreeSegment **)GET_SEG_POS(root,j))->depth){
+                    flag = before;
+                    before = j;
+                    break;
+                }else{
+                    flag = j;
+                    break;
+                }
+            }
+        }
+        if(flag!=-1){
+            int64_t need_recovery_stride = pow(2, root->global_depth - (*(HashTreeSegment **)GET_SEG_POS(root,flag))->depth);
+            int64_t need_recovery_left = flag - flag % need_recovery_stride;
+            int64_t need_recovery_mid = need_recovery_left + need_recovery_stride / 2, need_recovery_right = need_recovery_left + need_recovery_stride;
+            for(int j = need_recovery_left;j<need_recovery_right;j++){
+                if((*(HashTreeSegment **)GET_SEG_POS(root,j))->depth!=(*(HashTreeSegment **)GET_SEG_POS(root,flag))->depth){
+                    (*(HashTreeSegment **)GET_SEG_POS(root,j)) =  (*(HashTreeSegment **)GET_SEG_POS(root,flag));
+                    clflush((char *) (*(HashTreeSegment **)GET_SEG_POS(root,j)), sizeof(HashTreeSegment *));
+                }
+                (*(HashTreeSegment **)GET_SEG_POS(root,before))->depth +=1;
+                clflush((char *) &((*(HashTreeSegment **)GET_SEG_POS(root,before))->depth), sizeof((*(HashTreeSegment **)GET_SEG_POS(root,before))->depth));
+            }
+        }
+        i = right-1;
+    }
 }
 
 void Length64HashTree:: crash_consistent_put(Length64HashTreeNode *_node, uint64_t key, uint64_t value, int len){
