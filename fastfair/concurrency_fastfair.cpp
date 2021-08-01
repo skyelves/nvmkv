@@ -39,24 +39,30 @@ void concurrency_fastfair::setNewRoot(char *new_root) {
 
 char *concurrency_fastfair::get(uint64_t key) {
     concurrency_page *p = (concurrency_page *) root;
-
+    p->hdr.mtx->try_lock();
     while (p->hdr.leftmost_ptr != NULL) {
-        p = (concurrency_page *) p->linear_search(key);
+        auto tmp = (concurrency_page *) p->linear_search(key);
+        tmp->hdr.mtx->try_lock();
+        p->hdr.mtx->unlock();
+        p = tmp;
     }
 
-    concurrency_page *t;
-    while ((t = (concurrency_page *) p->linear_search(key)) == p->hdr.sibling_ptr) {
+    concurrency_page *t = (concurrency_page *) p->linear_search(key);
+    while ( t == p->hdr.sibling_ptr) {
+        t->hdr.mtx->try_lock();
+        p->hdr.mtx->unlock();
         p = t;
         if (!p) {
             break;
         }
+        t = (concurrency_page *) p->linear_search(key);
     }
 
     if (!t) {
         printf("NOT FOUND %lu, t = %x\n", key, t);
         return NULL;
     }
-
+    p->hdr.mtx->unlock();
     return (char *) t;
 }
 

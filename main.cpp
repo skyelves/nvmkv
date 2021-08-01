@@ -493,8 +493,8 @@ void concurrencyTest() {
 
         // cht = new_concurrency_hashtree(64, 0);
         // con_cceh = new_concurrency_cceh();
-        // con_fastfair = new_concurrency_fastfair();
-        conwoart = new_conwoart_tree();
+        con_fastfair = new_concurrency_fastfair();
+        // conwoart = new_conwoart_tree();
 
         // CONCURRENCY_Time_BODY("concurrency varLength hash tree " + to_string(i) + " threads ", {
         //     for(int i=0;i<numThread;i++){
@@ -506,15 +506,15 @@ void concurrencyTest() {
         //     }
         // })
 
-        CONCURRENCY_Time_BODY("concurrency woart  " + to_string(i) + " threads ", {
-            for(int i=0;i<numThread;i++){
-                threads[i]  = new std::thread(concurrency_woart_put,i);
-            }
+        // CONCURRENCY_Time_BODY("concurrency woart  " + to_string(i) + " threads ", {
+        //     for(int i=0;i<numThread;i++){
+        //         threads[i]  = new std::thread(concurrency_woart_put,i);
+        //     }
 
-            for (int i = 0; i < numThread; i++) {
-                threads[i]->join();
-            }
-        })
+        //     for (int i = 0; i < numThread; i++) {
+        //         threads[i]->join();
+        //     }
+        // })
 
         // concurrency_vlht_put(0);
 
@@ -535,15 +535,15 @@ void concurrencyTest() {
         // }
 
         // cout<<"failed : "<<failed<<endl;
-        // CONCURRENCY_Time_BODY("concurrency fast fair ", {
-        //     for(int i=0;i<numThread;i++){
-        //         threads[i]  = new std::thread(concurrency_fastfair_put,i);
-        //     }
+        CONCURRENCY_Time_BODY("concurrency fast fair ", {
+            for(int i=0;i<numThread;i++){
+                threads[i]  = new std::thread(concurrency_fastfair_put,i);
+            }
 
-        //     for(int i=0;i<numThread;i++){
-        //         threads[i]->join();
-        //     }
-        // })
+            for(int i=0;i<numThread;i++){
+                threads[i]->join();
+            }
+        })
 
         // int failed = 0;
         // vector<uint64_t> failed_key;
@@ -620,11 +620,11 @@ void concurrencyTest() {
         for(int i=0;i<testNum;i++){
             // int res = con_cceh->get(mykey[i]);
             // int res = cht->get(mykey[i]);
-            // int res = *(int*)con_fastfair->get(mykey[i]);
+            int res = *(int*)con_fastfair->get(mykey[i]);
             // int res = vlht->get(8,(unsigned char*)&mykey[i]);
-            auto res = conwoart_get(conwoart, mykey[i], 8);
-
-            if(res==NULL||*(int*)res!=1){
+            // auto res = conwoart_get(conwoart, mykey[i], 8);
+            // if(res==NULL||*(int*)res!=1){
+            if(res!=1){
                 failed++;
                 // cout<<"failed : "<<i<< " key : "<< mykey[i]<<" value: "<< res <<endl;
                 // con_cceh->put(mykey[i],1);
@@ -843,7 +843,7 @@ void ycsb_test(){
             }                                                                                   
         } )
         
-
+        testNum = nLoadOp;
         CON_Time_BODY( "concurrent CCEH put "+ to_string(i)+" thread ", {
             con_cceh->put(allLoadKeys[k],  allLoadValues[k]);
         })                                                        
@@ -851,7 +851,7 @@ void ycsb_test(){
         testNum = nRunOp;
         CON_Time_BODY("concurrent CCEH get "+ to_string(i)+" thread ",{      
             if (allRunOp[k] == YCSBRunOp::Update) {                                                   
-                { con_cceh->put(allLoadKeys[k],  allLoadValues[k]); }                                                                     \
+                { con_cceh->put(allRunKeys[k],  allRunValues[k]); }                                                                     \
             } else if ( allRunOp[k]== YCSBRunOp::Get) {                                               
                 { 
                     con_cceh->get(allRunKeys[k]); 
@@ -860,6 +860,24 @@ void ycsb_test(){
                 { ; }                                                                    
             }                                                                                   
         } )
+
+        testNum = nLoadOp;
+        CON_Time_BODY( "concurrent Fast&Fair put "+ to_string(i)+" thread ", {
+            con_fastfair->put(allLoadKeys[k], (char *)&allLoadValues[k]);
+        })                                                        
+      
+        testNum = nRunOp;
+        CON_Time_BODY("concurrent Fast&Fair get "+ to_string(i)+" thread ",{      
+            if (allRunOp[k] == YCSBRunOp::Update) {                                                   
+                { con_fastfair->put(allLoadKeys[k], (char *)& allLoadValues[k]); }                                                                     \
+            } else if ( allRunOp[k]== YCSBRunOp::Get) {                                               
+                { 
+                    con_fastfair->get(allRunKeys[k]); 
+                }                                                                     
+            } else if ( allRunOp[k]== YCSBRunOp::Scan) {                                              
+                { ; }                                                                    
+            }                                                                                   
+        })
 
         fast_free();
     }
