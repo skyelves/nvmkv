@@ -4,6 +4,8 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <map>
+#include <unordered_map>
+#include <vector>
 #include <string.h>
 #include <sys/time.h>
 #include "blink/blink_tree.h"
@@ -30,6 +32,30 @@ using namespace std;
 
 ofstream out;
 
+#define CON_Time_BODY( name, func)                                                          \
+ {                                                                                          \
+    sleep(1);                                                                               \
+    timeval start, ends;                                                                    \
+    gettimeofday(&start, NULL);                                                             \
+    for(int j = 0; j < i; j++){                                                             \
+        auto fun = []( int const & j)  {                                                             \
+            init_fast_allocator(true);                                                      \
+                for (int k = j * (testNum / numThread); k < (j + 1) * (testNum / numThread); ++k) { \
+                    func                                                                        \
+                }                                                                           \
+        };                                                                                    \
+        threads[j]  = new std::thread(fun, move(j));                                                 \
+    }                                                                                       \
+    for (int j = 0; j < i; j++) {                                                           \
+        threads[j]->join();                                                                 \
+    }                                                                                           \
+                                                                                            \
+    gettimeofday(&ends, NULL);                                                              \
+    double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;\
+    double throughPut = (double) nLoadOp / timeCost;                                        \
+    cout << name << "ThroughPut: " << throughPut << " Mops" << endl;                        \
+    }
+
 #define Time_BODY(condition, name, func)                                                        \
     if(condition) {                                                                             \
         sleep(1);                                                                               \
@@ -44,7 +70,6 @@ ofstream out;
         cout << name << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;        \
         cout << name << "ThroughPut: " << throughPut << " Mops" << endl;                        \
     }
-
 
 #define Scan_Time_BODY(condition, name, func)                                                        \
     if(condition) {                                                                             \
@@ -120,11 +145,27 @@ concurrencyhashtree *cht;
 concurrency_cceh *con_cceh;
 concurrency_fastfair *con_fastfair;
 
+
+uint64_t nLoadOp, nRunOp;
 thread **threads;
 
 uint64_t *mykey;
 
 std::mutex mtx;
+
+enum YCSBRunOp {
+    Get,
+    Scan,
+    Update,
+};
+
+std::vector<uint64_t> allRunKeys;
+std::vector<uint64_t> allRunValues;
+std::vector<uint64_t> allLoadKeys;
+std::vector<uint64_t> allLoadValues;
+
+std::vector<YCSBRunOp> allRunOp;
+std::unordered_map<uint64_t, uint64_t>* oracleMap;
 
 int value = 1;
 
@@ -654,6 +695,166 @@ void varLengthTest() {
     fast_free();
 }
 
+void parseLine(std::string rawStr, uint64_t &hashKey, uint64_t &hashValue, uint32_t &rangeNum, bool isScan) {
+    uint32_t t = rawStr.find(" ");
+    uint32_t t1 = rawStr.find(" ", t + 1);
+    std::string tableName = rawStr.substr(t, t1 - t);
+    uint32_t t2 = rawStr.find(" ", t1 + 1);
+    uint32_t t3 = rawStr.find(" ", t2 + 1);
+    std::string keyName = rawStr.substr(t1, t2 - t1);
+    // std::string fullKey = tableName + keyName; // key option1: table+key concat
+    // std::string fullKey = keyName; // key option2: only key
+    std::string fullKey = keyName.substr(5); // key option3: remove 'user' prefix, out of range
+    if (fullKey.size() > 19) // key option4: key's tail, in range uint64_t
+        fullKey = fullKey.substr(fullKey.size() - 19); // tail
+    std::string fullValue = rawStr.substr(t2);
+    std::string rangeNumStr;
+    if (isScan) {
+        rangeNumStr = rawStr.substr(t2, t3 - t2);
+        fullValue = rawStr.substr(t3);
+    }
+    static std::hash<std::string> hash_str;
+    // info("%s", fullKey.c_str());
+    // hashKey = hash_str(fullKey); // use hash, or
+    hashKey = std::stoll(fullKey); // just convert to int
+    hashValue = hash_str(fullValue);
+    rangeNum = 0;
+    if (isScan) {
+        rangeNum = std::stoi(rangeNumStr);
+    }
+    // info("key:%s, hashed_key: %lx, hashed_value: %lx, rangeNum: %d", fullKey.c_str(), hashKey, hashValue, rangeNum);
+    // info("hashed_key: %lx, hashed_value: %lx", hashKey, hashValue);
+}
+
+void parseYCSBRunFile(std::string wlName, bool correctCheck = false) {
+    std::string rawStr;
+    uint64_t hashKey, hashValue;
+
+    std::ifstream runFile(wlName + ".run");
+    assert(runFile.is_open());
+    uint64_t opCnt = 0;
+    uint32_t rangeNum = 0;
+    while (std::getline(runFile, rawStr)) {
+        assert(rawStr.size() > 4);
+        std::string opStr = rawStr.substr(0, 4);
+        if (opStr == "READ") {
+            // info("%s", rawStr.c_str());
+            parseLine(rawStr, hashKey, hashValue, rangeNum, false);
+            allRunKeys.push_back(hashKey); // buffer this query
+            allRunValues.push_back(0);
+            allRunOp.push_back(YCSBRunOp::Get);
+            opCnt++;
+        } else if (opStr == "INSE" || opStr == "UPDA") {
+            // info("%s", rawStr.c_str());
+            parseLine(rawStr, hashKey, hashValue, rangeNum, false);
+            allRunKeys.push_back(hashKey);
+            allRunValues.push_back(hashValue);
+            allRunOp.push_back(YCSBRunOp::Update);
+            if (correctCheck) (*oracleMap)[hashKey] = hashValue;
+            opCnt++;
+        } else if (opStr == "SCAN") {
+            parseLine(rawStr, hashKey, hashValue, rangeNum, true);
+            allRunKeys.push_back(hashKey);
+            // allRunValues.push_back(1024);
+            allRunValues.push_back(rangeNum);
+            allRunOp.push_back(YCSBRunOp::Scan);
+            opCnt++;
+        } else {
+            // other info
+        }
+    }
+    runFile.close();
+    nRunOp = opCnt;
+    // info("Finish parse run file");
+    cout<<"run"<<endl;
+    if (correctCheck) {
+        for (uint64_t hashKey : allRunKeys) {
+            assert(oracleMap->count(hashKey));
+            // info("hash: %lx", hashKey);
+            uint64_t htValue = ht->get(hashKey);
+            assert(htValue);
+            uint64_t mapValue = oracleMap->at(hashKey);
+            if (htValue != mapValue) {
+                // info("Incorrect key %lx v1 %lx v2 %lx", hashKey, htValue, mapValue);
+                assert(false);
+            }
+        }
+        // info("Pass correctness check!");
+    }
+}
+
+void parseYCSBLoadFile(std::string wlName, bool correctCheck) {
+    std::string rawStr;
+    uint64_t opCnt = 0;
+    uint32_t rangeNum = 0;
+    uint64_t hashKey, hashValue;
+    std::ifstream loadFile(wlName + ".load");
+    assert(loadFile.is_open());
+    while (std::getline(loadFile, rawStr)) {
+        assert(rawStr.size() > 4);
+        std::string opStr = rawStr.substr(0, 4);
+        if (opStr == "INSE" || opStr == "UPDA") {
+            // info("%s", rawStr.c_str());
+            parseLine(rawStr, hashKey, hashValue, rangeNum, false);
+            allLoadKeys.push_back(hashKey);
+            allLoadValues.push_back(hashValue);
+            if (correctCheck) (*oracleMap)[hashKey] = hashValue;
+            opCnt++;
+        } else {
+            // other info
+        }
+    }
+    loadFile.close();
+    // info("Finish parse load file");
+    cout<<"loaded"<<endl;
+    nLoadOp = allLoadKeys.size();
+}
+
+void ycsb_test(){
+    string wlName = "/scorpio/home/shared/ycsb_benchmark/heavyload_a";
+    parseYCSBLoadFile(wlName, false);
+    parseYCSBRunFile(wlName, false);
+
+
+    for (int i = 1; i <= 32; i *= 2) {
+        init_fast_allocator(true);
+        numThread = i;
+        cht = new_concurrency_hashtree(64, 0);
+        testNum = nLoadOp;
+
+
+        CON_Time_BODY( "concurrency hash tree put ", {
+            cht->crash_consistent_put(NULL, allLoadKeys[k], allLoadValues[k], 0); 
+        })                                                        
+
+        
+        
+        testNum = nRunOp;
+
+        CON_Time_BODY("concurrency hash tree get ",{
+                   
+            if (allRunOp[k] == YCSBRunOp::Update) {                                                   
+                { cht->crash_consistent_put(NULL, allRunKeys[k], allRunValues[k], 0); }                                                                     \
+            } else if ( allRunOp[k]== YCSBRunOp::Get) {                                               
+                { 
+                     cht->get(allRunKeys[k]);  }                                                                     
+            } else if ( allRunOp[k]== YCSBRunOp::Scan) {                                              
+                { ; }                                                                    
+            }                                                                                   
+        }  )
+        
+
+
+        fast_free();
+    }
+
+
+
+    //vlht = new_varLengthHashtree();
+
+
+}
+
 int main(int argc, char *argv[]) {
     sscanf(argv[1], "%d", &numThread);
     sscanf(argv[2], "%d", &testNum);
@@ -683,7 +884,9 @@ int main(int argc, char *argv[]) {
     threads = new thread* [64];
     // try{
 
-    concurrencyTest();
+    // concurrencyTest();
+
+    ycsb_test();
 
     // }catch(void*){
     //     fast_free();
