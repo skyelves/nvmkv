@@ -1,4 +1,4 @@
-set(WOART_SOURCES woart.cpp woart.h varLengthWoart.cpp varLengthWoart.h)
+set(WOART_SOURCES woart.cpp woart.h varLengthWoart.cpp varLengthWoart.h conWoart.cpp conWoart.h)
 
 add_library(nvmkv-woart STATIC ${WOART_SOURCES})
 target_compile_features(nvmkv-woart PUBLIC c_std_11 cxx_std_17)

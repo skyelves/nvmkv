@@ -19,10 +19,12 @@
 #include "fastfair/concurrency_fastfair.h"
 #include "roart/roart.h"
 #include "concurrencyhashtree/concurrency_hashtree.h"
+#include "woart/conWoart.h"
 #include "varLengthHashTree/varLengthHashTree.h"
 #include "fastfair/varlengthfastfair.h"
 #include "woart/varLengthWoart.h"
 #include "wort/varLengthWort.h"
+
 
 using namespace std;
 
@@ -113,7 +115,7 @@ varlength_fastfair *vlff;
 var_length_woart_tree *vlwt;
 var_length_wort_tree *vlwot;
 
-
+conwoart_tree * conwoart;
 concurrencyhashtree *cht;
 concurrency_cceh *con_cceh;
 concurrency_fastfair *con_fastfair;
@@ -427,6 +429,14 @@ void * concurrency_vlht_put(int threadNum){
 }
 
 
+void * concurrency_woart_put(int threadNum){
+    init_fast_allocator(true);
+    for (int i = threadNum*(testNum/numThread); i < (threadNum+1)*(testNum/numThread); ++i) {                                                     
+            conwoart_put(conwoart, mykey[i], 8, &value);
+    }
+}
+
+
 void concurrencyTest() {
     mykey = new uint64_t[testNum];
     rng r;
@@ -438,16 +448,26 @@ void concurrencyTest() {
     for (int i = 1; i <= 16; i *= 2) {
         init_fast_allocator(true);
         numThread = i;
-        vlht = new_varLengthHashtree();
+        // vlht = new_varLengthHashtree();
 
         // cht = new_concurrency_hashtree(64, 0);
         // con_cceh = new_concurrency_cceh();
         // con_fastfair = new_concurrency_fastfair();
+        conwoart = new_conwoart_tree();
 
+        // CONCURRENCY_Time_BODY("concurrency varLength hash tree " + to_string(i) + " threads ", {
+        //     for(int i=0;i<numThread;i++){
+        //         threads[i]  = new std::thread(concurrency_vlht_put,i);
+        //     }
 
-        CONCURRENCY_Time_BODY("concurrency varLength hash tree " + to_string(i) + " threads ", {
+        //     for (int i = 0; i < numThread; i++) {
+        //         threads[i]->join();
+        //     }
+        // })
+
+        CONCURRENCY_Time_BODY("concurrency woart  " + to_string(i) + " threads ", {
             for(int i=0;i<numThread;i++){
-                threads[i]  = new std::thread(concurrency_vlht_put,i);
+                threads[i]  = new std::thread(concurrency_woart_put,i);
             }
 
             for (int i = 0; i < numThread; i++) {
@@ -560,9 +580,10 @@ void concurrencyTest() {
             // int res = con_cceh->get(mykey[i]);
             // int res = cht->get(mykey[i]);
             // int res = *(int*)con_fastfair->get(mykey[i]);
-            int res = vlht->get(8,(unsigned char*)&mykey[i]);
+            // int res = vlht->get(8,(unsigned char*)&mykey[i]);
+            auto res = conwoart_get(conwoart, mykey[i], 8);
 
-            if(res!=1){
+            if(res==NULL||*(int*)res!=1){
                 failed++;
                 // cout<<"failed : "<<i<< " key : "<< mykey[i]<<" value: "<< res <<endl;
                 // con_cceh->put(mykey[i],1);
@@ -640,7 +661,7 @@ int main(int argc, char *argv[]) {
     // ht = new_hashtree(64, 0);
     // art = new_art_tree();
 //     wort = new_wort_tree();
-//     woart = new_woart_tree();
+    // woart = new_woart_tree();
 //     // cceh = new_cceh();
 //     ff = new_fastfair();
 //     roart = new_roart();
