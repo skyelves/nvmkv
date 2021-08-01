@@ -10,6 +10,7 @@
 #include <atomic>
 #include <thread>
 #include <sys/mman.h>
+#include <cstdlib>
 
 #ifndef NVMKV_FASTALLOC_H
 #define NVMKV_FASTALLOC_H
@@ -75,9 +76,9 @@ void init_fast_allocator(bool isMultiThread);
 
 void concurrency_init_fast_allocator();
 
-void *fast_alloc(uint64_t size, bool _on_nvm = false);
+void *fast_alloc(uint64_t size, bool _on_nvm = true);
 
-void *concurrency_fast_alloc(uint64_t size, bool _on_nvm = false);
+void *concurrency_fast_alloc(uint64_t size, bool _on_nvm = true);
 
 void fast_free();
 

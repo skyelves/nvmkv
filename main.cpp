@@ -790,6 +790,7 @@ void parseYCSBLoadFile(std::string wlName, bool correctCheck) {
     uint64_t hashKey, hashValue;
     std::ifstream loadFile(wlName + ".load");
     assert(loadFile.is_open());
+   cout<<"ok"<<endl;
     while (std::getline(loadFile, rawStr)) {
         assert(rawStr.size() > 4);
         std::string opStr = rawStr.substr(0, 4);
@@ -811,19 +812,19 @@ void parseYCSBLoadFile(std::string wlName, bool correctCheck) {
 }
 
 void ycsb_test(){
-    string wlName = "/scorpio/home/shared/ycsb_benchmark/heavyload_a";
+    string wlName = "/scorpio/home/shared/ycsb_benchmark/heavyload_c";
     parseYCSBLoadFile(wlName, false);
     parseYCSBRunFile(wlName, false);
 
 
-    for (int i = 1; i <= 32; i *= 2) {
+    for (int i = 1; i <= 36; i += 4) {
         init_fast_allocator(true);
         numThread = i;
         cht = new_concurrency_hashtree(64, 0);
         testNum = nLoadOp;
 
 
-        CON_Time_BODY( "concurrency hash tree put ", {
+        CON_Time_BODY( "concurrency hash tree put "+ to_string(i)+" thread ", {
             cht->crash_consistent_put(NULL, allLoadKeys[k], allLoadValues[k], 0); 
         })                                                        
 
@@ -831,7 +832,7 @@ void ycsb_test(){
         
         testNum = nRunOp;
 
-        CON_Time_BODY("concurrency hash tree get ",{
+        CON_Time_BODY("concurrency hash tree get "+ to_string(i)+" thread ",{
                    
             if (allRunOp[k] == YCSBRunOp::Update) {                                                   
                 { cht->crash_consistent_put(NULL, allRunKeys[k], allRunValues[k], 0); }                                                                     \

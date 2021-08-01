@@ -226,4 +226,5 @@ void fast_free() {
         concurrency_myallocator->free();
         delete concurrency_myallocator;
     }
+    system("rm /mnt/aep1/test*");
 }
