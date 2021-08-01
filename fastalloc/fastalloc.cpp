@@ -178,11 +178,11 @@ void concurrency_fastalloc::free_lock(){
 
 void init_fast_allocator(bool isMultiThread) {
     if(isMultiThread){
-        // concurrency_myallocator = new concurrency_fastalloc;
-        // concurrency_myallocator->init();
+        concurrency_myallocator = new concurrency_fastalloc;
+        concurrency_myallocator->init();
         
-        myallocator = new concurrency_fastalloc;
-        myallocator->init();
+        // myallocator = new concurrency_fastalloc;
+        // myallocator->init();
         // concurrency_myallocator = new concurrency_fastalloc*[64] ;
         // for(int i=0;i<ALLOCATORNUM;i++){
         //     concurrency_myallocator[i] = new concurrency_fastalloc;

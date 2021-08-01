@@ -61,11 +61,11 @@ ofstream out;
 
 #define CONCURRENCY_Time_BODY(name, func)                                                        \
         sleep(1);                                                                               \
-        timeval start, ends;                                                                    \
-        gettimeofday(&start, NULL);                                                             \
+        timeval _start, _ends;                                                                    \
+        gettimeofday(&_start, NULL);                                                             \
         func                                                                                    \
-        gettimeofday(&ends, NULL);                                                              \
-        double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;\
+        gettimeofday(&_ends, NULL);                                                              \
+        double timeCost = (_ends.tv_sec - _start.tv_sec) * 1000000 + _ends.tv_usec - _start.tv_usec;\
         double throughPut = (double) testNum / timeCost;                                        \
         cout << name << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;        \
         cout << name << "ThroughPut: " << throughPut << " Mops" << endl;                        \
@@ -444,6 +444,7 @@ void concurrencyTest() {
         // con_cceh = new_concurrency_cceh();
         // con_fastfair = new_concurrency_fastfair();
 
+
         CONCURRENCY_Time_BODY("concurrency varLength hash tree " + to_string(i) + " threads ", {
             for(int i=0;i<numThread;i++){
                 threads[i]  = new std::thread(concurrency_vlht_put,i);
@@ -456,12 +457,12 @@ void concurrencyTest() {
 
         // concurrency_vlht_put(0);
 
-        int failed = 0;
-        vector<uint64_t> failed_key;
-        for(int i=0;i<testNum;i++){
-            int res = vlht->get(8,(unsigned char*)&mykey[i]);
-            if(res!=1){
-                failed++;
+        // int failed = 0;
+        // vector<uint64_t> failed_key;
+        // for(int i=0;i<testNum;i++){
+        //     int res = vlht->get(8,(unsigned char*)&mykey[i]);
+        //     if(res!=1){
+        //         failed++;
                 // cout<<"failed : "<<i<< " key : "<< mykey[i]<<" value: "<< res <<endl;
                 // vlht->crash_consistent_put_without_lock(NULL,8,(unsigned char*)&mykey[i],1,(uint64_t)&vlht->root);
                 // if(vlht->get(8,(unsigned char*)&mykey[i])!=1){
@@ -469,10 +470,10 @@ void concurrencyTest() {
                 // }else{
                 //     cout<<"fixed"<<endl;
                 // }
-            }
-        }
+        //     }
+        // }
 
-        cout<<"failed : "<<failed<<endl;
+        // cout<<"failed : "<<failed<<endl;
         // CONCURRENCY_Time_BODY("concurrency fast fair ", {
         //     for(int i=0;i<numThread;i++){
         //         threads[i]  = new std::thread(concurrency_fastfair_put,i);
@@ -501,14 +502,15 @@ void concurrencyTest() {
 
         // timeval start, ends;
         // gettimeofday(&start, NULL);
+        // CONCURRENCY_Time_BODY("concurrency_cceh ", { 
+        //     for(int i=0;i<numThread;i++){
+        //         threads[i]  = new std::thread(concurrency_put_with_thread,i);
+        //     }
 
-        // for(int i=0;i<numThread;i++){
-        //     threads[i]  = new std::thread(concurrency_put_with_thread,i);
-        // }
-
-        // for(int i=0;i<numThread;i++){
-        //     threads[i]->join();
-        // }
+        //     for(int i=0;i<numThread;i++){
+        //         threads[i]->join();
+        //     }
+        // })
 
         // gettimeofday(&ends, NULL);
         // double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
@@ -522,23 +524,30 @@ void concurrencyTest() {
         //     int res = cht->get(mykey[i]);
         //     if(res!=1){
         //         failed++;
-        //         cout<<"failed : "<<i<< " key : "<< mykey[i]<<" value: "<< res <<endl;
+                // cout<<"failed : "<<i<< " key : "<< mykey[i]<<" value: "<< res <<endl;
 
-        //         cht->crash_consistent_put(NULL,mykey[i],1,0);
-        //         if(cht->get(mykey[i])!=1){
-        //             cout<<"still wrong!"<<endl;
-        //         }else{
-        //             cout<<"fixed"<<endl;
-        //         }
+                // cht->crash_consistent_put(NULL,mykey[i],1,0);
+                // if(cht->get(mykey[i])!=1){
+                //     cout<<"still wrong!"<<endl;
+                // }else{
+                //     cout<<"fixed"<<endl;
+                // }
         //     }
         // }
-        // for(int i=0;i<numThread;i++){
-        //     threads[i]  = new std::thread(concurrency_cceh_put,i);
-        // }
 
-        // for(int i=0;i<numThread;i++){
-        //     threads[i]->join();
-        // }
+        // CONCURRENCY_Time_BODY("concurrency_cceh ", { 
+        //         for(int i=0;i<numThread;i++){
+        //         threads[i]  = new std::thread(concurrency_cceh_put,i);
+        //         }
+
+        //         for(int i=0;i<numThread;i++){
+        //         threads[i]->join();
+        //         }
+        //     }
+        // )
+
+
+       
 
         // gettimeofday(&ends, NULL);
         // double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
@@ -546,22 +555,26 @@ void concurrencyTest() {
         // cout << "concurrency CCEH put " << testNum << " kv pais with "<<numThread<<" threads in " << timeCost / 1000000 << " s" << endl;
         // cout << "concurrency CCEH" << "ThroughPut: " << throughPut << " Mops" << endl;
 
+        int failed = 0;
+        for(int i=0;i<testNum;i++){
+            // int res = con_cceh->get(mykey[i]);
+            // int res = cht->get(mykey[i]);
+            // int res = *(int*)con_fastfair->get(mykey[i]);
+            int res = vlht->get(8,(unsigned char*)&mykey[i]);
 
-        // int failed = 0;
-        // for(int i=0;i<testNum;i++){
-        //     int res = con_cceh->get(mykey[i]);
-        //     if(res!=1){
-        //         failed++;
-        //         cout<<"failed : "<<i<< " key : "<< mykey[i]<<" value: "<< res <<endl;
+            if(res!=1){
+                failed++;
+                // cout<<"failed : "<<i<< " key : "<< mykey[i]<<" value: "<< res <<endl;
+                // con_cceh->put(mykey[i],1);
+                // if(con_cceh->get(mykey[i])!=1){
+                //     cout<<"still wrong!"<<endl;
+                // }else{
+                //     cout<<"fixed"<<endl;
+                // }
+            }
+        }
 
-        //         con_cceh->put(mykey[i],1);
-        //         if(con_cceh->get(mykey[i])!=1){
-        //             cout<<"still wrong!"<<endl;
-        //         }else{
-        //             cout<<"fixed"<<endl;
-        //         }
-        //     }
-        // }
+        cout<<failed<<endl;
         fast_free();
     }
 }

@@ -97,7 +97,7 @@ void VarLengthHashTree:: crash_consistent_put(VarLengthHashTreeNode *_node, int 
 
 
 void VarLengthHashTree:: crash_consistent_put(VarLengthHashTreeNode *_node, int length, unsigned char* key, uint64_t value, uint64_t beforeAddress, int pos){
-    HashTreeBucket* lock_bucket = NULL;
+    // HashTreeBucket* lock_bucket = NULL;
     HashTreeSegment* lock_segment = NULL;
 
     while(length>=pos){
@@ -147,8 +147,8 @@ void VarLengthHashTree:: crash_consistent_put(VarLengthHashTreeNode *_node, int 
                 HashTreeKeyValue *kv = new_vlht_key_value(key, length, value);
                 clflush((char *) kv, sizeof(HashTreeKeyValue));
                 currentNode->node_put(matchedPrefixLen,kv);
-                if(lock_bucket!=NULL){
-                    lock_bucket->free_read_lock();
+                if(lock_segment!=NULL){
+                    // lock_bucket->free_read_lock();
                     lock_segment->free_read_lock();
                 }
                 currentNode->free_read_lock();
@@ -215,8 +215,8 @@ void VarLengthHashTree:: crash_consistent_put(VarLengthHashTreeNode *_node, int 
                         if(!(*(VarLengthHashTreeNode**)beforeAddress)->put_with_read_lock(subkey, (uint64_t) kv, tmp_seg, tmp_bucket, dir_index, seg_index, beforeAddress)){
                             goto CCEH_RETRY;
                         }
-                        if(lock_bucket!=NULL){
-                            lock_bucket->free_read_lock();
+                        if(lock_segment!=NULL){
+                            // lock_bucket->free_read_lock();
                             lock_segment->free_read_lock();
                         }
                         return;
@@ -266,8 +266,8 @@ void VarLengthHashTree:: crash_consistent_put(VarLengthHashTreeNode *_node, int 
                             tmp_bucket->free_write_lock();
                             tmp_seg->free_read_lock();
 
-                            if(lock_bucket!=NULL){
-                                lock_bucket->free_read_lock();
+                            if(lock_segment!=NULL){
+                                // lock_bucket->free_read_lock();
                                 lock_segment->free_read_lock();
                             }
                             return;
@@ -276,12 +276,13 @@ void VarLengthHashTree:: crash_consistent_put(VarLengthHashTreeNode *_node, int 
 
                             pos += HT_NODE_LENGTH/SIZE_OF_CHAR;
 
-                            if(lock_bucket!=NULL){
-                                lock_bucket->free_read_lock();
+                            tmp_bucket->free_read_lock();
+                            if(lock_segment!=NULL){
+                                // lock_bucket->free_read_lock();
                                 lock_segment->free_read_lock();
                             }
 
-                            lock_bucket = tmp_bucket;
+                            // lock_bucket = tmp_bucket;
                             lock_segment = tmp_seg;
 
                             currentNode = (VarLengthHashTreeNode *) next;
@@ -337,8 +338,8 @@ void VarLengthHashTree:: crash_consistent_put(VarLengthHashTreeNode *_node, int 
                 *(VarLengthHashTreeNode**)beforeAddress = newNode;
 
                 currentNode->free_write_lock();
-                if(lock_bucket!=NULL){
-                    lock_bucket->free_read_lock();
+                if(lock_segment!=NULL){
+                    // lock_bucket->free_read_lock();
                     lock_segment->free_read_lock();
                 }
                 return;
