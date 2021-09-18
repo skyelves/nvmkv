@@ -644,14 +644,14 @@ void concurrencyTest() {
 
 void varLengthTest() {
     int span[] = {4, 8, 16, 32, 64, 128};
-    testNum = 10000000;
+    testNum = 30000000;
     unsigned char **keys = new unsigned char *[testNum];
     int *lengths = new int[testNum];
     rng r;
     rng_init(&r, 1, 2);
 
     for (int i = 0; i < testNum; i++) {
-        // lengths[i] = span[0];
+//         lengths[i] = span[1];
         lengths[i] = span[rng_next(&r) % 6];
         keys[i] = static_cast<unsigned char *>( malloc(lengths[i]));
 
@@ -668,18 +668,18 @@ void varLengthTest() {
     // }
 
 
-     Time_BODY(1,"varLengthHashTree put " , { vlht->crash_consistent_put(NULL,lengths[i],keys[i],1); })
-     Time_BODY(1,"varLengthHashTree get " , { vlht->get(lengths[i],keys[i]); })
+//     Time_BODY(1,"varLengthHashTree put " , { vlht->crash_consistent_put(NULL,lengths[i],keys[i],1); })
+//     Time_BODY(1,"varLengthHashTree get " , { vlht->get(lengths[i],keys[i]); })
 
 
-    // Time_BODY(1,"varLengthFast&Fair put " , { vlff->put((char*)keys[i],lengths[i],(char *) &value); })
+//     Time_BODY(1,"varLengthFast&Fair put " , { vlff->put((char*)keys[i],lengths[i],(char *) &value); })
     // Time_BODY(1,"varLengthFast&Fair get " , { 
     //     if(*(char*)(vlff->get((char*)keys[i],lengths[i]))!=1){
     //         cout<<*(uint64_t*)keys[i]<<endl;
     //     }; 
     // })
 
-    // Time_BODY(1,"varLengthWoart put " , { var_length_woart_put(vlwt,(char*)keys[i],lengths[i]*8,(char *) &value); })
+     Time_BODY(1,"varLengthWoart put " , { var_length_woart_put(vlwt,(char*)keys[i],lengths[i]*8,(char *) &value); })
     // Time_BODY(1,"varLengthWoart get " , { 
     //     if(*(char*)(var_length_woart_get(vlwt,(char*)keys[i],lengths[i]*8))!=1){
     //         cout<<*(uint64_t*)&mykey[i]<<endl;
@@ -693,6 +693,7 @@ void varLengthTest() {
 //            cout << *(uint64_t *) &mykey[i] << endl;
 //        };
 //    })
+//    cout << concurrency_fastalloc_profile() << endl;
     fast_free();
 }
 
@@ -951,24 +952,25 @@ int main(int argc, char *argv[]) {
 //     ff = new_fastfair();
 //     roart = new_roart();
 //     l64ht = new_length64HashTree();
-//     vlwt = new_var_length_woart_tree();
-//     vlwot = new_var_length_wort_tree();
+    vlht = new_varLengthHashtree();
+     vlwt = new_var_length_woart_tree();
+     vlwot = new_var_length_wort_tree();
 // //    mt = new_mass_tree();
 
-    // vlff = new_varlengthfastfair();
+     vlff = new_varlengthfastfair();
 //    bt = new_blink_tree(numThread);
     // correctnessTest();
 
     // speedTest();
 
-    // varLengthTest();
+     varLengthTest();
 
 // build for cocurrencyTest
 
     // threads = new thread* [64];
     // try{
 
-        recoveryTest();
+//        recoveryTest();
     // concurrencyTest();
 
     // ycsb_test();
