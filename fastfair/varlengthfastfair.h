@@ -152,8 +152,15 @@ public:
         records[0].ptr = NULL;
     }
 
+    void init(uint32_t level = 0) {
+        hdr.level = level;
+        records[0].ptr = NULL;
+    }
+
     // this is called when tree grows
     varlength_page(varlength_page *left, uint64_t key, varlength_page *right, uint32_t level = 0);
+
+    void grow_init(varlength_page *left, uint64_t key, varlength_page *right, uint32_t level = 0);
 
     void *operator new(size_t size) {
         void *ret = fast_alloc(size);
