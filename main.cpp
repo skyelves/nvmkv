@@ -359,18 +359,41 @@ void effect1() {
     rng r;
     rng_init(&r, 1, 2);
     for (int i = 0; i < testNum; ++i) {
-//        mykey[i] = rng_next(&r);
+        mykey[i] = rng_next(&r);
 //        mykey[i] = rng_next(&r) & 0xffffffff00000000;
-        mykey[i] = rng_next(&r) % testNum;
+//        mykey[i] = rng_next(&r) % testNum;
 //        mykey[i] = rng_next(&r) % testNum + 0x10000000000;
 
     }
     uint64_t value = 1;
 
+//    int span[] = {4, 8, 16, 32, 64, 128};
+//    unsigned char **keys = new unsigned char *[testNum];
+//    int *lengths = new int[testNum];
+//    for (int i = 0; i < testNum; i++) {
+////        lengths[i] = span[0];
+//        lengths[i] = span[rng_next(&r) % 6];
+//        keys[i] = static_cast<unsigned char *>(malloc(lengths[i]));
+//        for (int j = 0; j < lengths[i]; j++) {
+//            keys[i][j] = rng_next(&r) % testNum;
+//        }
+//    }
+//    for (int i = 0; i < testNum; i++) {
+//        vlht->crash_consistent_put(NULL, lengths[i], keys[i], 1)
+//    }
+
 
     Time_BODY(1, "vlht put  ", { vlht->crash_consistent_put(NULL, 8, (unsigned char *) &mykey[i], 1); })
 
-    Time_BODY(1, "vlht get ", { vlht->get(8, (unsigned char *) &(mykey[i])); })
+//    Time_BODY(1, "vlht get ", { vlht->get(8, (unsigned char *) &(mykey[i])); })
+//    Time_BODY(1, "wort put ", { wort_put(wort, mykey[i], 8, &value); })
+//    Time_BODY(1, "woart put ", { woart_put(woart, mykey[i], 8, &value); })
+//    Time_BODY(1, "fast&fair put ", { ff->put(mykey[i], (char *) &value); })
+//    Time_BODY(1, "roart put ", { roart->put(mykey[i], value); })
+//    Time_BODY(1, "cceh put ", { cceh->put(mykey[i], value); })
+
+
+
 
     cout << fastalloc_profile() << endl;
 }
