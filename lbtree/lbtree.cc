@@ -4,6 +4,20 @@
 
 #include "lbtree.h"
 
+
+
+inline static void mfence() {
+    asm volatile("mfence":: :"memory");
+}
+
+inline void clflush(char *data, size_t len) {
+    volatile char *ptr = (char *) ((unsigned long) data & (~(CACHELINESIZE - 1)));
+    mfence();
+    for (; ptr < data + len; ptr += CACHELINESIZE) {
+        asm volatile("clflush %0" : "+m" (*(volatile char *) ptr));
+    }
+    mfence();
+}
 static int last_slot_in_line[LEAF_KEY_NUM];
 
 static void initUseful(void) {
@@ -30,6 +44,11 @@ static void initUseful(void) {
     last_slot_in_line[13] = 13;
 }
 
+
+void treeMeta::  setFirstLeaf(bleaf *leaf) {
+    *first_leaf = leaf;
+    clflush((char *) first_leaf, 8);
+}
 
 typedef struct BldThArgs {
 

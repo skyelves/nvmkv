@@ -51,18 +51,6 @@ static inline unsigned char hashcode1B(key_type x) {
     return (unsigned char) (x & 0x0ffULL);
 }
 
-inline void mfence(void) {
-    asm volatile("mfence":: :"memory");
-}
-
-inline void clflush(char *data, size_t len) {
-    volatile char *ptr = (char *) ((unsigned long) data & (~(CACHELINESIZE - 1)));
-    mfence();
-    for (; ptr < data + len; ptr += CACHELINESIZE) {
-        asm volatile("clflush %0" : "+m" (*(volatile char *) ptr));
-    }
-    mfence();
-}
 
 class Pointer8B {
 public:
@@ -208,10 +196,7 @@ public:
         first_leaf = (bleaf **) nvm_address;
     }
 
-    void setFirstLeaf(bleaf *leaf) {
-        *first_leaf = leaf;
-        clflush((char *) first_leaf, 8);
-    }
+    void setFirstLeaf(bleaf *leaf);
 };
 
 

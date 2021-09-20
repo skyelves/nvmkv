@@ -1,3 +1,7 @@
+//
+// Created by 王柯 on 2021-03-24.
+//
+
 #include "fastalloc.h"
 
 fastalloc *myallocator;
@@ -106,6 +110,13 @@ void fastalloc::free() {
     }
 }
 
+uint64_t fastalloc::profile(bool _on_nvm) {
+    if (_on_nvm)
+        return nvm_cnt * ALLOC_SIZE - nvm_left;
+    else
+        return dram_cnt * ALLOC_SIZE - dram_left;
+}
+
 void init_fast_allocator(bool isMultiThread) {
     if(isMultiThread){
         concurrency_myallocator = new concurrency_fastalloc;
@@ -117,7 +128,7 @@ void init_fast_allocator(bool isMultiThread) {
 }
 
 void *fast_alloc(uint64_t size, bool _on_nvm) {
-    return myallocator->alloc(size, _on_nvm);
+    return concurrency_myallocator->alloc(size, _on_nvm);
 }
 
 void *concurrency_fast_alloc(uint64_t size, bool _on_nvm){
@@ -134,4 +145,18 @@ void fast_free() {
         concurrency_myallocator->free();
         delete concurrency_myallocator;
     }
+#ifdef __linux__
+    system("rm /mnt/aep1/test*");
+#endif
+}
+
+
+uint64_t fastalloc_profile() {
+    if (myallocator != NULL)
+        return myallocator->profile();
+}
+
+uint64_t concurrency_fastalloc_profile() {
+    if (concurrency_myallocator != NULL)
+        return concurrency_myallocator->profile();
 }

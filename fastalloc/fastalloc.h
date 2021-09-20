@@ -1,3 +1,7 @@
+//
+// Created by 王柯 on 2021-03-24.
+//
+
 #include <iostream>
 #include <stdio.h>
 #include <cstdlib>
@@ -11,7 +15,7 @@
 #ifndef NVMKV_FASTALLOC_H
 #define NVMKV_FASTALLOC_H
 
-#define ALLOC_SIZE ((size_t)4<<30)
+#define ALLOC_SIZE ((size_t)4<<30) // 4GB
 #define CONCURRENCY_ALLOC_SIZE ((size_t)4<<28)
 #define CACHELINESIZE (64)
 
@@ -46,6 +50,8 @@ public:
     virtual void *alloc(uint64_t size, bool _on_nvm = true);
 
     virtual void free();
+
+    uint64_t profile(bool _on_nvm = true);
 };
 
 class concurrency_fastalloc : public fastalloc {
@@ -62,4 +68,8 @@ void *concurrency_fast_alloc(uint64_t size, bool _on_nvm = true);
 
 void fast_free();
 
-#endif
+uint64_t fastalloc_profile();
+
+uint64_t concurrency_fastalloc_profile();
+
+#endif //NVMKV_FASTALLOC_H
