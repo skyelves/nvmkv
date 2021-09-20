@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.10...3.19)
 project(nvmkv)
-add_subdirectory(varLengthHashTree)
+set(CMAKE_CXX_STANDARD 14)
+add_subdirectory(extendible_radix_tree)
 add_subdirectory(node)
 add_subdirectory(allocator)
 add_subdirectory(fastalloc)
@@ -17,9 +18,10 @@ add_subdirectory(cceh)
 add_subdirectory(fastfair)
 add_subdirectory(roart)
 add_subdirectory(concurrencyhashtree)
+add_subdirectory(lbtree)
 add_executable(nvmkv main.cpp)
 #target_link_libraries(nvmkv PRIVATE nvmkv-blink nvmkv-cart nvmkv-mass nvmkv-rng vmmalloc)
 target_link_libraries(nvmkv PRIVATE nvmkv-blink nvmkv-mass
         nvmkv-rng nvmkv-ht nvmkv-murmur nvmkv-bobhash32
         nvmkv-art nvmkv-wort nvmkv-woart nvmkv-cceh nvmkv-fastfair nvmkv-roart nvmkv-cht
-        nvmkv-vlht)
+        nvmkv-vlht nvmkv-lbt)
