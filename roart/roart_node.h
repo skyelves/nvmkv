@@ -23,7 +23,7 @@
 
 using namespace std;
 
-#define ZENTRY
+//#define ZENTRY
 
 const size_t LeafArrayLength = 64;
 const size_t FingerPrintShift = 48;

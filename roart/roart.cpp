@@ -506,9 +506,9 @@ bool ROART::lookupRange(const ROART_KEY *start, const ROART_KEY *end, ROART_KEY 
 }
 
 #else
-bool ROART::lookupRange(const ROART_KEY *start, const ROART_KEY *end, const ROART_KEY *continueKey,
-                       ROART_Leaf *result[], std::size_t resultSize,
-                       std::size_t &resultsFound) const {
+bool ROART::lookupRange(const ROART_KEY *start, const ROART_KEY *end, ROART_KEY *continueKey,
+                        ROART_Leaf *result[], std::size_t resultSize,
+                        std::size_t &resultsFound) const {
     if (!N::key_key_lt(start, end)) {
         resultsFound = 0;
         return false;
