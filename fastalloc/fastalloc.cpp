@@ -159,4 +159,6 @@ uint64_t fastalloc_profile() {
 uint64_t concurrency_fastalloc_profile() {
     if (concurrency_myallocator != NULL)
         return concurrency_myallocator->profile();
+    else
+        return -1;
 }
