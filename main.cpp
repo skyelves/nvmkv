@@ -20,6 +20,7 @@
 #include "roart/roart.h"
 #include "concurrencyhashtree/concurrency_hashtree.h"
 #include "varLengthHashTree/varLengthHashTree.h"
+#include "lbtree/lbtree.h"
 
 using namespace std;
 
@@ -112,6 +113,7 @@ fastfair *ff;
 ROART *roart;
 VarLengthHashTree *vlht;
 Length64HashTree *l64ht;
+lbtree *lbt;
 
 concurrencyhashtree *cht;
 concurrency_cceh *con_cceh;
@@ -383,7 +385,7 @@ void effect1() {
 //    }
 
 
-    Time_BODY(1, "vlht put  ", { vlht->crash_consistent_put(NULL, 8, (unsigned char *) &mykey[i], 1); })
+//    Time_BODY(1, "vlht put  ", { vlht->crash_consistent_put(NULL, 8, (unsigned char *) &mykey[i], 1); })
 
 //    Time_BODY(1, "vlht get ", { vlht->get(8, (unsigned char *) &(mykey[i])); })
 //    Time_BODY(1, "wort put ", { wort_put(wort, mykey[i], 8, &value); })
@@ -391,6 +393,7 @@ void effect1() {
 //    Time_BODY(1, "fast&fair put ", { ff->put(mykey[i], (char *) &value); })
 //    Time_BODY(1, "roart put ", { roart->put(mykey[i], value); })
 //    Time_BODY(1, "cceh put ", { cceh->put(mykey[i], value); })
+    Time_BODY(1, "lbtree put ", { lbt->insert( mykey[i], &value ); })
 
 
 
@@ -471,6 +474,7 @@ int main(int argc, char *argv[]) {
     ff = new_fastfair();
     roart = new_roart();
     l64ht = new_length64HashTree();
+    lbt = new_lbtree();
 
 //    mt = new_mass_tree();
     vlht = new_varLengthHashtree();
