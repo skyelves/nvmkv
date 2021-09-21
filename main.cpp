@@ -107,7 +107,7 @@ ofstream out;
         for (int i = 0; i < testNum; ++i) {                                                     \
             func                                                                                \
             if (i%interval==interval-1){\
-                memory=fastalloc_profile();                                                               \
+                memory=concurrency_fastalloc_profile();                                                               \
                 cout << memory << ", ";\
             }\
         }\
@@ -1017,8 +1017,7 @@ void effect2() {
         };
     })
 
-    KEYS_Time_BODY(1, "varLengthWoart put ",
-              { var_length_woart_put(vlwt, (char *) keys[i], lengths[i] * 8, (char *) &value); })
+    KEYS_Time_BODY(1, "varLengthWoart put ", { var_length_woart_put(vlwt, (char *) keys[i], lengths[i] * 8, (char *) &value); })
     KEYS_Time_BODY(1, "varLengthWoart get ", {
         if (*(char *) (var_length_woart_get(vlwt, (char *) keys[i], lengths[i] * 8)) != 1) {
             cout << *(uint64_t *) &mykey[i] << endl;
