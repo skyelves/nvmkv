@@ -104,7 +104,7 @@ int testNum = 100000;
 int numThread = 1;
 
 int test_algorithms_num = 10;
-bool test_case[10] = {1, // ht
+bool test_case[10] = {0, // ht
                       0, // art
                       0, // wort
                       0, // woart
@@ -119,7 +119,7 @@ bool range_query_test_case[10] = {
         0, // wort
         0, // woart
         0, // fast&fair
-        1, // roart
+        0, // roart
         0, // ert
         0
 };
@@ -300,6 +300,7 @@ void speedTest() {
     Scan_Time_BODY(range_query_test_case[5], "ert range query ",
                    { l64ht->node_scan(NULL, mykey[i], mykey[i] + 101, res); })
 
+//    cout << concurrency_fastalloc_profile()<<endl;
     out.close();
 }
 
