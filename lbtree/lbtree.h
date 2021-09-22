@@ -42,7 +42,7 @@ typedef long long key_type;
 #define countBit(x) __builtin_popcount(x)
 #define ceiling(x, y)  (((x) + (y) - 1) / (y))
 #define max(x, y)    ((x)<=(y) ? (y) : (x))
-
+#define CAS(_p, _u, _v)  (__atomic_compare_exchange_n (_p, _u, _v, false, __ATOMIC_ACQUIRE, __ATOMIC_ACQUIRE))
 
 static inline unsigned char hashcode1B(key_type x) {
     x ^= x >> 32;
@@ -129,6 +129,19 @@ public:
     int &num(void) { return ((bnodeMeta *) &(ent[0].k))->num; }
 
     int &lock(void) { return ((bnodeMeta *) &(ent[0].k))->lock; }
+
+    int tryLock(){
+        int noLock = 0;
+        if(!CAS(&lock(),&noLock,1)){
+            return 1;
+        }else{
+            return 1;
+        }
+    }
+
+    void unlock(){
+        lock() = 0;
+    }
 }; // bnode
 
 typedef union bleafMeta {
@@ -171,6 +184,19 @@ public:
     void setWord0(bleafMeta *m) {
         bleafMeta *my_meta = (bleafMeta *) this;
         my_meta->word8B[0] = m->word8B[0];
+    }
+
+    int tryLock(){
+        if(lock == 1 ){
+            return 0;
+        }else{
+            lock = 1;
+            return 1;
+        }
+    }
+
+    void unlock(){
+        lock = 0;
     }
 
 }; // bleaf

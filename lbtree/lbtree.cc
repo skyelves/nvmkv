@@ -3,8 +3,7 @@
 //
 
 #include "lbtree.h"
-
-
+#include <stack>
 
 inline static void mfence() {
     asm volatile("mfence":: :"memory");
@@ -18,7 +17,17 @@ inline void clflush(char *data, size_t len) {
     }
     mfence();
 }
+
 static int last_slot_in_line[LEAF_KEY_NUM];
+
+
+void freeLockStack(stack<bnode*>& st){
+    while(!st.empty()){
+        auto i = st.top();
+        i->unlock();
+        st.pop();
+    }
+}
 
 static void initUseful(void) {
     // line 0
@@ -45,7 +54,7 @@ static void initUseful(void) {
 }
 
 
-void treeMeta::  setFirstLeaf(bleaf *leaf) {
+void treeMeta::setFirstLeaf(bleaf *leaf) {
     *first_leaf = leaf;
     clflush((char *) first_leaf, 8);
 }
@@ -192,6 +201,7 @@ void lbtree::insert(key_type key, void *ptr) {
 
     unsigned char key_hash = hashcode1B(key);
     volatile long long sum;
+    stack<bnode*>lockStack;
 
     /* Part 1. get the positions to insert the key */
     {
@@ -201,13 +211,16 @@ void lbtree::insert(key_type key, void *ptr) {
         key_type r;
 
         Again2:
-        // 1. RTM begin
-//        if (_xbegin() != _XBEGIN_STARTED) {
-//            goto Again2;
-//        }
 
         // 2. search nonleaf nodes
         p = tree_meta->tree_root;
+
+        if(!p->tryLock()){
+            freeLockStack(lockStack);
+            goto Again2;
+        }else{
+            lockStack.push(p);
+        }
 
         for (i = tree_meta->root_level; i > 0; i--) {
 
@@ -215,9 +228,11 @@ void lbtree::insert(key_type key, void *ptr) {
             NODE_PREF(p);
 
             // if the lock bit is set, abort
-            if (p->lock()) {
-//                _xabort(3);
+            if (!p->tryLock()) {
+                freeLockStack(lockStack);
                 goto Again2;
+            }else{
+                lockStack.push(p);
             }
 
             parray[i] = p;
@@ -254,10 +269,14 @@ void lbtree::insert(key_type key, void *ptr) {
         LEAF_PREF(lp);
 
         // if the lock bit is set, abort
-        if (lp->lock) {
-//            _xabort(4);
+
+        if(!lp->tryLock()){
+            freeLockStack(lockStack);
             goto Again2;
         }
+
+        freeLockStack(lockStack);
+
 
         parray[0] = lp;
 
@@ -283,27 +302,28 @@ void lbtree::insert(key_type key, void *ptr) {
             int jj = bitScan(mask) - 1;  // next candidate
 
             if (lp->k(jj) == key) { // found: do nothing, return
-//                _xend();
+                lp->unlock();
                 return;
             }
 
             mask &= ~(0x1 << jj);  // remove this bit
         } // end while
 
-        // 4. set lock bits before exiting the RTM transaction
-        lp->lock = 1;
+        // leaf lock
+        // release noleaf lock
+
 
         isfull[0] = lp->isFull();
         if (isfull[0]) {
             for (i = 1; i <= tree_meta->root_level; i++) {
                 p = parray[i];
-                p->lock() = 1;
+//                p->lock() = 1;
+                p->tryLock();
+                lockStack.push(p);
                 if (!isfull[i]) break;
             }
         }
 
-        // 5. RTM commit
-//        _xend();
 
     } // end of Part 1
 
@@ -314,8 +334,6 @@ void lbtree::insert(key_type key, void *ptr) {
 
         /* 1. leaf is not full */
         if (!isfull[0]) {
-
-            meta.v.lock = 0;  // clear lock in temp meta
 
             // 1.1 get first empty slot
             uint16_t bitmap = meta.v.bitmap;
@@ -337,6 +355,7 @@ void lbtree::insert(key_type key, void *ptr) {
 
                 // 1.3.2 flush
                 clflush((char *) lp, 8);
+                meta.v.lock = 0;
                 return;
             }
 
@@ -364,6 +383,8 @@ void lbtree::insert(key_type key, void *ptr) {
                 lp->setBothWords(&meta);
                 clflush((char *) lp, 8);
 
+                meta.v.lock = 0;  // clear lock in temp meta
+                freeLockStack(lockStack);
                 return;
             }
         } // end of not full
@@ -506,6 +527,7 @@ void lbtree::insert(key_type key, void *ptr) {
 
                 // unlock after all changes are globally visible
                 p->lock() = 0;
+                freeLockStack(lockStack);
                 return;
             }
 
@@ -543,7 +565,6 @@ void lbtree::insert(key_type key, void *ptr) {
             if (lev < total_level) p->lock() = 0; // do not clear lock bit of root
             newp->num() = RIGHT_KEY_NUM;
             newp->lock() = 0;
-
             lev++;
         } /* end of while loop */
 
@@ -572,7 +593,7 @@ void lbtree::insert(key_type key, void *ptr) {
 
         // unlock new root
         newp->lock() = 0;
-
+        freeLockStack(lockStack);
         return;
 
 #undef RIGHT_KEY_NUM
@@ -850,7 +871,9 @@ int lbtree::bulkload(int keynum, key_type input, float bfill) {
     return tree_meta->root_level;
 }
 
-int lbtree::bulkloadSubtree(key_type input, int start_key, int num_key, float bfill, int target_level, Pointer8B pfirst[], int n_nodes[]) {
+int
+lbtree::bulkloadSubtree(key_type input, int start_key, int num_key, float bfill, int target_level, Pointer8B pfirst[],
+                        int n_nodes[]) {
     int ncur[32];
     int top_level;
 
@@ -974,7 +997,7 @@ int lbtree::bulkloadSubtree(key_type input, int start_key, int num_key, float bf
 lbtree *new_lbtree() {
     lbtree *mytree = static_cast<lbtree *>(fast_alloc(sizeof(lbtree)));
     mytree->init();
-    mytree->bulkload(1,1);
+    mytree->bulkload(1, 1);
     return mytree;
 }
 
