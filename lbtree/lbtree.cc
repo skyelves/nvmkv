@@ -976,14 +976,18 @@ int lbtree::bulkloadSubtree(key_type input, int start_key, int num_key, float bf
     return top_level;
 }
 
-void lbtree::rangeQuery(key_type start , key_type end, vector<void *>& list){
+vector<lbtree::kv> lbtree::rangeQuery(key_type start , key_type end){
+    vector<lbtree::kv> res;
     int pos;
     auto startPointer = (bleaf*)lookup(start,&pos);
     auto endPointer = (bleaf*)lookup(end,&pos);
     for(auto i = startPointer; ;){
         for(int j=0;j<LEAF_KEY_NUM;j++){
             if(i->bitmap&(1<<j) && i->ent[j].k>=start && i->ent[j].k<=end){
-                list.push_back((void*)i->ent[j].ch);
+                kv tmp;
+                tmp.k=i->ent[j].k;
+                tmp.v = i->ent[j].ch;
+                res.push_back(tmp);
             }
         }
         if(i==endPointer){
@@ -992,6 +996,7 @@ void lbtree::rangeQuery(key_type start , key_type end, vector<void *>& list){
             i = i->nextSibling();
         }
     }
+    return res;
 }
 
 lbtree *new_lbtree() {

@@ -12,6 +12,7 @@
 #include <thread>
 #include <atomic>
 #include <vector>
+#include <map>
 #include <immintrin.h>
 #include "nodeprof.h"
 #include "../fastalloc/fastalloc.h"
@@ -233,6 +234,12 @@ public:
 
 public:
 
+    class kv{
+    public:
+        key_type k;
+        uint64_t v;
+    };
+
     int bulkload(int keynum, key_type input, float bfill = 1.0);
 
     int bulkloadSubtree(key_type input, int start_key, int num_key, float bfill, int target_level, Pointer8B pfirst[], int n_nodes[]);
@@ -253,7 +260,7 @@ public:
 
     int level() { return tree_meta->root_level; }
 
-    void rangeQuery(key_type key , key_type end, vector<void *>& list);
+    vector<kv> rangeQuery(key_type key , key_type end);
 
 private:
 
