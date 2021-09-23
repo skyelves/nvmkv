@@ -215,24 +215,14 @@ void lbtree::insert(key_type key, void *ptr) {
         // 2. search nonleaf nodes
         p = tree_meta->tree_root;
 
-        if(!p->tryLock()){
-            freeLockStack(lockStack);
-            goto Again2;
-        }else{
-            lockStack.push(p);
-        }
-
         for (i = tree_meta->root_level; i > 0; i--) {
 
             // prefetch the entire node
             NODE_PREF(p);
 
             // if the lock bit is set, abort
-            if (!p->tryLock()) {
-                freeLockStack(lockStack);
+            if (p->lock()) {
                 goto Again2;
-            }else{
-                lockStack.push(p);
             }
 
             parray[i] = p;
@@ -269,14 +259,10 @@ void lbtree::insert(key_type key, void *ptr) {
         LEAF_PREF(lp);
 
         // if the lock bit is set, abort
-
-        if(!lp->tryLock()){
+        if (lp->lock) {
             freeLockStack(lockStack);
             goto Again2;
         }
-
-        freeLockStack(lockStack);
-
 
         parray[0] = lp;
 
@@ -302,24 +288,21 @@ void lbtree::insert(key_type key, void *ptr) {
             int jj = bitScan(mask) - 1;  // next candidate
 
             if (lp->k(jj) == key) { // found: do nothing, return
-                lp->unlock();
+                freeLockStack(lockStack);
                 return;
             }
 
             mask &= ~(0x1 << jj);  // remove this bit
         } // end while
 
-        // leaf lock
-        // release noleaf lock
-
+        // 4. set lock bits before exiting the RTM transaction
+        lp->lock = 1;
 
         isfull[0] = lp->isFull();
         if (isfull[0]) {
             for (i = 1; i <= tree_meta->root_level; i++) {
                 p = parray[i];
-//                p->lock() = 1;
-                p->tryLock();
-                lockStack.push(p);
+                p->lock() = 1;
                 if (!isfull[i]) break;
             }
         }
@@ -334,6 +317,8 @@ void lbtree::insert(key_type key, void *ptr) {
 
         /* 1. leaf is not full */
         if (!isfull[0]) {
+
+            meta.v.lock = 0;  // clear lock in temp meta
 
             // 1.1 get first empty slot
             uint16_t bitmap = meta.v.bitmap;
@@ -355,7 +340,7 @@ void lbtree::insert(key_type key, void *ptr) {
 
                 // 1.3.2 flush
                 clflush((char *) lp, 8);
-                meta.v.lock = 0;
+                freeLockStack(lockStack);
                 return;
             }
 
@@ -382,8 +367,6 @@ void lbtree::insert(key_type key, void *ptr) {
                 meta.v.bitmap = bitmap;
                 lp->setBothWords(&meta);
                 clflush((char *) lp, 8);
-
-                meta.v.lock = 0;  // clear lock in temp meta
                 freeLockStack(lockStack);
                 return;
             }
@@ -565,6 +548,7 @@ void lbtree::insert(key_type key, void *ptr) {
             if (lev < total_level) p->lock() = 0; // do not clear lock bit of root
             newp->num() = RIGHT_KEY_NUM;
             newp->lock() = 0;
+
             lev++;
         } /* end of while loop */
 
@@ -871,9 +855,7 @@ int lbtree::bulkload(int keynum, key_type input, float bfill) {
     return tree_meta->root_level;
 }
 
-int
-lbtree::bulkloadSubtree(key_type input, int start_key, int num_key, float bfill, int target_level, Pointer8B pfirst[],
-                        int n_nodes[]) {
+int lbtree::bulkloadSubtree(key_type input, int start_key, int num_key, float bfill, int target_level, Pointer8B pfirst[], int n_nodes[]) {
     int ncur[32];
     int top_level;
 
@@ -992,6 +974,24 @@ lbtree::bulkloadSubtree(key_type input, int start_key, int num_key, float bfill,
 
     }
     return top_level;
+}
+
+void lbtree::rangeQuery(key_type start , key_type end, vector<void *>& list){
+    int pos;
+    auto startPointer = (bleaf*)lookup(start,&pos);
+    auto endPointer = (bleaf*)lookup(end,&pos);
+    for(auto i = startPointer; ;){
+        for(int j=0;j<LEAF_KEY_NUM;j++){
+            if(i->bitmap&(1<<j) && i->ent[j].k>=start && i->ent[j].k<=end){
+                list.push_back((void*)i->ent[j].ch);
+            }
+        }
+        if(i==endPointer){
+            break;
+        }else{
+            i = i->nextSibling();
+        }
+    }
 }
 
 lbtree *new_lbtree() {

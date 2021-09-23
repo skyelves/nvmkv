@@ -11,6 +11,7 @@
 #include <stdint.h>
 #include <thread>
 #include <atomic>
+#include <vector>
 #include <immintrin.h>
 #include "nodeprof.h"
 #include "../fastalloc/fastalloc.h"
@@ -251,6 +252,8 @@ public:
     void del(key_type key);
 
     int level() { return tree_meta->root_level; }
+
+    void rangeQuery(key_type key , key_type end, vector<void *>& list);
 
 private:
 
