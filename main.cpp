@@ -234,7 +234,7 @@ void *putFunc(void *arg) {
 }
 
 void speedTest() {
-    testNum = 10000000;
+    testNum = 100000;
     mykey = new uint64_t[testNum];
     rng r;
     rng_init(&r, 1, 2);
@@ -423,32 +423,42 @@ void profile() {
 }
 
 void range_query_correctness_test() {
-    testNum = 10000000;
+    testNum = 1000000;
     mykey = new uint64_t[testNum];
     rng r;
     rng_init(&r, 1, 2);
+    uint64_t mmax = 0;
+    uint64_t mmin = INT64_MAX;
     for (int i = 0; i < testNum; ++i) {
-        mykey[i] = rng_next(&r) % testNum;
+        mykey[i] = rng_next(&r);
+        if(mykey[i]>mmax){
+            mmax = mykey[i];
+        }
+        if(mykey[i]<mmin){
+            mmin = mykey[i];
+        }
     }
     // vector<concurrency_ff_key_value> res;
 //    vector<ht_key_value> res;
 //    vector<woart_key_value> res;
 //    vector<wort_key_value> res;
 
-    vector<Length64HashTreeKeyValue> res;
+//    vector<Length64HashTreeKeyValue> res;
 
-    uint64_t value = 1;
-    for (int i = 0; i < testNum; i += 1) {
-        l64ht->crash_consistent_put(NULL, mykey[i], 1);
-        // roart->put(i + 1, i + 1);
-//        ff->put(i + 1, (char *) &value);
-//        woart_put(woart, i + 1, 8, &value);
-//        wort_put(wort, i + 1, 8, &value);
-//        ht->crash_consistent_put(NULL, i+1, 1, 0);
-        if (l64ht->get(mykey[i]) != 1) {
-            cout << "wrong" << endl;
-        }
-    }
+    vector<void*> res;
+
+//    uint64_t value = 1;
+//    for (int i = 0; i < testNum; i += 1) {
+//        l64ht->crash_consistent_put(NULL, mykey[i], 1);
+//        // roart->put(i + 1, i + 1);
+////        ff->put(i + 1, (char *) &value);
+////        woart_put(woart, i + 1, 8, &value);
+////        wort_put(wort, i + 1, 8, &value);
+////        ht->crash_consistent_put(NULL, i+1, 1, 0);
+//        if (l64ht->get(mykey[i]) != 1) {
+//            cout << "wrong" << endl;
+//        }
+//    }
 
 
 //    for (int i = 0; i < testNum; ++i) {
@@ -467,21 +477,34 @@ void range_query_correctness_test() {
 //    cout << res.size() << endl;
     // roart->scan(1, 10000);
 
-    timeval start, ends;
-    gettimeofday(&start, NULL);
-    for (int i = 0; i < 10000; ++i) {
-        l64ht->node_scan(NULL, mykey[i], mykey[i] + 1000, res, 0);                                                                                \
-
-    }
-    gettimeofday(&ends, NULL);
-    double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
-    double throughPut = (double) 10000 / timeCost;
-    cout << "HT_SCAN " << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;
-    cout << "HT_SCAN " << "ThroughPut: " << throughPut << " Mops" << endl;
+//    timeval start, ends;
+//    gettimeofday(&start, NULL);
+//    for (int i = 0; i < 10000; ++i) {
+////        l64ht->node_scan(NULL, mykey[i], mykey[i] + 1000, res, 0);                                                                                \
+//
+//    }
+//    gettimeofday(&ends, NULL);
+//    double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
+//    double throughPut = (double) 10000 / timeCost;
+//    cout << "HT_SCAN " << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;
+//    cout << "HT_SCAN " << "ThroughPut: " << throughPut << " Mops" << endl;
 
     // Time_BODY(1,"HT_SCAN ",{
     //      l64ht ->node_scan(NULL,mykey[i],mykey[i]+10000,res,0);
     // })
+
+
+    for (int i = 0; i < testNum; ++i) {
+        lbt->insert(mykey[i],&value);
+    }
+    timeval start, ends;
+    gettimeofday(&start, NULL);
+    lbt->rangeQuery(mmin,mmax,res);
+    gettimeofday(&ends, NULL);
+    double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
+    double throughPut = (double) 10000 / timeCost;
+    cout << "lbtree range query " << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;
+    cout << "lbtree range query " << "ThroughPut: " << throughPut << " Mops" << endl;
     cout << res.size() << endl;
 }
 
@@ -516,6 +539,14 @@ void *concurrency_vlht_put(int threadNum) {
     }
 }
 
+void * concurrency_lbr_put(int threadNum){
+    init_fast_allocator(true);
+    for (int i = threadNum*(testNum/numThread); i < (threadNum+1)*(testNum/numThread); ++i) {
+        lbt->insert(mykey[i],&value);
+    }
+}
+
+
 
 void *concurrency_woart_put(int threadNum) {
     init_fast_allocator(true);
@@ -527,6 +558,8 @@ void *concurrency_woart_put(int threadNum) {
 
 
 void concurrencyTest() {
+    testNum = 10000000;
+     threads = new thread* [64];
     mykey = new uint64_t[testNum];
     rng r;
     rng_init(&r, 1, 2);
@@ -539,20 +572,29 @@ void concurrencyTest() {
         numThread = i;
         // vlht = new_varLengthHashtree();
 
-        // cht = new_concurrency_hashtree(64, 0);
+//         cht = new_concurrency_hashtree(64, 0);
         // con_cceh = new_concurrency_cceh();
         // con_fastfair = new_concurrency_fastfair();
-        conwoart = new_conwoart_tree();
+//        conwoart = new_conwoart_tree();
+//        lbt = new_lbtree();
+         CONCURRENCY_Time_BODY("concurrency lbtree  " + to_string(i) + " threads ", {
+             for(int i=0;i<numThread;i++){
+                 threads[i]  = new std::thread(concurrency_lbr_put,i);
+             }
+             for (int i = 0; i < numThread; i++) {
+                 threads[i]->join();
+             }
+         })
 
-        // CONCURRENCY_Time_BODY("concurrency varLength hash tree " + to_string(i) + " threads ", {
-        //     for(int i=0;i<numThread;i++){
-        //         threads[i]  = new std::thread(concurrency_vlht_put,i);
-        //     }
-
-        //     for (int i = 0; i < numThread; i++) {
-        //         threads[i]->join();
-        //     }
-        // })
+//         CONCURRENCY_Time_BODY("concurrency varLength hash tree " + to_string(i) + " threads ", {
+//             for(int i=0;i<numThread;i++){
+//                 threads[i]  = new std::thread(concurrency_vlht_put,i);
+//             }
+//
+//             for (int i = 0; i < numThread; i++) {
+//                 threads[i]->join();
+//             }
+//         })
 
         // CONCURRENCY_Time_BODY("concurrency woart  " + to_string(i) + " threads ", {
         //     for(int i=0;i<numThread;i++){
@@ -572,13 +614,13 @@ void concurrencyTest() {
         //     int res = vlht->get(8,(unsigned char*)&mykey[i]);
         //     if(res!=1){
         //         failed++;
-        // cout<<"failed : "<<i<< " key : "<< mykey[i]<<" value: "<< res <<endl;
-        // vlht->crash_consistent_put_without_lock(NULL,8,(unsigned char*)&mykey[i],1,(uint64_t)&vlht->root);
-        // if(vlht->get(8,(unsigned char*)&mykey[i])!=1){
-        //     cout<<"still wrong!"<<endl;
-        // }else{
-        //     cout<<"fixed"<<endl;
-        // }
+                // cout<<"failed : "<<i<< " key : "<< mykey[i]<<" value: "<< res <<endl;
+                // vlht->crash_consistent_put_without_lock(NULL,8,(unsigned char*)&mykey[i],1,(uint64_t)&vlht->root);
+                // if(vlht->get(8,(unsigned char*)&mykey[i])!=1){
+                //     cout<<"still wrong!"<<endl;
+                // }else{
+                //     cout<<"fixed"<<endl;
+                // }
         //     }
         // }
 
@@ -633,14 +675,14 @@ void concurrencyTest() {
         //     int res = cht->get(mykey[i]);
         //     if(res!=1){
         //         failed++;
-        // cout<<"failed : "<<i<< " key : "<< mykey[i]<<" value: "<< res <<endl;
+                // cout<<"failed : "<<i<< " key : "<< mykey[i]<<" value: "<< res <<endl;
 
-        // cht->crash_consistent_put(NULL,mykey[i],1,0);
-        // if(cht->get(mykey[i])!=1){
-        //     cout<<"still wrong!"<<endl;
-        // }else{
-        //     cout<<"fixed"<<endl;
-        // }
+                // cht->crash_consistent_put(NULL,mykey[i],1,0);
+                // if(cht->get(mykey[i])!=1){
+                //     cout<<"still wrong!"<<endl;
+                // }else{
+                //     cout<<"fixed"<<endl;
+                // }
         //     }
         // }
 
@@ -656,7 +698,7 @@ void concurrencyTest() {
         // )
 
 
-
+       
 
         // gettimeofday(&ends, NULL);
         // double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
@@ -664,29 +706,39 @@ void concurrencyTest() {
         // cout << "concurrency CCEH put " << testNum << " kv pais with "<<numThread<<" threads in " << timeCost / 1000000 << " s" << endl;
         // cout << "concurrency CCEH" << "ThroughPut: " << throughPut << " Mops" << endl;
 
-        int failed = 0;
-        for (int i = 0; i < testNum; i++) {
+//        int failed = 0;
+//        for(int i=0;i<testNum;i++){
             // int res = con_cceh->get(mykey[i]);
             // int res = cht->get(mykey[i]);
             // int res = *(int*)con_fastfair->get(mykey[i]);
             // int res = vlht->get(8,(unsigned char*)&mykey[i]);
-            auto res = conwoart_get(conwoart, mykey[i], 8);
-            if (res == NULL || *(int *) res != 1) {
-                // if(res!=1){
-                failed++;
-                // cout<<"failed : "<<i<< " key : "<< mykey[i]<<" value: "<< res <<endl;
-                // con_cceh->put(mykey[i],1);
-                // if(con_cceh->get(mykey[i])!=1){
-                //     cout<<"still wrong!"<<endl;
-                // }else{
-                //     cout<<"fixed"<<endl;
-                // }
-            }
+//            auto res = conwoart_get(conwoart, mykey[i], 8);
+//            int pos;
+//            void * p = lbt->lookup(mykey[i],&pos);
+//            uint64_t res = ((bleaf*)p)->ch(pos).value;
+//            try{
+//                if( res==1 || *(int*)res!=1){
+//        //            if(res==NULL||*(int*)res!=1){
+//
+//                    // if(res!=1){
+//                        failed++;
+//                        // cout<<"failed : "<<i<< " key : "<< mykey[i]<<" value: "<< res <<endl;
+//                        // con_cceh->put(mykey[i],1);
+//                        // if(con_cceh->get(mykey[i])!=1){
+//                        //     cout<<"still wrong!"<<endl;
+//                        // }else{
+//                        //     cout<<"fixed"<<endl;
+//                        // }
+//                    }
+//            }catch( Exception msg){
+//                failed++;
+//            }
+
         }
 
-        cout << failed << endl;
-        fast_free();
-    }
+//        cout<<failed<<endl;
+//        fast_free();
+//    }
 }
 
 void varLengthTest() {
@@ -1039,21 +1091,21 @@ int main(int argc, char *argv[]) {
     sscanf(argv[1], "%d", &numThread);
     sscanf(argv[2], "%d", &testNum);
     init_fast_allocator(true);
-    ht = new_hashtree(64, 0);
-    art = new_art_tree();
-    wort = new_wort_tree();
-    woart = new_woart_tree();
-    // cceh = new_cceh();
-    ff = new_fastfair();
-    roart = new_roart();
-    l64ht = new_length64HashTree();
-    lbt = new_lbtree();
-    vlht = new_varLengthHashtree();
-     vlwt = new_var_length_woart_tree();
-     vlwot = new_var_length_wort_tree();
+//     ht = new_hashtree(64, 0);
+//     art = new_art_tree();
+//     wort = new_wort_tree();
+//     woart = new_woart_tree();
+//     // cceh = new_cceh();
+//     ff = new_fastfair();
+//     roart = new_roart();
+//     l64ht = new_length64HashTree();
+     lbt = new_lbtree();
+//    vlht = new_varLengthHashtree();
+//     vlwt = new_var_length_woart_tree();
+//     vlwot = new_var_length_wort_tree();
 // //    mt = new_mass_tree();
 
-     vlff = new_varlengthfastfair();
+//     vlff = new_varlengthfastfair();
 //    bt = new_blink_tree(numThread);
     // correctnessTest();
 
@@ -1061,15 +1113,15 @@ int main(int argc, char *argv[]) {
 
 //    varLengthTest();
 
-    effect2();
+//    effect2();
 
 // build for cocurrencyTest
 
-    // threads = new thread* [64];
     // try{
 
 //        recoveryTest();
-    // concurrencyTest();
+     concurrencyTest();
+
 
     // ycsb_test();
 
