@@ -246,7 +246,7 @@ public:
 
     void init();
 
-    void *lookup(key_type key, int *pos);
+    void *lookup(key_type key, int *pos=0);
 
     void *get_recptr(void *p, int pos) {
         return ((bleaf *) p)->ch(pos);

@@ -52,7 +52,7 @@ ofstream out;
     gettimeofday(&ends, NULL);                                                              \
     double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;\
     double throughPut = (double) nLoadOp / timeCost;                                        \
-    cout << name << "ThroughPut: " << throughPut << " Mops" << endl;                        \
+    cout << name << throughPut <<  endl;                        \
     }
 
 #define Time_BODY(condition, name, func)                                                        \
@@ -145,21 +145,23 @@ int numThread = 1;
 int test_algorithms_num = 10;
 bool test_case[10] = {0, // ht
                       0, // art
-                      0, // wort
+                      1, // wort
                       0, // woart
                       0, // cacheline_concious_extendible_hash
                       0, // fast&fair
                       0, // roart
                       0, // ert
-                      1}; // lbt
+                      1, // lb+tree
+                      0};
 
 bool range_query_test_case[10] = {
         0, // ht
-        0, // wort
+        1, // wort
         0, // woart
         0, // fast&fair
         0, // roart
         0, // ert
+        1, // lb+tree
         0
 };
 
@@ -234,14 +236,13 @@ void *putFunc(void *arg) {
 }
 
 void speedTest() {
-    testNum = 100000;
     mykey = new uint64_t[testNum];
     rng r;
     rng_init(&r, 1, 2);
     for (int i = 0; i < testNum; ++i) {
-        mykey[i] = rng_next(&r);
+//        mykey[i] = rng_next(&r);
 //        mykey[i] = rng_next(&r) & 0xffffffff00000000;
-//        mykey[i] = rng_next(&r) % testNum;
+        mykey[i] = rng_next(&r) % testNum;
 //        mykey[i] = rng_next(&r) % 100000000;
     }
     uint64_t value = 1;
@@ -288,7 +289,7 @@ void speedTest() {
     Time_BODY(test_case[6], "roart put ", { roart->put(mykey[i], value); })
 
     // insert speed for ert
-    Time_BODY(test_case[7], "l64ht put  ", { l64ht->crash_consistent_put(NULL, mykey[i], 1); })
+    Time_BODY(test_case[7], "ert put  ", { l64ht->crash_consistent_put(NULL, mykey[i], 1); })
 
     // insert speed for lbt
     Time_BODY(test_case[8], "lbtree put  ", { lbt->insert(mykey[i], &value); })
@@ -320,24 +321,112 @@ void speedTest() {
     Time_BODY(test_case[8], "lbt get ", { lbt->lookup(mykey[i], &pos); })
 
     //range query speed for ht
-    Scan_Time_BODY(range_query_test_case[0], "hash tree range query ", { ht->scan(mykey[i], mykey[i] + 101); })
+    Scan_Time_BODY(range_query_test_case[0], "hash tree range query ",
+                   { ht->scan(mykey[i], mykey[i] + testNum * 0.001); })
 
     //range query speed for wort
-    Scan_Time_BODY(range_query_test_case[1], "wort range query ", { wort_scan(wort, mykey[i], mykey[i] + 101); })
+    Scan_Time_BODY(range_query_test_case[1], "wort range query ",
+                   { wort_scan(wort, mykey[i], mykey[i] + testNum * 0.001); })
 
     //range query speed for woart
     Scan_Time_BODY(range_query_test_case[2], "woart tree range query ",
-                   { woart_scan(woart, mykey[i], mykey[i] + 101); })
+                   { woart_scan(woart, mykey[i], mykey[i] + testNum * 0.001); })
 
     //range query speed for fast&fair
-    Scan_Time_BODY(range_query_test_case[3], "fast&fair range query ", { ff->scan(mykey[i], mykey[i] + 101); })
+    Scan_Time_BODY(range_query_test_case[3], "fast&fair range query ",
+                   { ff->scan(mykey[i], mykey[i] + testNum * 0.001); })
 
     //range query speed for roart
-    Scan_Time_BODY(range_query_test_case[4], "roart tree range query ", { roart->scan(mykey[i], mykey[i] + 101); })
+    Scan_Time_BODY(range_query_test_case[4], "roart tree range query ",
+                   { roart->scan(mykey[i], mykey[i] + testNum * 0.001); })
 
     //range query speed for ert
     Scan_Time_BODY(range_query_test_case[5], "ert range query ",
-                   { l64ht->node_scan(NULL, mykey[i], mykey[i] + 101, res); })
+                   { l64ht->scan(mykey[i], mykey[i] + testNum * 0.001); })
+
+    //range query speed for lb+tree
+    Scan_Time_BODY(range_query_test_case[6], "lb+tree range query ",
+                   { lbt->rangeQuery(mykey[i], mykey[i] + testNum * 0.001); })
+
+    //range query speed for ht
+    Scan_Time_BODY(range_query_test_case[0], "hash tree range query ",
+                   { ht->scan(mykey[i], mykey[i] + testNum * 0.005); })
+
+    //range query speed for wort
+    Scan_Time_BODY(range_query_test_case[1], "wort range query ",
+                   { wort_scan(wort, mykey[i], mykey[i] + testNum * 0.005); })
+
+    //range query speed for woart
+    Scan_Time_BODY(range_query_test_case[2], "woart tree range query ",
+                   { woart_scan(woart, mykey[i], mykey[i] + testNum * 0.005); })
+
+    //range query speed for fast&fair
+    Scan_Time_BODY(range_query_test_case[3], "fast&fair range query ",
+                   { ff->scan(mykey[i], mykey[i] + testNum * 0.005); })
+
+    //range query speed for roart
+    Scan_Time_BODY(range_query_test_case[4], "roart tree range query ",
+                   { roart->scan(mykey[i], mykey[i] + testNum * 0.005); })
+
+    //range query speed for ert
+    Scan_Time_BODY(range_query_test_case[5], "ert range query ",
+                   { l64ht->scan(mykey[i], mykey[i] + testNum * 0.005); })
+
+    //range query speed for lb+tree
+    Scan_Time_BODY(range_query_test_case[6], "lb+tree range query ",
+                   { lbt->rangeQuery(mykey[i], mykey[i] + testNum * 0.005); })
+
+    //range query speed for ht
+    Scan_Time_BODY(range_query_test_case[0], "hash tree range query ",
+                   { ht->scan(mykey[i], mykey[i] + testNum * 0.01); })
+
+    //range query speed for wort
+    Scan_Time_BODY(range_query_test_case[1], "wort range query ",
+                   { wort_scan(wort, mykey[i], mykey[i] + testNum * 0.01); })
+
+    //range query speed for woart
+    Scan_Time_BODY(range_query_test_case[2], "woart tree range query ",
+                   { woart_scan(woart, mykey[i], mykey[i] + testNum * 0.01); })
+
+    //range query speed for fast&fair
+    Scan_Time_BODY(range_query_test_case[3], "fast&fair range query ",
+                   { ff->scan(mykey[i], mykey[i] + testNum * 0.01); })
+
+    //range query speed for roart
+    Scan_Time_BODY(range_query_test_case[4], "roart tree range query ",
+                   { roart->scan(mykey[i], mykey[i] + testNum * 0.01); })
+
+    //range query speed for ert
+    Scan_Time_BODY(range_query_test_case[5], "ert range query ",
+                   { l64ht->scan(mykey[i], mykey[i] + testNum * 0.01); })
+
+    //range query speed for lb+tree
+    Scan_Time_BODY(range_query_test_case[6], "lb+tree range query ",
+                   { lbt->rangeQuery(mykey[i], mykey[i] + testNum * 0.01); })
+
+    //range query speed for ht
+    Scan_Time_BODY(range_query_test_case[0], "hash tree range query ", { ht->scan(mykey[i], mykey[i] + 31); })
+
+    //range query speed for wort
+    Scan_Time_BODY(range_query_test_case[1], "wort range query ", { wort_scan(wort, mykey[i], mykey[i] + 31); })
+
+    //range query speed for woart
+    Scan_Time_BODY(range_query_test_case[2], "woart tree range query ",
+                   { woart_scan(woart, mykey[i], mykey[i] + 31); })
+
+    //range query speed for fast&fair
+    Scan_Time_BODY(range_query_test_case[3], "fast&fair range query ", { ff->scan(mykey[i], mykey[i] + 31); })
+
+    //range query speed for roart
+    Scan_Time_BODY(range_query_test_case[4], "roart tree range query ", { roart->scan(mykey[i], mykey[i] + 31); })
+
+    //range query speed for ert
+    Scan_Time_BODY(range_query_test_case[5], "ert range query ",
+                   { l64ht->scan(mykey[i], mykey[i] + 31); })
+
+    //range query speed for lb+tree
+    Scan_Time_BODY(range_query_test_case[6], "lb+tree range query ",
+                   { lbt->rangeQuery(mykey[i], mykey[i] + 31); })
 
 //    cout << concurrency_fastalloc_profile()<<endl;
     out.close();
@@ -431,10 +520,10 @@ void range_query_correctness_test() {
     uint64_t mmin = INT64_MAX;
     for (int i = 0; i < testNum; ++i) {
         mykey[i] = rng_next(&r);
-        if(mykey[i]>mmax){
+        if (mykey[i] > mmax) {
             mmax = mykey[i];
         }
-        if(mykey[i]<mmin){
+        if (mykey[i] < mmin) {
             mmin = mykey[i];
         }
     }
@@ -445,7 +534,7 @@ void range_query_correctness_test() {
 
 //    vector<Length64HashTreeKeyValue> res;
 
-    vector<void*> res;
+    vector<void *> res;
 
 //    uint64_t value = 1;
 //    for (int i = 0; i < testNum; i += 1) {
@@ -495,11 +584,11 @@ void range_query_correctness_test() {
 
 
     for (int i = 0; i < testNum; ++i) {
-        lbt->insert(mykey[i],&value);
+        lbt->insert(mykey[i], &value);
     }
     timeval start, ends;
     gettimeofday(&start, NULL);
-    lbt->rangeQuery(mmin,mmax,res);
+    lbt->rangeQuery(mmin, mmax);
     gettimeofday(&ends, NULL);
     double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
     double throughPut = (double) 10000 / timeCost;
@@ -539,13 +628,12 @@ void *concurrency_vlht_put(int threadNum) {
     }
 }
 
-void * concurrency_lbr_put(int threadNum){
+void *concurrency_lbr_put(int threadNum) {
     init_fast_allocator(true);
-    for (int i = threadNum*(testNum/numThread); i < (threadNum+1)*(testNum/numThread); ++i) {
-        lbt->insert(mykey[i],&value);
+    for (int i = threadNum * (testNum / numThread); i < (threadNum + 1) * (testNum / numThread); ++i) {
+        lbt->insert(mykey[i], &value);
     }
 }
-
 
 
 void *concurrency_woart_put(int threadNum) {
@@ -559,7 +647,7 @@ void *concurrency_woart_put(int threadNum) {
 
 void concurrencyTest() {
     testNum = 10000000;
-     threads = new thread* [64];
+    threads = new thread *[64];
     mykey = new uint64_t[testNum];
     rng r;
     rng_init(&r, 1, 2);
@@ -577,14 +665,14 @@ void concurrencyTest() {
         // con_fastfair = new_concurrency_fastfair();
 //        conwoart = new_conwoart_tree();
 //        lbt = new_lbtree();
-         CONCURRENCY_Time_BODY("concurrency lbtree  " + to_string(i) + " threads ", {
-             for(int i=0;i<numThread;i++){
-                 threads[i]  = new std::thread(concurrency_lbr_put,i);
-             }
-             for (int i = 0; i < numThread; i++) {
-                 threads[i]->join();
-             }
-         })
+        CONCURRENCY_Time_BODY("concurrency lbtree  " + to_string(i) + " threads ", {
+            for (int i = 0; i < numThread; i++) {
+                threads[i] = new std::thread(concurrency_lbr_put, i);
+            }
+            for (int i = 0; i < numThread; i++) {
+                threads[i]->join();
+            }
+        })
 
 //         CONCURRENCY_Time_BODY("concurrency varLength hash tree " + to_string(i) + " threads ", {
 //             for(int i=0;i<numThread;i++){
@@ -708,10 +796,10 @@ void concurrencyTest() {
 
 //        int failed = 0;
 //        for(int i=0;i<testNum;i++){
-            // int res = con_cceh->get(mykey[i]);
-            // int res = cht->get(mykey[i]);
-            // int res = *(int*)con_fastfair->get(mykey[i]);
-            // int res = vlht->get(8,(unsigned char*)&mykey[i]);
+        // int res = con_cceh->get(mykey[i]);
+        // int res = cht->get(mykey[i]);
+        // int res = *(int*)con_fastfair->get(mykey[i]);
+        // int res = vlht->get(8,(unsigned char*)&mykey[i]);
 //            auto res = conwoart_get(conwoart, mykey[i], 8);
 //            int pos;
 //            void * p = lbt->lookup(mykey[i],&pos);
@@ -734,7 +822,7 @@ void concurrencyTest() {
 //                failed++;
 //            }
 
-        }
+    }
 
 //        cout<<failed<<endl;
 //        fast_free();
@@ -914,7 +1002,7 @@ void parseYCSBLoadFile(std::string wlName, bool correctCheck) {
 }
 
 void ycsb_test() {
-    string wlName = "/scorpio/home/shared/ycsb_benchmark/heavyload_c";
+    string wlName = "/scorpio/home/shared/ycsb_benchmark/heavyload_a";
     parseYCSBLoadFile(wlName, false);
     parseYCSBRunFile(wlName, false);
 
@@ -981,21 +1069,41 @@ void ycsb_test() {
             }
         })
 **/
+//
+//        testNum = nLoadOp;
+//        CON_Time_BODY("concurrent Woart put " + to_string(i) + " thread ", {
+//            conwoart_put(conwoart, allLoadKeys[k], 8, &allLoadValues[k]);
+//        })
+//
+//        testNum = nRunOp;
+//        CON_Time_BODY("concurrent Woart get " + to_string(i) + " thread ", {
+//            if (allRunOp[k] == YCSBRunOp::Update) {
+//                {
+//                    conwoart_put(conwoart, allRunKeys[k], 8, &allRunValues[k]);
+//                }
+//            } else if (allRunOp[k] == YCSBRunOp::Get) {
+//                {
+//                    conwoart_get(conwoart, allRunKeys[k], 8);
+//                }
+//            } else if (allRunOp[k] == YCSBRunOp::Scan) {
+//                { ; }
+//            }
+//        })
 
         testNum = nLoadOp;
-        CON_Time_BODY("concurrent Woart put " + to_string(i) + " thread ", {
-            conwoart_put(conwoart, allLoadKeys[k], 8, &allLoadValues[k]);
+        CON_Time_BODY(to_string(i) + ", ", {
+            lbt->insert(allLoadKeys[k], &allLoadValues[k]);
         })
 
         testNum = nRunOp;
         CON_Time_BODY("concurrent Woart get " + to_string(i) + " thread ", {
             if (allRunOp[k] == YCSBRunOp::Update) {
                 {
-                    conwoart_put(conwoart, allRunKeys[k], 8, &allRunValues[k]);
+                    lbt->insert(allLoadKeys[k], &allLoadValues[k]);
                 }
             } else if (allRunOp[k] == YCSBRunOp::Get) {
                 {
-                    conwoart_get(conwoart, allRunKeys[k], 8);
+                    lbt->lookup(allLoadKeys[k]);
                 }
             } else if (allRunOp[k] == YCSBRunOp::Scan) {
                 { ; }
@@ -1058,33 +1166,33 @@ void effect2() {
         }
     }
 
-    KEYS_Time_BODY(1, "varLengthHashTree put ", { vlht->crash_consistent_put(NULL, lengths[i], keys[i], 1); })
-    KEYS_Time_BODY(1, "varLengthHashTree get ", { vlht->get(lengths[i], keys[i]); })
+    Time_BODY(1, "varLengthHashTree put ", { vlht->crash_consistent_put(NULL, lengths[i], keys[i], 1); })
+//    Time_BODY(1, "varLengthHashTree get ", { vlht->get(lengths[i], keys[i]); })
 
 
-    KEYS_Time_BODY(1, "varLengthFast&Fair put ", { vlff->put((char *) keys[i], lengths[i], (char *) &value); })
-    KEYS_Time_BODY(1, "varLengthFast&Fair get ", {
-        if (*(char *) (vlff->get((char *) keys[i], lengths[i])) != 1) {
-            cout << *(uint64_t *) keys[i] << endl;
-        };
-    })
+//    Time_BODY(1, "varLengthFast&Fair put ", { vlff->put((char *) keys[i], lengths[i], (char *) &value); })
+//    Time_BODY(1, "varLengthFast&Fair get ", {
+//        if (*(char *) (vlff->get((char *) keys[i], lengths[i])) != 1) {
+//            cout << *(uint64_t *) keys[i] << endl;
+//        };
+//    })
+//
+//    Time_BODY(1, "varLengthWoart put ", { var_length_woart_put(vlwt, (char *) keys[i], lengths[i] * 8, (char *) &value); })
+//    Time_BODY(1, "varLengthWoart get ", {
+//        if (*(char *) (var_length_woart_get(vlwt, (char *) keys[i], lengths[i] * 8)) != 1) {
+//            cout << *(uint64_t *) &mykey[i] << endl;
+//        };
+//    })
+//
+//
+//    Time_BODY(1, "varLengthWort put ", { var_length_wort_put(vlwot, (char *) keys[i], lengths[i], (char *) &value); })
+//    Time_BODY(1, "varLengthWort get ", {
+//        if (*(char *) (var_length_wort_get(vlwot, (char *) keys[i], lengths[i])) != 1) {
+//            cout << *(uint64_t *) &mykey[i] << endl;
+//        };
+//    })
 
-    KEYS_Time_BODY(1, "varLengthWoart put ", { var_length_woart_put(vlwt, (char *) keys[i], lengths[i] * 8, (char *) &value); })
-    KEYS_Time_BODY(1, "varLengthWoart get ", {
-        if (*(char *) (var_length_woart_get(vlwt, (char *) keys[i], lengths[i] * 8)) != 1) {
-            cout << *(uint64_t *) &mykey[i] << endl;
-        };
-    })
-
-
-    KEYS_Time_BODY(1, "varLengthWort put ", { var_length_wort_put(vlwot, (char *) keys[i], lengths[i], (char *) &value); })
-    KEYS_Time_BODY(1, "varLengthWort get ", {
-        if (*(char *) (var_length_wort_get(vlwot, (char *) keys[i], lengths[i])) != 1) {
-            cout << *(uint64_t *) &mykey[i] << endl;
-        };
-    })
-
-//    cout << concurrency_fastalloc_profile()<<endl;
+    cout << concurrency_fastalloc_profile() << endl;
 }
 
 int main(int argc, char *argv[]) {
@@ -1095,17 +1203,17 @@ int main(int argc, char *argv[]) {
     art = new_art_tree();
     wort = new_wort_tree();
     woart = new_woart_tree();
-    // cceh = new_cceh();
+    cceh = new_cceh();
     ff = new_fastfair();
     roart = new_roart();
     l64ht = new_length64HashTree();
     lbt = new_lbtree();
     vlht = new_varLengthHashtree();
-     vlwt = new_var_length_woart_tree();
-     vlwot = new_var_length_wort_tree();
+    vlwt = new_var_length_woart_tree();
+    vlwot = new_var_length_wort_tree();
 // //    mt = new_mass_tree();
 
-     vlff = new_varlengthfastfair();
+    vlff = new_varlengthfastfair();
 //    bt = new_blink_tree(numThread);
     // correctnessTest();
 
@@ -1117,16 +1225,16 @@ int main(int argc, char *argv[]) {
 
 // build for cocurrencyTest
 
-    // try{
+    try {
 
 //        recoveryTest();
-    // concurrencyTest();
+//     concurrencyTest();
 
-    // ycsb_test();
+        ycsb_test();
 
-    // }catch(void*){
-    //     fast_free();
-    // }
+    } catch (void *) {
+        fast_free();
+    }
 //    profile();
 //    range_query_correctness_test();
 //    cout << ht->node_cnt << endl;

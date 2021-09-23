@@ -164,7 +164,8 @@ void *lbtree::lookup(key_type key, int *pos) {
     // 4. RTM commit
 //    _xend();
 
-    *pos = ret_pos;
+    if(pos!=0)
+        *pos = ret_pos;
     return (void *) lp;
 }
 
