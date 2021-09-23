@@ -156,7 +156,7 @@ void VarLengthHashTree:: crash_consistent_put(VarLengthHashTreeNode *_node, int 
             }
 
             if(matchedPrefixLen == currentNode->header.len){
-                // if prefix is match 
+                // if prefix is match
                 // move the pos
 
                 pos += currentNode->header.len;
@@ -188,7 +188,7 @@ void VarLengthHashTree:: crash_consistent_put(VarLengthHashTreeNode *_node, int 
                         std::this_thread::yield();
                         goto CCEH_RETRY;
                     }
-                
+
                     uint64_t seg_index = GET_BUCKET_NUM(subkey, HT_BUCKET_MASK_LEN);
                     HashTreeBucket *tmp_bucket = &(tmp_seg->bucket[seg_index]);
 
@@ -221,7 +221,7 @@ void VarLengthHashTree:: crash_consistent_put(VarLengthHashTreeNode *_node, int 
                         }
                         return;
                     } else {
-                        
+
                         if (((bool *) next)[0]) {
                             // next is key value pair, which means collides
 
@@ -238,7 +238,7 @@ void VarLengthHashTree:: crash_consistent_put(VarLengthHashTreeNode *_node, int 
                                 tmp_seg->free_read_lock();
                                 std::this_thread::yield();
                                 goto CCEH_RETRY;
-                            }   
+                            }
 
                             unsigned char* preKey = ((HashTreeKeyValue *) next)->key;
                             unsigned int preLength = ((HashTreeKeyValue *) next)->len;
@@ -292,8 +292,8 @@ void VarLengthHashTree:: crash_consistent_put(VarLengthHashTreeNode *_node, int 
                     }
             }else{
                 // if prefix is not match (shorter)
-                // split a new tree node and insert 
-                
+                // split a new tree node and insert
+
                 currentNode->free_read_lock();
                 if(!currentNode->write_lock()){
                     std::this_thread::yield();
@@ -323,7 +323,7 @@ void VarLengthHashTree:: crash_consistent_put(VarLengthHashTreeNode *_node, int 
                 // newNode->put(GET_16BITS(currentNode->header.array,matchedPrefixLen),(uint64_t)currentNode);
                 newNode->put(GET_32BITS(currentNode->header.array,matchedPrefixLen),(uint64_t)currentNode,(uint64_t)&newNode);
 
-                // modify currentNode 
+                // modify currentNode
                 matchedPrefixLen += 4;
                 for(int i=0;i<HT_NODE_PREFIX_MAX_BYTES-matchedPrefixLen;i++){
                     currentNode->header.array[i] = currentNode->header.array[i+matchedPrefixLen];
@@ -334,7 +334,7 @@ void VarLengthHashTree:: crash_consistent_put(VarLengthHashTreeNode *_node, int 
                 clflush((char*)&(currentNode->header),8);
                 clflush((char *) newNode, sizeof(VarLengthHashTreeNode));
 
-                // modify the successor 
+                // modify the successor
                 *(VarLengthHashTreeNode**)beforeAddress = newNode;
 
                 currentNode->free_write_lock();
@@ -351,7 +351,7 @@ void VarLengthHashTree:: crash_consistent_put(VarLengthHashTreeNode *_node, int 
 void VarLengthHashTree:: crash_consistent_put_without_lock(VarLengthHashTreeNode *_node, int length, unsigned char* key, uint64_t value, uint64_t beforeAddress, int pos){
     while(length>=pos){
             VarLengthHashTreeNode *currentNode = *(VarLengthHashTreeNode**)beforeAddress;
-            
+
 
             int matchedPrefixLen = 0;
             // init a number bigger than HT_NODE_PREFIX_MAX_LEN to represent there is no value
@@ -372,7 +372,7 @@ void VarLengthHashTree:: crash_consistent_put_without_lock(VarLengthHashTreeNode
                 return;
             }
             if(matchedPrefixLen == currentNode->header.len){
-                // if prefix is match 
+                // if prefix is match
                 // move the pos
 
             pos += currentNode->header.len;
@@ -646,11 +646,11 @@ void Length64HashTree:: crash_consistent_put(Length64HashTreeNode *_node, uint64
 
     while(len < HT_KEY_LENGTH / SIZE_OF_CHAR){
         int matchedPrefixLen;
-        
+
         // init a number larger than HT_NODE_PREFIX_MAX_LEN to represent there is no value
         if(currentNode->header.len>HT_NODE_PREFIX_MAX_BYTES){
             int size = HT_NODE_PREFIX_MAX_BITS/HT_NODE_LENGTH * HT_NODE_LENGTH;
-            
+
             currentNode->header.len = (HT_KEY_LENGTH - len) <= size ? (HT_KEY_LENGTH - len)/SIZE_OF_CHAR : size/SIZE_OF_CHAR;
             currentNode->header.assign(key,len);
             len += size/SIZE_OF_CHAR;
@@ -807,13 +807,19 @@ uint64_t Length64HashTree::get(uint64_t key){
     return 0;
 }
 
+void Length64HashTree::scan(uint64_t left, uint64_t right){
+    vector<Length64HashTreeKeyValue> res;
+    node_scan(NULL,left,right,res,0);
+}
+
+
 
 void Length64HashTree::node_scan(Length64HashTreeNode *tmp, uint64_t left, uint64_t right, vector<Length64HashTreeKeyValue> &res, int pos){
     if(tmp == NULL){
         tmp = root;
     }
-    uint64_t leftPos = UINT64_MAX, rightPos = UINT64_MAX; 
- 
+    uint64_t leftPos = UINT64_MAX, rightPos = UINT64_MAX;
+
     for(int i=0;i<root->header.len;i++){
         uint64_t subkey = GET_SUBKEY(left,pos+i,8);
         if(subkey==(uint64_t)root->header.array[i]){
@@ -827,7 +833,7 @@ void Length64HashTree::node_scan(Length64HashTreeNode *tmp, uint64_t left, uint6
             }
         }
     }
-    
+
     for(int i=0;i<root->header.len;i++){
         uint64_t subkey = GET_SUBKEY(right,pos+i,8);
         if(subkey==(uint64_t)root->header.array[i]){
@@ -841,9 +847,9 @@ void Length64HashTree::node_scan(Length64HashTreeNode *tmp, uint64_t left, uint6
             }
         }
     }
-    
+
     pos += tmp->header.len*SIZE_OF_CHAR;
-    uint64_t leftSubkey = UINT64_MAX, rightSubkey = UINT64_MAX; 
+    uint64_t leftSubkey = UINT64_MAX, rightSubkey = UINT64_MAX;
     if(leftPos == UINT64_MAX){
         leftSubkey = GET_SUBKEY(left,pos,HT_NODE_LENGTH);
         leftPos = GET_SEG_NUM(leftSubkey, HT_NODE_LENGTH, tmp->global_depth);
@@ -880,7 +886,7 @@ void Length64HashTree::node_scan(Length64HashTreeNode *tmp, uint64_t left, uint6
             }
         }
     }
-    
+
 
 }
 

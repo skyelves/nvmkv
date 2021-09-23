@@ -71,6 +71,8 @@ public:
     
     uint64_t get(uint64_t key);
 
+    void scan(uint64_t left, uint64_t right);
+
     void node_scan(Length64HashTreeNode *tmp, uint64_t left, uint64_t right, vector<Length64HashTreeKeyValue> &res, int pos=0);
 
     void getAllNodes(Length64HashTreeNode *tmp, vector<Length64HashTreeKeyValue> &res);
