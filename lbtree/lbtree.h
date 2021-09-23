@@ -42,7 +42,7 @@ typedef long long key_type;
 #define bitScan(x)  __builtin_ffs(x)
 #define countBit(x) __builtin_popcount(x)
 #define ceiling(x, y)  (((x) + (y) - 1) / (y))
-#define max(x, y)    ((x)<=(y) ? (y) : (x))
+//#define max(x, y) ((x)<=(y) ? (y) : (x))
 #define CAS(_p, _u, _v)  (__atomic_compare_exchange_n (_p, _u, _v, false, __ATOMIC_ACQUIRE, __ATOMIC_ACQUIRE))
 
 static inline unsigned char hashcode1B(key_type x) {
