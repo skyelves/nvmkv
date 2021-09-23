@@ -9,7 +9,7 @@
 #include "roart_key.h"
 #include "roart_node.h"
 
-#define LEAF_ARRAY
+//#define LEAF_ARRAY
 
 class ROART {
 public:
