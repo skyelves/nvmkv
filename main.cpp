@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <vector>
 #include <sys/time.h>
+#include <pthread.h>
 #include "blink/blink_tree.h"
 #include "mass/mass_tree.h"
 #include "hashtree/hashtree.h"
@@ -85,7 +86,7 @@ ofstream out;
         cout << name << "ThroughPut: " << throughPut << " Mops" << endl;                        \
     }
 
-#define CONCURRENCY_Time_BODY(name, func)                                                        \
+#define CONCURRENCY_Time_BODY(name, func){                                                        \
         sleep(1);                                                                               \
         timeval _start, _ends;                                                                    \
         gettimeofday(&_start, NULL);                                                             \
@@ -95,6 +96,7 @@ ofstream out;
         double throughPut = (double) testNum / timeCost;                                        \
         cout << name << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;        \
         cout << name << "ThroughPut: " << throughPut << " Mops" << endl;                        \
+}                        \
 
 
 #define MEMORY_BODY_EXPE(condition, name, func)                                                        \
@@ -146,21 +148,21 @@ int test_algorithms_num = 10;
 bool test_case[10] = {0, // ht
                       0, // art
                       1, // wort
-                      0, // woart
+                      1, // woart
                       0, // cacheline_concious_extendible_hash
-                      0, // fast&fair
+                      1, // fast&fair
                       0, // roart
-                      0, // ert
+                      1, // ert
                       1, // lb+tree
                       0};
 
 bool range_query_test_case[10] = {
         0, // ht
         1, // wort
-        0, // woart
-        0, // fast&fair
+        1, // woart
+        1, // fast&fair
         0, // roart
-        0, // ert
+        1, // ert
         1, // lb+tree
         0
 };
@@ -210,6 +212,122 @@ std::unordered_map<uint64_t, uint64_t> *oracleMap;
 
 int value = 1;
 
+void parseLine(std::string rawStr, uint64_t &hashKey, uint64_t &hashValue, uint32_t &rangeNum, bool isScan) {
+    uint32_t t = rawStr.find(" ");
+    uint32_t t1 = rawStr.find(" ", t + 1);
+    std::string tableName = rawStr.substr(t, t1 - t);
+    uint32_t t2 = rawStr.find(" ", t1 + 1);
+    uint32_t t3 = rawStr.find(" ", t2 + 1);
+    std::string keyName = rawStr.substr(t1, t2 - t1);
+    // std::string fullKey = tableName + keyName; // key option1: table+key concat
+    // std::string fullKey = keyName; // key option2: only key
+    std::string fullKey = keyName.substr(5); // key option3: remove 'user' prefix, out of range
+    if (fullKey.size() > 19) // key option4: key's tail, in range uint64_t
+        fullKey = fullKey.substr(fullKey.size() - 19); // tail
+    std::string fullValue = rawStr.substr(t2);
+    std::string rangeNumStr;
+    if (isScan) {
+        rangeNumStr = rawStr.substr(t2, t3 - t2);
+        fullValue = rawStr.substr(t3);
+    }
+    static std::hash<std::string> hash_str;
+    // info("%s", fullKey.c_str());
+    // hashKey = hash_str(fullKey); // use hash, or
+    hashKey = std::stoll(fullKey); // just convert to int
+    hashValue = hash_str(fullValue);
+    rangeNum = 0;
+    if (isScan) {
+        rangeNum = std::stoi(rangeNumStr);
+    }
+    // info("key:%s, hashed_key: %lx, hashed_value: %lx, rangeNum: %d", fullKey.c_str(), hashKey, hashValue, rangeNum);
+    // info("hashed_key: %lx, hashed_value: %lx", hashKey, hashValue);
+}
+
+void parseYCSBRunFile(std::string wlName, bool correctCheck = false) {
+    std::string rawStr;
+    uint64_t hashKey, hashValue;
+
+    std::ifstream runFile(wlName + ".run");
+    assert(runFile.is_open());
+    uint64_t opCnt = 0;
+    uint32_t rangeNum = 0;
+    while (std::getline(runFile, rawStr)) {
+        assert(rawStr.size() > 4);
+        std::string opStr = rawStr.substr(0, 4);
+        if (opStr == "READ") {
+            // info("%s", rawStr.c_str());
+            parseLine(rawStr, hashKey, hashValue, rangeNum, false);
+            allRunKeys.push_back(hashKey); // buffer this query
+            allRunValues.push_back(0);
+            allRunOp.push_back(YCSBRunOp::Get);
+            opCnt++;
+        } else if (opStr == "INSE" || opStr == "UPDA") {
+            // info("%s", rawStr.c_str());
+            parseLine(rawStr, hashKey, hashValue, rangeNum, false);
+            allRunKeys.push_back(hashKey);
+            allRunValues.push_back(hashValue);
+            allRunOp.push_back(YCSBRunOp::Update);
+            if (correctCheck) (*oracleMap)[hashKey] = hashValue;
+            opCnt++;
+        } else if (opStr == "SCAN") {
+            parseLine(rawStr, hashKey, hashValue, rangeNum, true);
+            allRunKeys.push_back(hashKey);
+            // allRunValues.push_back(1024);
+            allRunValues.push_back(rangeNum);
+            allRunOp.push_back(YCSBRunOp::Scan);
+            opCnt++;
+        } else {
+            // other info
+        }
+    }
+    runFile.close();
+    nRunOp = opCnt;
+    // info("Finish parse run file");
+    cout << "run" << endl;
+    if (correctCheck) {
+        for (uint64_t hashKey : allRunKeys) {
+            assert(oracleMap->count(hashKey));
+            // info("hash: %lx", hashKey);
+            uint64_t htValue = ht->get(hashKey);
+            assert(htValue);
+            uint64_t mapValue = oracleMap->at(hashKey);
+            if (htValue != mapValue) {
+                // info("Incorrect key %lx v1 %lx v2 %lx", hashKey, htValue, mapValue);
+                assert(false);
+            }
+        }
+        // info("Pass correctness check!");
+    }
+}
+
+void parseYCSBLoadFile(std::string wlName, bool correctCheck) {
+    std::string rawStr;
+    uint64_t opCnt = 0;
+    uint32_t rangeNum = 0;
+    uint64_t hashKey, hashValue;
+    std::ifstream loadFile(wlName + ".load");
+    assert(loadFile.is_open());
+    cout << "ok" << endl;
+    while (std::getline(loadFile, rawStr)) {
+        assert(rawStr.size() > 4);
+        std::string opStr = rawStr.substr(0, 4);
+        if (opStr == "INSE" || opStr == "UPDA") {
+            // info("%s", rawStr.c_str());
+            parseLine(rawStr, hashKey, hashValue, rangeNum, false);
+            allLoadKeys.push_back(hashKey);
+            allLoadValues.push_back(hashValue);
+            if (correctCheck) (*oracleMap)[hashKey] = hashValue;
+            opCnt++;
+        } else {
+            // other info
+        }
+    }
+    loadFile.close();
+    // info("Finish parse load file");
+    cout << "loaded" << endl;
+    nLoadOp = allLoadKeys.size();
+}
+
 void *putFunc(void *arg) {
     rng r;
 #ifdef __linux__
@@ -242,8 +360,9 @@ void speedTest() {
     for (int i = 0; i < testNum; ++i) {
 //        mykey[i] = rng_next(&r);
 //        mykey[i] = rng_next(&r) & 0xffffffff00000000;
-        mykey[i] = rng_next(&r) % testNum;
+//        mykey[i] = rng_next(&r) % testNum;
 //        mykey[i] = rng_next(&r) % 100000000;
+        mykey[i] = i;
     }
     uint64_t value = 1;
     vector<Length64HashTreeKeyValue> res;
@@ -598,12 +717,29 @@ void range_query_correctness_test() {
 }
 
 
-void *concurrency_put_with_thread(int threadNum) {
+void *concurrency_cht_put(int threadNum) {
     init_fast_allocator(true);
     for (int i = threadNum * (testNum / numThread); i < (threadNum + 1) * (testNum / numThread); ++i) {
-        cht->crash_consistent_put(NULL, mykey[i], 1, 0);
+        cht->crash_consistent_put(NULL, allLoadKeys[i], allLoadValues[i], 0);
     }
     // fast_free();
+}
+
+void *concurrency_cht_run(int threadNum) {
+    init_fast_allocator(true);
+    for (int i = threadNum * (testNum / numThread); i < (threadNum + 1) * (testNum / numThread); ++i) {
+        if (allRunOp[i] == YCSBRunOp::Update) {
+            {
+                cht->crash_consistent_put(NULL, allLoadKeys[i], allLoadValues[i], 0);
+            }
+        } else if (allRunOp[i] == YCSBRunOp::Get) {
+            {
+                cht->get(allLoadKeys[i]);
+            }
+        } else if (allRunOp[i] == YCSBRunOp::Scan) {
+            { ; }
+        }
+    }
 }
 
 void *concurrency_cceh_put(int threadNum) {
@@ -624,6 +760,7 @@ void *concurrency_vlht_put(int threadNum) {
     init_fast_allocator(true);
     for (int i = threadNum * (testNum / numThread); i < (threadNum + 1) * (testNum / numThread); ++i) {
         vlht->crash_consistent_put(NULL, 8, (unsigned char *) &mykey[i], 1);
+//        vlht->crash_consistent_put(NULL, 8, (unsigned char *) &allLoadKeys[i], allLoadValues[i]);
         // vlht->crash_consistent_put_without_lock(NULL,8,(unsigned char*)&mykey[i],1,(uint64_t)&vlht->root);
     }
 }
@@ -631,7 +768,25 @@ void *concurrency_vlht_put(int threadNum) {
 void *concurrency_lbr_put(int threadNum) {
     init_fast_allocator(true);
     for (int i = threadNum * (testNum / numThread); i < (threadNum + 1) * (testNum / numThread); ++i) {
-        lbt->insert(mykey[i], &value);
+//        lbt->insert(mykey[i], &value);
+        lbt->insert(allLoadKeys[i], &allLoadValues[i]);
+    }
+}
+
+void *concurrency_lbr_run(int threadNum) {
+    init_fast_allocator(true);
+    for (int i = threadNum * (testNum / numThread); i < (threadNum + 1) * (testNum / numThread); ++i) {
+        if (allRunOp[i] == YCSBRunOp::Update) {
+            {
+                lbt->insert(allLoadKeys[i], &allLoadValues[i]);
+            }
+        } else if (allRunOp[i] == YCSBRunOp::Get) {
+            {
+                lbt->lookup(allLoadKeys[i]);
+            }
+        } else if (allRunOp[i] == YCSBRunOp::Scan) {
+            { ; }
+        }
     }
 }
 
@@ -646,7 +801,7 @@ void *concurrency_woart_put(int threadNum) {
 
 
 void concurrencyTest() {
-    testNum = 10000000;
+//    testNum = 1000000;
     threads = new thread *[64];
     mykey = new uint64_t[testNum];
     rng r;
@@ -655,34 +810,57 @@ void concurrencyTest() {
         mykey[i] = rng_next(&r);
     }
 
-    for (int i = 1; i <= 16; i *= 2) {
+    string wlName = "/scorpio/home/shared/ycsb_benchmark/heavyload_a";
+//    string wlName = "/Users/wangke/CLionProjects/nvmkv/ycsb_demo";
+    parseYCSBLoadFile(wlName, false);
+    parseYCSBRunFile(wlName, false);
+
+    for (int i = 1; i <= 32; i *= 2) {
         init_fast_allocator(true);
         numThread = i;
         // vlht = new_varLengthHashtree();
 
-        // cht = new_concurrency_hashtree(64, 0);
+         cht = new_concurrency_hashtree(64, 0);
         // con_cceh = new_concurrency_cceh();
         // con_fastfair = new_concurrency_fastfair();
 //        conwoart = new_conwoart_tree();
-//        lbt = new_lbtree();
-        CONCURRENCY_Time_BODY("concurrency lbtree  " + to_string(i) + " threads ", {
+        lbt = new_lbtree();
+//        CONCURRENCY_Time_BODY("concurrency lbtree  " + to_string(i) + " threads ", {
             for (int i = 0; i < numThread; i++) {
                 threads[i] = new std::thread(concurrency_lbr_put, i);
             }
             for (int i = 0; i < numThread; i++) {
                 threads[i]->join();
             }
+//        })
+
+        CONCURRENCY_Time_BODY("concurrency lbtree  " + to_string(i) + " threads ", {
+            for (int i = 0; i < numThread; i++) {
+                threads[i] = new std::thread(concurrency_lbr_run, i);
+            }
+            for (int i = 0; i < numThread; i++) {
+                threads[i]->join();
+            }
         })
 
-//         CONCURRENCY_Time_BODY("concurrency varLength hash tree " + to_string(i) + " threads ", {
+////         CONCURRENCY_Time_BODY("concurrency varLength hash tree " + to_string(i) + " threads ", {
 //             for(int i=0;i<numThread;i++){
-//                 threads[i]  = new std::thread(concurrency_vlht_put,i);
+//                 threads[i]  = new std::thread(concurrency_cht_put,i);
 //             }
 //
 //             for (int i = 0; i < numThread; i++) {
 //                 threads[i]->join();
 //             }
-//         })
+////         })
+//        CONCURRENCY_Time_BODY("concurrency varLength hash tree " + to_string(i) + " threads ", {
+//            for(int i=0;i<numThread;i++){
+//                threads[i]  = new std::thread(concurrency_cht_run,i);
+//            }
+//
+//            for (int i = 0; i < numThread; i++) {
+//                threads[i]->join();
+//            }
+//        })
 
         // CONCURRENCY_Time_BODY("concurrency woart  " + to_string(i) + " threads ", {
         //     for(int i=0;i<numThread;i++){
@@ -765,7 +943,7 @@ void concurrencyTest() {
         //         failed++;
         // cout<<"failed : "<<i<< " key : "<< mykey[i]<<" value: "<< res <<endl;
 
-        // cht->crash_consistent_put(NULL,mykey[i],1,0);
+//         cht->crash_consistent_put(NULL,mykey[i],1,0);
         // if(cht->get(mykey[i])!=1){
         //     cout<<"still wrong!"<<endl;
         // }else{
@@ -885,124 +1063,9 @@ void varLengthTest() {
     fast_free();
 }
 
-void parseLine(std::string rawStr, uint64_t &hashKey, uint64_t &hashValue, uint32_t &rangeNum, bool isScan) {
-    uint32_t t = rawStr.find(" ");
-    uint32_t t1 = rawStr.find(" ", t + 1);
-    std::string tableName = rawStr.substr(t, t1 - t);
-    uint32_t t2 = rawStr.find(" ", t1 + 1);
-    uint32_t t3 = rawStr.find(" ", t2 + 1);
-    std::string keyName = rawStr.substr(t1, t2 - t1);
-    // std::string fullKey = tableName + keyName; // key option1: table+key concat
-    // std::string fullKey = keyName; // key option2: only key
-    std::string fullKey = keyName.substr(5); // key option3: remove 'user' prefix, out of range
-    if (fullKey.size() > 19) // key option4: key's tail, in range uint64_t
-        fullKey = fullKey.substr(fullKey.size() - 19); // tail
-    std::string fullValue = rawStr.substr(t2);
-    std::string rangeNumStr;
-    if (isScan) {
-        rangeNumStr = rawStr.substr(t2, t3 - t2);
-        fullValue = rawStr.substr(t3);
-    }
-    static std::hash<std::string> hash_str;
-    // info("%s", fullKey.c_str());
-    // hashKey = hash_str(fullKey); // use hash, or
-    hashKey = std::stoll(fullKey); // just convert to int
-    hashValue = hash_str(fullValue);
-    rangeNum = 0;
-    if (isScan) {
-        rangeNum = std::stoi(rangeNumStr);
-    }
-    // info("key:%s, hashed_key: %lx, hashed_value: %lx, rangeNum: %d", fullKey.c_str(), hashKey, hashValue, rangeNum);
-    // info("hashed_key: %lx, hashed_value: %lx", hashKey, hashValue);
-}
-
-void parseYCSBRunFile(std::string wlName, bool correctCheck = false) {
-    std::string rawStr;
-    uint64_t hashKey, hashValue;
-
-    std::ifstream runFile(wlName + ".run");
-    assert(runFile.is_open());
-    uint64_t opCnt = 0;
-    uint32_t rangeNum = 0;
-    while (std::getline(runFile, rawStr)) {
-        assert(rawStr.size() > 4);
-        std::string opStr = rawStr.substr(0, 4);
-        if (opStr == "READ") {
-            // info("%s", rawStr.c_str());
-            parseLine(rawStr, hashKey, hashValue, rangeNum, false);
-            allRunKeys.push_back(hashKey); // buffer this query
-            allRunValues.push_back(0);
-            allRunOp.push_back(YCSBRunOp::Get);
-            opCnt++;
-        } else if (opStr == "INSE" || opStr == "UPDA") {
-            // info("%s", rawStr.c_str());
-            parseLine(rawStr, hashKey, hashValue, rangeNum, false);
-            allRunKeys.push_back(hashKey);
-            allRunValues.push_back(hashValue);
-            allRunOp.push_back(YCSBRunOp::Update);
-            if (correctCheck) (*oracleMap)[hashKey] = hashValue;
-            opCnt++;
-        } else if (opStr == "SCAN") {
-            parseLine(rawStr, hashKey, hashValue, rangeNum, true);
-            allRunKeys.push_back(hashKey);
-            // allRunValues.push_back(1024);
-            allRunValues.push_back(rangeNum);
-            allRunOp.push_back(YCSBRunOp::Scan);
-            opCnt++;
-        } else {
-            // other info
-        }
-    }
-    runFile.close();
-    nRunOp = opCnt;
-    // info("Finish parse run file");
-    cout << "run" << endl;
-    if (correctCheck) {
-        for (uint64_t hashKey : allRunKeys) {
-            assert(oracleMap->count(hashKey));
-            // info("hash: %lx", hashKey);
-            uint64_t htValue = ht->get(hashKey);
-            assert(htValue);
-            uint64_t mapValue = oracleMap->at(hashKey);
-            if (htValue != mapValue) {
-                // info("Incorrect key %lx v1 %lx v2 %lx", hashKey, htValue, mapValue);
-                assert(false);
-            }
-        }
-        // info("Pass correctness check!");
-    }
-}
-
-void parseYCSBLoadFile(std::string wlName, bool correctCheck) {
-    std::string rawStr;
-    uint64_t opCnt = 0;
-    uint32_t rangeNum = 0;
-    uint64_t hashKey, hashValue;
-    std::ifstream loadFile(wlName + ".load");
-    assert(loadFile.is_open());
-    cout << "ok" << endl;
-    while (std::getline(loadFile, rawStr)) {
-        assert(rawStr.size() > 4);
-        std::string opStr = rawStr.substr(0, 4);
-        if (opStr == "INSE" || opStr == "UPDA") {
-            // info("%s", rawStr.c_str());
-            parseLine(rawStr, hashKey, hashValue, rangeNum, false);
-            allLoadKeys.push_back(hashKey);
-            allLoadValues.push_back(hashValue);
-            if (correctCheck) (*oracleMap)[hashKey] = hashValue;
-            opCnt++;
-        } else {
-            // other info
-        }
-    }
-    loadFile.close();
-    // info("Finish parse load file");
-    cout << "loaded" << endl;
-    nLoadOp = allLoadKeys.size();
-}
-
 void ycsb_test() {
-    string wlName = "/scorpio/home/shared/ycsb_benchmark/heavyload_a";
+//    string wlName = "/scorpio/home/shared/ycsb_benchmark/heavyload_a";
+    string wlName = "/Users/wangke/CLionProjects/nvmkv/ycsb_demo";
     parseYCSBLoadFile(wlName, false);
     parseYCSBRunFile(wlName, false);
 
@@ -1010,65 +1073,64 @@ void ycsb_test() {
     for (int i = 1; i <= 36; i > 4 ? i += 4 : i *= 2) {
         init_fast_allocator(true);
         numThread = i;
-        cht = new_concurrency_hashtree(64, 0);
-        con_cceh = new_concurrency_cceh();
-        con_fastfair = new_concurrency_fastfair();
-        conwoart = new_conwoart_tree();
+//        cht = new_concurrency_hashtree(64, 0);
+//        con_cceh = new_concurrency_cceh();
+//        con_fastfair = new_concurrency_fastfair();
+//        conwoart = new_conwoart_tree();
 
-/**
-        testNum = nLoadOp;
-        CON_Time_BODY( "concurrency hash tree put "+ to_string(i)+" thread ", {
-            cht->crash_consistent_put(NULL, allLoadKeys[k], allLoadValues[k], 0);
-        })
+//        testNum = nLoadOp;
+//        CON_Time_BODY( "concurrency hash tree put "+ to_string(i)+" thread ", {
+//            cht->crash_consistent_put(NULL, allLoadKeys[k], allLoadValues[k], 0);
+//        })
+//
+//        testNum = nRunOp;
+//        CON_Time_BODY("concurrent hash tree get "+ to_string(i)+" thread ",{
+//            if (allRunOp[k] == YCSBRunOp::Update) {
+//                { cht->crash_consistent_put(NULL, allRunKeys[k], allRunValues[k], 0); }                                                                     \
+//            } else if ( allRunOp[k]== YCSBRunOp::Get) {
+//                {
+//                     cht->get(allRunKeys[k]);  }
+//            } else if ( allRunOp[k]== YCSBRunOp::Scan) {
+//                { ; }
+//            }
+//        } )
 
-        testNum = nRunOp;
-        CON_Time_BODY("concurrent hash tree get "+ to_string(i)+" thread ",{
-            if (allRunOp[k] == YCSBRunOp::Update) {
-                { cht->crash_consistent_put(NULL, allRunKeys[k], allRunValues[k], 0); }                                                                     \
-            } else if ( allRunOp[k]== YCSBRunOp::Get) {
-                {
-                     cht->get(allRunKeys[k]);  }
-            } else if ( allRunOp[k]== YCSBRunOp::Scan) {
-                { ; }
-            }
-        } )
+//        testNum = nLoadOp;
+//        CON_Time_BODY( "concurrent CCEH put "+ to_string(i)+" thread ", {
+//            con_cceh->put(allLoadKeys[k],  allLoadValues[k]);
+//        })
+//
+//        testNum = nRunOp;
+//        CON_Time_BODY("concurrent CCEH get "+ to_string(i)+" thread ",{
+//            if (allRunOp[k] == YCSBRunOp::Update) {
+//                { con_cceh->put(allRunKeys[k],  allRunValues[k]); }                                                                     \
+//            } else if ( allRunOp[k]== YCSBRunOp::Get) {
+//                {
+//                    con_cceh->get(allRunKeys[k]);
+//                }
+//            } else if ( allRunOp[k]== YCSBRunOp::Scan) {
+//                { ; }
+//            }
+//        } )
+//
+//        testNum = nLoadOp;
+//        CON_Time_BODY( "concurrent Fast&Fair put "+ to_string(i)+" thread ", {
+//            con_fastfair->put(allLoadKeys[k], (char *)&allLoadValues[k]);
+//        })
+//
+//        testNum = nRunOp;
+//        CON_Time_BODY("concurrent Fast&Fair get "+ to_string(i)+" thread ",{
+//            if (allRunOp[k] == YCSBRunOp::Update) {
+//                { con_fastfair->put(allRunKeys[k], (char *)& allRunValues[k]); }                                                                     \
+//            } else if ( allRunOp[k]== YCSBRunOp::Get) {
+//                {
+//                    con_fastfair->get(allRunKeys[k]);
+//                }
+//            } else if ( allRunOp[k]== YCSBRunOp::Scan) {
+//                { ; }
+//            }
+//        })
 
-        testNum = nLoadOp;
-        CON_Time_BODY( "concurrent CCEH put "+ to_string(i)+" thread ", {
-            con_cceh->put(allLoadKeys[k],  allLoadValues[k]);
-        })
-
-        testNum = nRunOp;
-        CON_Time_BODY("concurrent CCEH get "+ to_string(i)+" thread ",{
-            if (allRunOp[k] == YCSBRunOp::Update) {
-                { con_cceh->put(allRunKeys[k],  allRunValues[k]); }                                                                     \
-            } else if ( allRunOp[k]== YCSBRunOp::Get) {
-                {
-                    con_cceh->get(allRunKeys[k]);
-                }
-            } else if ( allRunOp[k]== YCSBRunOp::Scan) {
-                { ; }
-            }
-        } )
-
-        testNum = nLoadOp;
-        CON_Time_BODY( "concurrent Fast&Fair put "+ to_string(i)+" thread ", {
-            con_fastfair->put(allLoadKeys[k], (char *)&allLoadValues[k]);
-        })
-
-        testNum = nRunOp;
-        CON_Time_BODY("concurrent Fast&Fair get "+ to_string(i)+" thread ",{
-            if (allRunOp[k] == YCSBRunOp::Update) {
-                { con_fastfair->put(allRunKeys[k], (char *)& allRunValues[k]); }                                                                     \
-            } else if ( allRunOp[k]== YCSBRunOp::Get) {
-                {
-                    con_fastfair->get(allRunKeys[k]);
-                }
-            } else if ( allRunOp[k]== YCSBRunOp::Scan) {
-                { ; }
-            }
-        })
-**/
 //
 //        testNum = nLoadOp;
 //        CON_Time_BODY("concurrent Woart put " + to_string(i) + " thread ", {
@@ -1090,13 +1152,13 @@ void ycsb_test() {
 //            }
 //        })
 
+
         testNum = nLoadOp;
         CON_Time_BODY(to_string(i) + ", ", {
             lbt->insert(allLoadKeys[k], &allLoadValues[k]);
         })
-
         testNum = nRunOp;
-        CON_Time_BODY("concurrent Woart get " + to_string(i) + " thread ", {
+        CON_Time_BODY("concurrent lb+trees get " + to_string(i) + " thread ", {
             if (allRunOp[k] == YCSBRunOp::Update) {
                 {
                     lbt->insert(allLoadKeys[k], &allLoadValues[k]);
@@ -1110,7 +1172,7 @@ void ycsb_test() {
             }
         })
 
-        fast_free();
+//        fast_free();
     }
 
 
@@ -1228,9 +1290,9 @@ int main(int argc, char *argv[]) {
     try {
 
 //        recoveryTest();
-//     concurrencyTest();
+     concurrencyTest();
 
-        ycsb_test();
+//        ycsb_test();
 
     } catch (void *) {
         fast_free();
