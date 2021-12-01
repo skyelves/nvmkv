@@ -32,6 +32,19 @@ varlength_page::varlength_page(varlength_page *left, uint64_t key, varlength_pag
     clflush((char *) this, sizeof(varlength_page));
 }
 
+void varlength_page::grow_init(varlength_page *left, uint64_t key, varlength_page *right, uint32_t level) {
+    hdr.leftmost_ptr = left;
+    hdr.level = level;
+    records[0].key = key;
+    records[0].ptr = (char *) right;
+    records[1].ptr = NULL;
+
+    hdr.last_index = 0;
+
+    clflush((char *) this, sizeof(varlength_page));
+}
+
+
 inline void varlength_page::insert_key(char* key, int key_len, char *ptr, int *num_entries,
                         bool flush, bool update_last_index) {
     varLengthKey* _key = static_cast<varLengthKey *>(fast_alloc(sizeof(varLengthKey)));
@@ -135,7 +148,9 @@ varlength_page* varlength_page::store(varlength_fastfair *bt, char *left, char* 
         } else { // FAIR
             // overflow
             // create a new node
-            varlength_page *sibling = new varlength_page(hdr.level);
+            varlength_page *sibling = static_cast<varlength_page *>(fast_alloc(sizeof(varlength_page)));
+            sibling->init(hdr.level);
+//            varlength_page *sibling = new varlength_page(hdr.level);
             int m = (int) ceil(num_entries / 2);
             uint64_t split_key = records[m].key;
 
@@ -186,8 +201,9 @@ varlength_page* varlength_page::store(varlength_fastfair *bt, char *left, char* 
 
             // Set a new root or insert the split key to the parent
             if (bt->root == (char *) this) { // only one node can update the root ptr
-                varlength_page *new_root =
-                        new varlength_page((varlength_page *) this, split_key, sibling, hdr.level + 1);
+                varlength_page *new_root = static_cast<varlength_page *>(fast_alloc(sizeof(varlength_page)));
+                new_root->grow_init((varlength_page *) this, split_key, sibling, hdr.level + 1);
+//                varlength_page *new_root = new varlength_page((varlength_page *) this, split_key, sibling, hdr.level + 1);
                 bt->setNewRoot((char *) new_root);
             } else {
                 bt->fastfair_insert_internal(NULL, ((varLengthKey*)split_key)->key,((varLengthKey*)split_key)->len, (char *) sibling,
@@ -216,11 +232,17 @@ varlength_fastfair *new_varlengthfastfair() {
  *  class fastfair
  */
 varlength_fastfair::varlength_fastfair() {
-    root = (char *) new varlength_page();
+    varlength_page *tmp = static_cast<varlength_page *>(fast_alloc(sizeof(varlength_page)));
+    tmp->init();
+    root = (char *) tmp;
+//    root = (char *) new varlength_page();
     height = 1;
 }
 
 void varlength_fastfair::init() {
+//    varlength_page *tmp = static_cast<varlength_page *>(fast_alloc(sizeof(varlength_page)));
+//    tmp->init();
+//    root = (char *) tmp;
     root = (char *) new varlength_page();
     height = 1;
 }
