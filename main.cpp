@@ -1257,6 +1257,57 @@ void effect2() {
     cout << concurrency_fastalloc_profile() << endl;
 }
 
+
+void amazon_review(const string fileName){
+    ifstream file(fileName);
+    if(!file.good()){
+        cout<<fileName<<" not existed!"<<endl;
+        return;
+    }
+    testNum = 15023059;
+    unsigned char **keys = new unsigned char *[testNum];
+    int *lengths = new int[testNum];
+
+    const int keyLength = 16;
+    string buffer;
+    int pos = 0;
+    while(getline(file,buffer)){
+        lengths[pos] = keyLength;
+        keys[pos] = static_cast<unsigned char *>( malloc(lengths[pos]));
+//        memset(keys[pos],0,lengths[pos]);
+        int j = lengths[pos]-1;
+        for (int i=buffer.size()-1; i>=0; i--, j--) {
+            keys[pos][j] = (unsigned char)buffer[i];
+        }
+        for(;j>=0;j--){
+            keys[pos][j] = 1;
+        }
+        pos++;
+    }
+    file.close();
+    cout<<"Finish reading the file and make the dataset! Contains "<<pos<<" keys"<<endl;
+
+
+    Time_BODY(1,"varLengthHashTree put " , { vlht->crash_consistent_put(NULL,lengths[i],keys[i],1); })
+    Time_BODY(1,"varLengthHashTree get " , { vlht->get(lengths[i],keys[i]); })
+
+
+    Time_BODY(1,"varLengthFast&Fair put " , { vlff->put((char*)keys[i],lengths[i],(char *) &value); })
+    Time_BODY(1,"varLengthFast&Fair get " , {
+        if(*(char*)(vlff->get((char*)keys[i],lengths[i]))!=1){
+            cout<<*(uint64_t*)keys[i]<<endl;
+        };
+    })
+
+    Time_BODY(1, "varLengthWort put ", { var_length_wort_put(vlwot, (char *) keys[i], lengths[i], (char *) &value); })
+    Time_BODY(1, "varLengthWort get ", {
+        if (*(char *) (var_length_wort_get(vlwot, (char *) keys[i], lengths[i])) != 1) {
+            cout << *(uint64_t *) &mykey[i] << endl;
+        };
+    })
+
+}
+
 int main(int argc, char *argv[]) {
     sscanf(argv[1], "%d", &numThread);
     sscanf(argv[2], "%d", &testNum);
@@ -1281,7 +1332,7 @@ int main(int argc, char *argv[]) {
 
 //     speedTest();
 
-    varLengthTest();
+//    varLengthTest();
 
 //    effect2();
 
@@ -1301,6 +1352,8 @@ int main(int argc, char *argv[]) {
 //    range_query_correctness_test();
 //    cout << ht->node_cnt << endl;
 //    cout << ht->get_access << endl;
+
+    amazon_review("az.txt");
     fast_free();
     return 0;
 }
