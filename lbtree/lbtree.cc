@@ -903,7 +903,7 @@ int lbtree::bulkloadSubtree(key_type input, int start_key, int num_key, float bf
         int fillnum = leaf_fill_num; // in most cases
         if (i == nodenum - 1) {
             fillnum = num_key - (nodenum - 1) * leaf_fill_num;
-            assert(fillnum >= 1 && fillnum <= leaf_fill_num);
+//            assert(fillnum >= 1 && fillnum <= leaf_fill_num);
 
             leaf_meta.v.bitmap = (((1 << fillnum) - 1)
                     << (LEAF_KEY_NUM - fillnum));

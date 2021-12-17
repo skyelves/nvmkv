@@ -393,9 +393,7 @@ void effect1() {
 //    Time_BODY(1, "fast&fair put ", { ff->put(mykey[i], (char *) &value); })
 //    Time_BODY(1, "roart put ", { roart->put(mykey[i], value); })
 //    Time_BODY(1, "cceh put ", { cceh->put(mykey[i], value); })
-    Time_BODY(1, "lbtree put ", { lbt->insert( mykey[i], &value ); })
-
-
+    Time_BODY(1, "lbtree put ", { lbt->insert(mykey[i], &value); })
 
 
     cout << fastalloc_profile() << endl;
@@ -462,6 +460,43 @@ void effect2() {
 //    MEMORY_BODY_EXPE(test_case[7], "vlht get ", { vlht->get(8, (unsigned char *) &(mykey[i])); })
 }
 
+void amazon_review(const string fileName) {
+    ifstream file(fileName);
+    if (!file.good()) {
+        cout << fileName << " not existed!" << endl;
+        return;
+    }
+    testNum = 1000000;
+    mykey = new uint64_t[testNum];
+
+    string buffer;
+    char buff[9]={0};
+    int pos = 0;
+    while (getline(file, buffer)) {
+        for (int i = 0; i < 8; ++i) {
+            buff[i]=buffer[i];
+        }
+        mykey[pos] = *(uint64_t *)buff;
+        if (pos > testNum)
+            break;
+        pos++;
+    }
+    file.close();
+    cout << "Finish reading the file and make the dataset! Contains " << pos << " keys" << endl;
+
+    Time_BODY(1, "hash tree put ", { l64ht->crash_consistent_put(NULL, mykey[i], 1, 0); })
+    Time_BODY(1, "wort put ", { wort_put(wort, mykey[i], 8, &value); })
+    Time_BODY(1, "woart put ", { woart_put(woart, mykey[i], 8, &value); })
+//    Time_BODY(1, "cceh put ", { cceh->put(mykey[i], value); })
+    Time_BODY(1, "fast&fair put ", { ff->put(mykey[i], (char *) &value); })
+
+    Time_BODY(1, "hash tree put ", { l64ht->get(mykey[i]); })
+    Time_BODY(1, "wort put ", { wort_get(wort, mykey[i], 8); })
+    Time_BODY(1, "woart put ", { woart_get(woart, mykey[i], 8); })
+//    Time_BODY(1, "cceh put ", { cceh->get(mykey[i]); })
+    Time_BODY(1, "fast&fair put ", { ff->get(mykey[i]); })
+}
+
 int main(int argc, char *argv[]) {
     sscanf(argv[1], "%d", &numThread);
     sscanf(argv[2], "%d", &testNum);
@@ -483,11 +518,16 @@ int main(int argc, char *argv[]) {
 //
 //    varLengthTest();
 //    profile();
-    effect1();
+//    effect1();
 //    effect2();
 //    range_query_correctness_test();
 //    cout << ht->node_cnt << endl;
 //    cout << ht->get_access << endl;
+#ifdef __linux__
+    amazon_review("../az3.txt");
+#else
+    amazon_review("/Users/wangke/Desktop/jupyter/data-repo-sigmod22-et/ERT/az3.txt");
+#endif
     // fast_free();
     return 0;
 }
