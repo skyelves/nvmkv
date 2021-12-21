@@ -680,6 +680,20 @@ void range_query_correctness_test() {
         res5 = lbt->rangeQuery(mykey[i], mykey[i] + 10000);
         l64ht->node_scan(NULL, mykey[i], mykey[i] + 10000, res, 0);
         cout << res.size() << ", " << res1.size() << ", " << res2.size() << ", " << res3.size() << ", " << res4.size() << ", " << res5.size() << endl;
+//        map<uint64_t, int> tmp_map;
+//        for (int j = 0; j < res.size(); ++j) {
+//            if(tmp_map.find(res[j].key)!=tmp_map.end()){
+//                tmp_map[res[j].key] = tmp_map[res[j].key] + 1;
+//            } else {
+//                tmp_map.insert(make_pair(res[j].key, 1));
+//            }
+//        }
+//        map<uint64_t, int>::iterator iter;
+//        for (iter = tmp_map.begin(); iter != tmp_map.end(); iter++) {
+//            if(iter->second != 1){
+//                cout << iter->first << ", " << iter->second << endl;
+//            }
+//        }
         res.clear();
     }
 //    res = wort_scan(wort, 1, 10000);
@@ -1337,7 +1351,7 @@ int main(int argc, char *argv[]) {
 //    bt = new_blink_tree(numThread);
     // correctnessTest();
 
-//     speedTest();
+     speedTest();
 
 //    varLengthTest();
 
@@ -1356,7 +1370,7 @@ int main(int argc, char *argv[]) {
 //        fast_free();
 //    }
 //    profile();
-    range_query_correctness_test();
+//    range_query_correctness_test();
 //    cout << ht->node_cnt << endl;
 //    cout << ht->get_access << endl;
 

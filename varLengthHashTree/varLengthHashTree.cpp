@@ -870,7 +870,7 @@ void Length64HashTree::node_scan(Length64HashTreeNode *tmp, uint64_t left, uint6
             for(auto k=0;k<HT_BUCKET_SIZE;k++){
                 uint64_t curSubkey = tmp_seg->bucket[j].counter[k].subkey;
                 uint64_t value = tmp_seg->bucket[j].counter[k].value;
-                if(value==0&&curSubkey==0){
+                if((value==0&&curSubkey==0) || (i != GET_SEG_NUM(curSubkey, HT_NODE_LENGTH, tmp_seg->depth))){
                     continue;
                 }
                 if((leftSubkey==UINT64_MAX||curSubkey>leftSubkey)&&(rightSubkey==UINT64_MAX||curSubkey<rightSubkey)){
@@ -908,7 +908,7 @@ void Length64HashTree::getAllNodes(Length64HashTreeNode *tmp, vector<Length64Has
             for(auto k=0;k<HT_BUCKET_SIZE;k++){
                 uint64_t curSubkey = tmp_seg->bucket[j].counter[k].subkey;
                 uint64_t value = tmp_seg->bucket[j].counter[k].value;
-                if(curSubkey==0){
+                if(curSubkey==0 || (i != GET_SEG_NUM(curSubkey, HT_NODE_LENGTH, tmp_seg->depth))){
                     continue;
                 }
                 if(((bool *) value)[0]){
