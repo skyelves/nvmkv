@@ -360,9 +360,9 @@ void speedTest() {
     for (int i = 0; i < testNum; ++i) {
 //        mykey[i] = rng_next(&r);
 //        mykey[i] = rng_next(&r) & 0xffffffff00000000;
-//        mykey[i] = rng_next(&r) % testNum;
+        mykey[i] = rng_next(&r) % testNum;
 //        mykey[i] = rng_next(&r) % 100000000;
-        mykey[i] = i;
+//        mykey[i] = i;
     }
     uint64_t value = 1;
     vector<Length64HashTreeKeyValue> res;
@@ -638,7 +638,8 @@ void range_query_correctness_test() {
     uint64_t mmax = 0;
     uint64_t mmin = INT64_MAX;
     for (int i = 0; i < testNum; ++i) {
-        mykey[i] = rng_next(&r);
+        mykey[i] = rng_next(&r)%testNum;
+//        mykey[i] = i;
         if (mykey[i] > mmax) {
             mmax = mykey[i];
         }
@@ -646,38 +647,45 @@ void range_query_correctness_test() {
             mmin = mykey[i];
         }
     }
-    // vector<concurrency_ff_key_value> res;
-//    vector<ht_key_value> res;
-//    vector<woart_key_value> res;
-//    vector<wort_key_value> res;
+    vector<ff_key_value> res3;
+    vector<ht_key_value> res1;
+    vector<woart_key_value> res4;
+    vector<wort_key_value> res2;
+    vector<lbtree::kv> res5;
 
-//    vector<Length64HashTreeKeyValue> res;
+    vector<Length64HashTreeKeyValue> res;
 
-    vector<void *> res;
+//    vector<void *> res;
 
-//    uint64_t value = 1;
-//    for (int i = 0; i < testNum; i += 1) {
-//        l64ht->crash_consistent_put(NULL, mykey[i], 1);
-//        // roart->put(i + 1, i + 1);
-////        ff->put(i + 1, (char *) &value);
-////        woart_put(woart, i + 1, 8, &value);
-////        wort_put(wort, i + 1, 8, &value);
-////        ht->crash_consistent_put(NULL, i+1, 1, 0);
+    uint64_t value = 1;
+    for (int i = 0; i < testNum; i += 1) {
+        l64ht->crash_consistent_put(NULL, mykey[i], 1);
+        // roart->put(i + 1, i + 1);
+        ff->put(mykey[i], (char *) &value);
+        woart_put(woart, mykey[i], 8, &value);
+        lbt->insert(mykey[i], &value);
+//        wort_put(wort, mykey[i], 8, &value);
+//        ht->crash_consistent_put(NULL, mykey[i], 1, 0);
 //        if (l64ht->get(mykey[i]) != 1) {
 //            cout << "wrong" << endl;
 //        }
-//    }
+    }
 
 
-//    for (int i = 0; i < testNum; ++i) {
-////        res = ht->scan(mykey[i], mykey[i] + 10000);
-//        res = wort_scan(wort, mykey[i], mykey[i] + 10000);
-//        cout << res.size() << endl;
-//    }
+    for (int i = 0; i < 10; ++i) {
+//        res1 = ht->scan(mykey[i], mykey[i] + 10000);
+//        res2 = wort_scan(wort, mykey[i], mykey[i] + 10000);
+        res3 = ff->scan(mykey[i], mykey[i] + 10000);
+        res4 = woart_scan(woart, mykey[i], mykey[i] + 10000);
+        res5 = lbt->rangeQuery(mykey[i], mykey[i] + 10000);
+        l64ht->node_scan(NULL, mykey[i], mykey[i] + 10000, res, 0);
+        cout << res.size() << ", " << res1.size() << ", " << res2.size() << ", " << res3.size() << ", " << res4.size() << ", " << res5.size() << endl;
+        res.clear();
+    }
 //    res = wort_scan(wort, 1, 10000);
 //    res =  ht->scan(1, 10000);
 //    res = woart_scan(woart, 1, 10000);
-//    res = ff->scan(1, 10000);
+//    res3 = ff->scan(1, 10000);
 //
 //    for (int i = 0; i < res.size(); ++i) {
 //        cout << res[i].key << ", " << res[i].value << endl;
@@ -688,8 +696,7 @@ void range_query_correctness_test() {
 //    timeval start, ends;
 //    gettimeofday(&start, NULL);
 //    for (int i = 0; i < 10000; ++i) {
-////        l64ht->node_scan(NULL, mykey[i], mykey[i] + 1000, res, 0);                                                                                \
-//
+//        l64ht->node_scan(NULL, mykey[i], mykey[i] + 1000, res, 0);
 //    }
 //    gettimeofday(&ends, NULL);
 //    double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
@@ -702,18 +709,18 @@ void range_query_correctness_test() {
     // })
 
 
-    for (int i = 0; i < testNum; ++i) {
-        lbt->insert(mykey[i], &value);
-    }
-    timeval start, ends;
-    gettimeofday(&start, NULL);
-    lbt->rangeQuery(mmin, mmax);
-    gettimeofday(&ends, NULL);
-    double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
-    double throughPut = (double) 10000 / timeCost;
-    cout << "lbtree range query " << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;
-    cout << "lbtree range query " << "ThroughPut: " << throughPut << " Mops" << endl;
-    cout << res.size() << endl;
+//    for (int i = 0; i < testNum; ++i) {
+//        lbt->insert(mykey[i], &value);
+//    }
+//    timeval start, ends;
+//    gettimeofday(&start, NULL);
+//    lbt->rangeQuery(mmin, mmax);
+//    gettimeofday(&ends, NULL);
+//    double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
+//    double throughPut = (double) 10000 / timeCost;
+//    cout << "lbtree range query " << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;
+//    cout << "lbtree range query " << "ThroughPut: " << throughPut << " Mops" << endl;
+//    cout << res.size() << endl;
 }
 
 
@@ -1349,11 +1356,11 @@ int main(int argc, char *argv[]) {
 //        fast_free();
 //    }
 //    profile();
-//    range_query_correctness_test();
+    range_query_correctness_test();
 //    cout << ht->node_cnt << endl;
 //    cout << ht->get_access << endl;
 
-    amazon_review("az.txt");
+//    amazon_review("az.txt");
     fast_free();
     return 0;
 }

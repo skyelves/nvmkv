@@ -253,7 +253,7 @@ public:
     }
 
     // insert (key, ptr)
-    void insert(key_type key, void *ptr);
+    void insert(key_type key, void *_ptr);
 
     // delete key
     void del(key_type key);

@@ -195,7 +195,9 @@ void lbtree::qsortBleaf(bleaf *p, int start, int end, int pos[]) {
     qsortBleaf(p, l + 1, end, pos);
 }
 
-void lbtree::insert(key_type key, void *ptr) {
+void lbtree::insert(key_type key, void *_ptr) {
+    void *ptr = (void *)(fast_alloc(sizeof(uint64_t)));
+    *(uint64_t *)ptr = *(uint64_t *)_ptr;
     Pointer8B parray[32];  // 0 .. root_level will be used
     short ppos[32];    // 1 .. root_level will be used
     bool isfull[32];  // 0 .. root_level will be used
@@ -987,7 +989,11 @@ vector<lbtree::kv> lbtree::rangeQuery(key_type start , key_type end){
             if(i->bitmap&(1<<j) && i->ent[j].k>=start && i->ent[j].k<=end){
                 kv tmp;
                 tmp.k=i->ent[j].k;
-                tmp.v = i->ent[j].ch;
+                tmp.v = i->ent[j].ch.value;
+                if(tmp.v != 1)
+                tmp.v = *((uint64_t *)i->ent[j].ch.value);
+//                if (tmp.v == 1)
+//                    cout << start << ", " << end << ", "<< tmp.k << ", " << tmp.v << endl;
                 res.push_back(tmp);
             }
         }
