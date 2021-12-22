@@ -8,6 +8,10 @@
 
 #define GET_SEG_NUM(key, key_len, depth)  ((key>>(key_len-depth))&(((uint64_t)1<<depth)-1))
 #define GET_BUCKET_NUM(key, bucket_mask_len) ((key)&(((uint64_t)1<<bucket_mask_len)-1))
+#define REMOVE_NODE_FLAG(key) (key & (((uint64_t)1<<56)-1) )
+#define PUT_KEY_VALUE_FLAG(key) (key | ((uint64_t)1<<56))
+#define GET_NODE_FLAG(key) (key>>56)
+#define LINEAR_PROBING_FACTOR 3
 
 
 inline void mfence(void) {
@@ -549,16 +553,16 @@ void VarLengthHashTreeNode::free_write_lock(){
 
 Length64HashTreeKeyValue *new_l64ht_key_value(uint64_t key ,uint64_t value ){
     Length64HashTreeKeyValue *_new_key_value = static_cast<Length64HashTreeKeyValue *>(concurrency_fast_alloc(sizeof(Length64HashTreeKeyValue)));
-    _new_key_value->type = 1;
     _new_key_value->key = key;
     _new_key_value->value = value;
     return _new_key_value;
 }
 
 
-uint64_t Length64HashTreeBucket::get(uint64_t key){
+uint64_t Length64HashTreeBucket::get(uint64_t key, bool& keyValueFlag){
     for (int i = 0; i < HT_BUCKET_SIZE; ++i) {
-        if (key == counter[i].subkey) {
+        if (key == REMOVE_NODE_FLAG(counter[i].subkey)) {
+            keyValueFlag = GET_NODE_FLAG(counter[i].subkey);
             return counter[i].value;
         }
     }
@@ -570,12 +574,13 @@ int Length64HashTreeBucket::find_place(uint64_t _key, uint64_t _key_len, uint64_
     // exists or not full: return index or empty counter
     int res = -1;
     for (int i = 0; i < HT_BUCKET_SIZE; ++i) {
-        if (_key == counter[i].subkey) {
+        uint64_t removedFlagKey = REMOVE_NODE_FLAG(counter[i].subkey);
+        if (_key == removedFlagKey) {
             return i;
-        } else if ((res == -1) && counter[i].subkey == 0 && counter[i].value == 0) {
+        } else if ((res == -1) && removedFlagKey == 0 && counter[i].value == 0) {
             res = i;
         } else if ((res == -1) &&
-                   (GET_SEG_NUM(_key, _key_len, _depth) != GET_SEG_NUM(counter[i].subkey, _key_len, _depth))) {
+                   (GET_SEG_NUM(_key, _key_len, _depth) != GET_SEG_NUM(removedFlagKey, _key_len, _depth))) {
             res = i;
         }
     }
@@ -673,11 +678,40 @@ void Length64HashTreeNode::put(uint64_t subkey, uint64_t value, uint64_t beforeA
     Length64HashTreeSegment *tmp_seg = *(Length64HashTreeSegment **)GET_SEG_POS(this,dir_index);
     uint64_t seg_index = GET_BUCKET_NUM(subkey, HT_BUCKET_MASK_LEN);
     Length64HashTreeBucket *tmp_bucket = &(tmp_seg->bucket[seg_index]);
-    put(subkey,value,tmp_seg,tmp_bucket,dir_index,seg_index,beforeAddress);
+    put(subkey,value,tmp_seg,dir_index,seg_index,beforeAddress);
 }
 
-void Length64HashTreeNode::put(uint64_t subkey, uint64_t value, Length64HashTreeSegment* tmp_seg, Length64HashTreeBucket* tmp_bucket, uint64_t dir_index, uint64_t seg_index, uint64_t beforeAddress){
-    int bucket_index = tmp_bucket->find_place(subkey, HT_NODE_LENGTH, tmp_seg->depth);
+void Length64HashTreeNode::put(uint64_t subkey, uint64_t value, Length64HashTreeSegment* tmp_seg, uint64_t dir_index, uint64_t seg_index, uint64_t beforeAddress){
+    int bucket_index = -1;
+    for(uint64_t curBucket=seg_index, countBucket=seg_index; countBucket <= (seg_index+LINEAR_PROBING_FACTOR) ; curBucket++, countBucket++, curBucket %= HT_MAX_BUCKET_NUM){
+        Length64HashTreeBucket *tmp_bucket = &(tmp_seg->bucket[curBucket]);
+         bucket_index = tmp_bucket->find_place(subkey, HT_NODE_LENGTH, tmp_seg->depth);
+         if(bucket_index == -1){
+             continue;
+         }else {
+            if (unlikely(REMOVE_NODE_FLAG(tmp_bucket->counter[bucket_index].subkey) == subkey)) {
+                //key exists
+                if(tmp_bucket->counter[bucket_index].value == 0){
+                    tmp_bucket->counter[bucket_index].subkey = PUT_KEY_VALUE_FLAG(tmp_bucket->counter[bucket_index].subkey);
+                    tmp_bucket->counter[bucket_index].value = value;
+                    clflush((char *) &(tmp_bucket->counter[bucket_index].subkey), 16);
+                }else{
+                    tmp_bucket->counter[bucket_index].value = value;
+                    clflush((char *) &(tmp_bucket->counter[bucket_index].value), 8);
+                }
+
+            } else {
+                // there is a place to insert
+                tmp_bucket->counter[bucket_index].value = value;
+                mfence();
+                tmp_bucket->counter[bucket_index].subkey = PUT_KEY_VALUE_FLAG(subkey);
+                // Here we clflush 16bytes rather than two 8 bytes because all counter are set to 0.
+                // If crash after key flushed, then the value is 0. When we return the value, we would find that the key is not inserted.
+                clflush((char *) &(tmp_bucket->counter[bucket_index].subkey), 16);
+            }
+            break;
+        }
+    }
     if (bucket_index == -1) {
         //condition: full
         if (likely(tmp_seg->depth < global_depth)) {
@@ -731,20 +765,6 @@ void Length64HashTreeNode::put(uint64_t subkey, uint64_t value, Length64HashTree
             newNode->put(subkey, value, beforeAddress);
             return;
         }
-    } else {
-        if (unlikely(tmp_bucket->counter[bucket_index].subkey == subkey)) {
-            //key exists
-            tmp_bucket->counter[bucket_index].value = value;
-            clflush((char *) &(tmp_bucket->counter[bucket_index].value), 8);
-        } else {
-            // there is a place to insert
-            tmp_bucket->counter[bucket_index].value = value;
-            mfence();
-            tmp_bucket->counter[bucket_index].subkey = subkey;
-            // Here we clflush 16bytes rather than two 8 bytes because all counter are set to 0.
-            // If crash after key flushed, then the value is 0. When we return the value, we would find that the key is not inserted.
-            clflush((char *) &(tmp_bucket->counter[bucket_index].subkey), 16);
-        }
     }
     return;
 }
@@ -753,12 +773,19 @@ void Length64HashTreeNode::node_put(int pos, Length64HashTreeKeyValue* kv){
     treeNodeValues[header.len - pos] = *kv;
 }
 
-uint64_t Length64HashTreeNode::get(uint64_t subkey){
+uint64_t Length64HashTreeNode::get(uint64_t subkey, bool& keyValueFlag){
     uint64_t dir_index = GET_SEG_NUM(subkey, HT_NODE_LENGTH, global_depth);
     Length64HashTreeSegment *tmp_seg = *(Length64HashTreeSegment **)GET_SEG_POS(this,dir_index);
     uint64_t seg_index = GET_BUCKET_NUM(subkey, HT_BUCKET_MASK_LEN);
-    Length64HashTreeBucket *tmp_bucket = &(tmp_seg->bucket[seg_index]);
-    return tmp_bucket->get(subkey);
+    uint64_t res = 0;
+    for(uint64_t curBucket=seg_index, countBucket=seg_index; countBucket <= (seg_index+LINEAR_PROBING_FACTOR) ; curBucket++, countBucket++, curBucket %= HT_MAX_BUCKET_NUM){
+        Length64HashTreeBucket *tmp_bucket = &(tmp_seg->bucket[curBucket]);
+        res = tmp_bucket->get(subkey,keyValueFlag);;
+        if(res != 0){
+            break;
+        }
+    }
+    return res;
 }
 
 

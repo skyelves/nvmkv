@@ -147,13 +147,13 @@ int numThread = 1;
 int test_algorithms_num = 10;
 bool test_case[10] = {0, // ht
                       0, // art
-                      1, // wort
-                      1, // woart
+                      0, // wort
+                      0, // woart
                       0, // cacheline_concious_extendible_hash
-                      1, // fast&fair
+                      0, // fast&fair
                       0, // roart
                       1, // ert
-                      1, // lb+tree
+                      0, // lb+tree
                       0};
 
 bool range_query_test_case[10] = {
@@ -552,7 +552,8 @@ void speedTest() {
 }
 
 void correctnessTest() {
-    map<uint64_t, uint64_t> mm;
+    testNum = 1000000;
+    unordered_map<uint64_t, uint64_t> mm;
     mykey = new uint64_t[testNum];
     rng r;
     rng_init(&r, 1, 2);
@@ -561,12 +562,13 @@ void correctnessTest() {
     for (int i = 0; i < testNum; ++i) {
         mykey[i] = rng_next(&r);
 //        mykey[i] = i + 1;
-        mm[mykey[i]] = i + 1;
+//        mm[mykey[i]] = i + 1;
 //        roart->put(mykey[i], i + 1);
 //        ff->put(mykey[i], (char *) &mm[mykey[i]]);
 //        wort_put(wort, mykey[i], 8, &mm[mykey[i]]);
 //        cceh->put(mykey[i], i + 1);
-        ht->crash_consistent_put(NULL, mykey[i], i + 1, 0);
+//        ht->crash_consistent_put(NULL, mykey[i], i + 1, 0);
+        l64ht->crash_consistent_put(NULL, mykey[i], i+1);
 //        for (int j = 0; j < testNum; ++j) {
 //            int64_t res = cceh->get(mykey[j]);
 //            if (res != mm[mykey[j]]) {
@@ -592,9 +594,11 @@ void correctnessTest() {
 //        res = roart->get(mykey[i]);
 //        res = *(int64_t *) ff->get(mykey[i]);
 //        res = *(int64_t *) wort_get(wort, mykey[i], 8);
-        res = ht->get(mykey[i]);
-        if (res != mm[mykey[i]]) {
-            cout << i << ", " << mykey[i] << ", " << res << ", " << mm[mykey[i]] << endl;
+//        res = ht->get(mykey[i]);
+        res = l64ht->get(mykey[i]);
+//        if (res != mm[mykey[i]]) {
+        if(res != i+1){
+            cout << i << ", " << mykey[i] << ", " << res << ", " << i+1 << endl;
 //            return;
         }
     }
@@ -1349,9 +1353,9 @@ int main(int argc, char *argv[]) {
 
     vlff = new_varlengthfastfair();
 //    bt = new_blink_tree(numThread);
-    // correctnessTest();
+     correctnessTest();
 
-     speedTest();
+//     speedTest();
 
 //    varLengthTest();
 

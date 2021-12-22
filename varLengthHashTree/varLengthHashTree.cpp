@@ -18,12 +18,15 @@
 #define GET_SEG_POS(currentNode,dir_index) (((uint64_t)(currentNode) + sizeof(VarLengthHashTreeNode) + dir_index*sizeof(HashTreeSegment*)))
 
 #define GET_32BITS(pointer,pos) (*((uint32_t *)(pointer+pos)))
+#define REMOVE_NODE_FLAG(key) (key & (((uint64_t)1<<56)-1) )
+#define GET_NODE_FLAG(key) (key>>56)
+
 // #define GET_32BITS(pointer,pos) ((*(pointer+pos))<<24 | (*(pointer+pos+1))<< 16 | (*(pointer+pos+2))<<8 | *(pointer+pos+3))
 #define GET_16BITS(pointer,pos) ((*(pointer+pos))<<8 | (*(pointer+pos+1)))
 
 #define _16_BITS_OF_BYTES 2
 #define _32_BITS_OF_BYTES 4
-
+#define LINEAR_PROBING_FACTOR 3
 
 bool keyIsSame(unsigned char* key1, unsigned int length1, unsigned char* key2, unsigned int length2){
     if(length1!=length2){
@@ -680,56 +683,68 @@ void Length64HashTree:: crash_consistent_put(Length64HashTreeNode *_node, uint64
             uint64_t dir_index = GET_SEG_NUM(subkey, HT_NODE_LENGTH, currentNode->global_depth);
             Length64HashTreeSegment *tmp_seg = *(Length64HashTreeSegment **)GET_SEG_POS(currentNode,dir_index);
             uint64_t seg_index = GET_BUCKET_NUM(subkey, HT_BUCKET_MASK_LEN);
-            Length64HashTreeBucket *tmp_bucket = &(tmp_seg->bucket[seg_index]);
-            int i;
-            uint64_t beforeA;
-            for (i = 0; i < HT_BUCKET_SIZE; ++i) {
-                if (subkey == tmp_bucket->counter[i].subkey) {
-                    next =  tmp_bucket->counter[i].value;
-                    beforeA = (uint64_t)&tmp_bucket->counter[i].value;
-                    break;
+            len += HT_NODE_LENGTH / SIZE_OF_CHAR;
+            bool notFound = true;
+            for(uint64_t curBucket=seg_index, countBucket=seg_index; countBucket <= (seg_index+LINEAR_PROBING_FACTOR) ; curBucket++, countBucket++, curBucket %= HT_MAX_BUCKET_NUM){
+                Length64HashTreeBucket *tmp_bucket = &(tmp_seg->bucket[curBucket]);
+                int i;
+                uint64_t beforeA;
+                bool keyValueFlag = false;
+                for (i = 0; i < HT_BUCKET_SIZE; ++i) {
+                    if (subkey == REMOVE_NODE_FLAG(tmp_bucket->counter[i].subkey)) {
+                        next =  tmp_bucket->counter[i].value;
+                        keyValueFlag = GET_NODE_FLAG(tmp_bucket->counter[i].subkey);
+                        beforeA = (uint64_t)&tmp_bucket->counter[i].value;
+                        break;
+                    }
+                }
+                if (next == 0) {
+                    continue;
+                } else {
+                    notFound = false;
+                    if (keyValueFlag) {
+                        // next is key value pair, which means collides
+                        uint64_t prekey = ((Length64HashTreeKeyValue *) next)->key;
+                        uint64_t prevalue = ((Length64HashTreeKeyValue *) next)->value;
+                        if (unlikely(key == prekey)) {
+                            //same key, update the value
+                            ((Length64HashTreeKeyValue *) next)->value = value;
+                            clflush((char *) &(((Length64HashTreeKeyValue *) next)->value), 8);
+                            return;
+                        } else {
+                            //not same key: needs to create a new node
+                            Length64HashTreeNode *newNode = new_length64hashtree_node(HT_NODE_LENGTH,headerDepth+1);
+
+                            // put pre kv
+                            crash_consistent_put(newNode,prekey,prevalue,len);
+
+                            // put new kv
+                            crash_consistent_put(newNode,key,value,len);
+
+                            clflush((char *) newNode, sizeof(Length64HashTreeNode));
+
+                            tmp_bucket->counter[i].subkey = REMOVE_NODE_FLAG(tmp_bucket->counter[i].subkey);
+                            tmp_bucket->counter[i].value = (uint64_t)newNode;
+                            clflush((char*)&tmp_bucket->counter[i].value,8);
+                            return;
+                        }
+                    } else {
+                        // next is next extendible hash
+                        currentNode = (Length64HashTreeNode *) next;
+                        beforeAddress =  beforeA;
+                        headerDepth = currentNode->header.depth;
+                        break;
+                    }
                 }
             }
-            len += HT_NODE_LENGTH / SIZE_OF_CHAR;
-            if (next == 0) {
-                //not exists
+            //not exists
+            if(notFound){
                 Length64HashTreeKeyValue *kv = new_l64ht_key_value(key, value);
                 clflush((char *) kv, sizeof(Length64HashTreeKeyValue));
-                currentNode->put(subkey, (uint64_t) kv, tmp_seg, tmp_bucket, dir_index, seg_index, beforeAddress);
+                currentNode->put(subkey, (uint64_t) kv, tmp_seg, dir_index, seg_index, beforeAddress);
                 return;
-            } else {
-                if (((bool *) next)[0]) {
-                    // next is key value pair, which means collides
-                    uint64_t prekey = ((Length64HashTreeKeyValue *) next)->key;
-                    uint64_t prevalue = ((Length64HashTreeKeyValue *) next)->value;
-                    if (unlikely(key == prekey)) {
-                        //same key, update the value
-                        ((Length64HashTreeKeyValue *) next)->value = value;
-                        clflush((char *) &(((Length64HashTreeKeyValue *) next)->value), 8);
-                        return;
-                    } else {
-                        //not same key: needs to create a new node
-                        Length64HashTreeNode *newNode = new_length64hashtree_node(HT_NODE_LENGTH,headerDepth+1);
-
-                        // put pre kv
-                        crash_consistent_put(newNode,prekey,prevalue,len);
-
-                        // put new kv
-                        crash_consistent_put(newNode,key,value,len);
-
-                        clflush((char *) newNode, sizeof(Length64HashTreeNode));
-
-                        tmp_bucket->counter[i].value = (uint64_t)newNode;
-                        clflush((char*)&tmp_bucket->counter[i].value,8);
-                        return;
-                    }
-                } else {
-                    // next is next extendible hash
-                    currentNode = (Length64HashTreeNode *) next;
-                    beforeAddress =  beforeA;
-                    headerDepth = currentNode->header.depth;
-                }
             }
+
         }else{
             // if prefix is not match (shorter)
             // split a new tree node and insert 
@@ -787,13 +802,14 @@ uint64_t Length64HashTree::get(uint64_t key){
         pos += currentNode->header.len;
         // uint64_t subkey = GET_16BITS(key,pos);
         uint64_t subkey = GET_SUBKEY(key,pos*SIZE_OF_CHAR,HT_NODE_LENGTH);
-        auto next = currentNode->get(subkey);
+        bool keyValueFlag = false;
+        auto next = currentNode->get(subkey,keyValueFlag);
         // pos+=_16_BITS_OF_BYTES;
         pos+=_32_BITS_OF_BYTES;
         if(next==0){
             return 0;
         }
-        if((((bool *) next)[0])){
+        if(keyValueFlag){
             // is value
             if(key == ((Length64HashTreeKeyValue*)next)->key){
                 return ((Length64HashTreeKeyValue*)next)->value;
