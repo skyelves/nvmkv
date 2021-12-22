@@ -884,19 +884,20 @@ void Length64HashTree::node_scan(Length64HashTreeNode *tmp, uint64_t left, uint6
             last_seg = tmp_seg;
         for(auto j=0;j<HT_MAX_BUCKET_NUM;j++){
             for(auto k=0;k<HT_BUCKET_SIZE;k++){
-                uint64_t curSubkey = tmp_seg->bucket[j].counter[k].subkey;
+                uint64_t curSubkey = REMOVE_NODE_FLAG(tmp_seg->bucket[j].counter[k].subkey);
+                bool keyValueFlag = GET_NODE_FLAG(tmp_seg->bucket[j].counter[k].subkey);
                 uint64_t value = tmp_seg->bucket[j].counter[k].value;
                 if((value==0&&curSubkey==0) || (i != GET_SEG_NUM(curSubkey, HT_NODE_LENGTH, tmp_seg->depth))){
                     continue;
                 }
                 if((leftSubkey==UINT64_MAX||curSubkey>leftSubkey)&&(rightSubkey==UINT64_MAX||curSubkey<rightSubkey)){
-                    if(((bool *) value)[0]){
+                    if(keyValueFlag){
                         res.push_back(*(Length64HashTreeKeyValue*)value);
                     }else{
                         getAllNodes((Length64HashTreeNode*)value,res);
                     }
                 } else if(curSubkey==leftSubkey||curSubkey==rightSubkey){
-                    if(pos==HT_KEY_LENGTH||((bool *) value)[0]){
+                    if(pos==HT_KEY_LENGTH || keyValueFlag){
                         res.push_back(*(Length64HashTreeKeyValue*)value);
                     }else{
                         node_scan((Length64HashTreeNode*)value,left,right,res,pos);
@@ -922,12 +923,13 @@ void Length64HashTree::getAllNodes(Length64HashTreeNode *tmp, vector<Length64Has
             last_seg = tmp_seg;
         for(auto j=0;j<HT_MAX_BUCKET_NUM;j++){
             for(auto k=0;k<HT_BUCKET_SIZE;k++){
-                uint64_t curSubkey = tmp_seg->bucket[j].counter[k].subkey;
+                uint64_t curSubkey = REMOVE_NODE_FLAG(tmp_seg->bucket[j].counter[k].subkey);
+                bool keyValueFlag = GET_NODE_FLAG(tmp_seg->bucket[j].counter[k].subkey);
                 uint64_t value = tmp_seg->bucket[j].counter[k].value;
                 if(curSubkey==0 || (i != GET_SEG_NUM(curSubkey, HT_NODE_LENGTH, tmp_seg->depth))){
                     continue;
                 }
-                if(((bool *) value)[0]){
+                if(keyValueFlag){
                     res.push_back(*(Length64HashTreeKeyValue*)value);
                 }else{
                     getAllNodes((Length64HashTreeNode*)value,res);
