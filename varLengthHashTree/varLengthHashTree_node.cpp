@@ -701,6 +701,7 @@ void Length64HashTreeNode::put(uint64_t subkey, uint64_t value, Length64HashTree
                 }
 
             } else {
+                // todo: should be performed after searching all buckets
                 // there is a place to insert
                 tmp_bucket->counter[bucket_index].value = value;
                 mfence();
@@ -724,7 +725,7 @@ void Length64HashTreeNode::put(uint64_t subkey, uint64_t value, Length64HashTree
             for (int i = 0; i < HT_MAX_BUCKET_NUM; ++i) {
                 uint64_t bucket_cnt = 0;
                 for (int j = 0; j < HT_BUCKET_SIZE; ++j) {
-                    uint64_t tmp_key = tmp_seg->bucket[i].counter[j].subkey;
+                    uint64_t tmp_key = REMOVE_NODE_FLAG(tmp_seg->bucket[i].counter[j].subkey);
                     uint64_t tmp_value = tmp_seg->bucket[i].counter[j].value;
                     dir_index = GET_SEG_NUM(tmp_key, HT_NODE_LENGTH, global_depth);
                     if (dir_index >= mid) {

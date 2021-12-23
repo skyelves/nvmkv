@@ -883,11 +883,13 @@ void Length64HashTree::node_scan(Length64HashTreeNode *tmp, uint64_t left, uint6
         else
             last_seg = tmp_seg;
         for(auto j=0;j<HT_MAX_BUCKET_NUM;j++){
+            Length64HashTreeBucket &tmp_bucket = tmp_seg->bucket[j];
             for(auto k=0;k<HT_BUCKET_SIZE;k++){
-                uint64_t curSubkey = REMOVE_NODE_FLAG(tmp_seg->bucket[j].counter[k].subkey);
-                bool keyValueFlag = GET_NODE_FLAG(tmp_seg->bucket[j].counter[k].subkey);
-                uint64_t value = tmp_seg->bucket[j].counter[k].value;
-                if((value==0&&curSubkey==0) || (i != GET_SEG_NUM(curSubkey, HT_NODE_LENGTH, tmp_seg->depth))){
+                uint64_t curSubkey = REMOVE_NODE_FLAG(tmp_bucket.counter[k].subkey);
+                bool keyValueFlag = GET_NODE_FLAG(tmp_bucket.counter[k].subkey);
+                uint64_t value = tmp_bucket.counter[k].value;
+                uint64_t seg = GET_SEG_NUM(curSubkey, HT_NODE_LENGTH, tmp_seg->depth);
+                if((value==0&&curSubkey==0) || (tmp_seg != *(Length64HashTreeSegment **)GET_SEG_POS(tmp, GET_SEG_NUM(curSubkey, HT_NODE_LENGTH, tmp_seg->depth)))){
                     continue;
                 }
                 if((leftSubkey==UINT64_MAX||curSubkey>leftSubkey)&&(rightSubkey==UINT64_MAX||curSubkey<rightSubkey)){
@@ -922,10 +924,11 @@ void Length64HashTree::getAllNodes(Length64HashTreeNode *tmp, vector<Length64Has
         else
             last_seg = tmp_seg;
         for(auto j=0;j<HT_MAX_BUCKET_NUM;j++){
+            Length64HashTreeBucket &tmp_bucket = tmp_seg->bucket[j];
             for(auto k=0;k<HT_BUCKET_SIZE;k++){
-                uint64_t curSubkey = REMOVE_NODE_FLAG(tmp_seg->bucket[j].counter[k].subkey);
-                bool keyValueFlag = GET_NODE_FLAG(tmp_seg->bucket[j].counter[k].subkey);
-                uint64_t value = tmp_seg->bucket[j].counter[k].value;
+                uint64_t curSubkey = REMOVE_NODE_FLAG(tmp_bucket.counter[k].subkey);
+                bool keyValueFlag = GET_NODE_FLAG(tmp_bucket.counter[k].subkey);
+                uint64_t value = tmp_bucket.counter[k].value;
                 if(curSubkey==0 || (i != GET_SEG_NUM(curSubkey, HT_NODE_LENGTH, tmp_seg->depth))){
                     continue;
                 }
