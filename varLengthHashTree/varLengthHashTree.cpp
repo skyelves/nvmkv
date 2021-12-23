@@ -889,7 +889,7 @@ void Length64HashTree::node_scan(Length64HashTreeNode *tmp, uint64_t left, uint6
                 bool keyValueFlag = GET_NODE_FLAG(tmp_bucket.counter[k].subkey);
                 uint64_t value = tmp_bucket.counter[k].value;
                 uint64_t seg = GET_SEG_NUM(curSubkey, HT_NODE_LENGTH, tmp_seg->depth);
-                if((value==0&&curSubkey==0) || (tmp_seg != *(Length64HashTreeSegment **)GET_SEG_POS(tmp, GET_SEG_NUM(curSubkey, HT_NODE_LENGTH, tmp_seg->depth)))){
+                if((value==0&&curSubkey==0) || (tmp_seg != *(Length64HashTreeSegment **)GET_SEG_POS(tmp, GET_SEG_NUM(curSubkey, HT_NODE_LENGTH, tmp->global_depth)))){
                     continue;
                 }
                 if((leftSubkey==UINT64_MAX||curSubkey>leftSubkey)&&(rightSubkey==UINT64_MAX||curSubkey<rightSubkey)){
@@ -929,7 +929,7 @@ void Length64HashTree::getAllNodes(Length64HashTreeNode *tmp, vector<Length64Has
                 uint64_t curSubkey = REMOVE_NODE_FLAG(tmp_bucket.counter[k].subkey);
                 bool keyValueFlag = GET_NODE_FLAG(tmp_bucket.counter[k].subkey);
                 uint64_t value = tmp_bucket.counter[k].value;
-                if(curSubkey==0 || (i != GET_SEG_NUM(curSubkey, HT_NODE_LENGTH, tmp_seg->depth))){
+                if(curSubkey==0 || (tmp_seg != *(Length64HashTreeSegment **)GET_SEG_POS(tmp, GET_SEG_NUM(curSubkey, HT_NODE_LENGTH, tmp->global_depth)))){
                     continue;
                 }
                 if(keyValueFlag){
