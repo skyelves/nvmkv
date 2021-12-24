@@ -723,7 +723,7 @@ void Length64HashTree:: crash_consistent_put(Length64HashTreeNode *_node, uint64
 
                             clflush((char *) newNode, sizeof(Length64HashTreeNode));
 
-                            tmp_bucket->counter[i].subkey = REMOVE_NODE_FLAG(tmp_bucket->counter[i].subkey);
+                            tmp_bucket->counter[i].subkey = REMOVE_NODE_FLAG(tmp_bucket->counter[i].subkey); // todo: think of crash consistency
                             tmp_bucket->counter[i].value = (uint64_t)newNode;
                             clflush((char*)&tmp_bucket->counter[i].value,8);
                             return;

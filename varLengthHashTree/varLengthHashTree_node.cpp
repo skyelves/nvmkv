@@ -748,6 +748,7 @@ void Length64HashTreeNode::put(uint64_t subkey, uint64_t value, Length64HashTree
             int64_t left = dir_index - dir_index % stride;
             int64_t mid = left + stride / 2, right = left + stride;
 
+            // todo: because of linear probing, it may be migrate to the different bucket
             //migrate previous data to the new bucket
             for (int i = 0; i < HT_MAX_BUCKET_NUM; ++i) {
                 uint64_t bucket_cnt = 0;
@@ -761,7 +762,7 @@ void Length64HashTreeNode::put(uint64_t subkey, uint64_t value, Length64HashTree
                         seg_index = i;
                         Length64HashTreeBucket *dst_bucket = &(dst_seg->bucket[seg_index]);
                         dst_bucket->counter[bucket_cnt].value = tmp_value;
-                        dst_bucket->counter[bucket_cnt].subkey = tmp_key;
+                        dst_bucket->counter[bucket_cnt].subkey = PUT_KEY_VALUE_FLAG(tmp_key);
                         bucket_cnt++;
                     }
                 }
