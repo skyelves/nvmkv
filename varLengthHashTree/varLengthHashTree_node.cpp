@@ -750,8 +750,9 @@ void Length64HashTreeNode::put(uint64_t subkey, uint64_t value, Length64HashTree
 
             // todo: because of linear probing, it may be migrate to the different bucket
             //migrate previous data to the new bucket
+            int bucket_cnt[HT_MAX_BUCKET_NUM] = {0};
             for (int i = 0; i < HT_MAX_BUCKET_NUM; ++i) {
-                uint64_t bucket_cnt = 0;
+//                uint64_t bucket_cnt = 0;
                 Length64HashTreeBucket &tmp_bucket = tmp_seg->bucket[i];
                 for (int j = 0; j < HT_BUCKET_SIZE; ++j) {
                     uint64_t tmp_key = REMOVE_NODE_FLAG(tmp_bucket.counter[j].subkey);
@@ -759,11 +760,18 @@ void Length64HashTreeNode::put(uint64_t subkey, uint64_t value, Length64HashTree
                     dir_index = GET_SEG_NUM(tmp_key, HT_NODE_LENGTH, global_depth);
                     if (dir_index >= mid) {
                         Length64HashTreeSegment *dst_seg = new_seg;
-                        seg_index = i;
-                        Length64HashTreeBucket *dst_bucket = &(dst_seg->bucket[seg_index]);
-                        dst_bucket->counter[bucket_cnt].value = tmp_value;
-                        dst_bucket->counter[bucket_cnt].subkey = PUT_KEY_VALUE_FLAG(tmp_key);
-                        bucket_cnt++;
+//                        seg_index = i;
+                        seg_index = GET_BUCKET_NUM(tmp_key, HT_BUCKET_MASK_LEN);
+                        for (int k = 0; k <= LINEAR_PROBING_FACTOR; ++k) {
+                            seg_index = (seg_index + k) % HT_MAX_BUCKET_NUM;
+                            if(bucket_cnt[seg_index] < HT_BUCKET_SIZE){
+                                Length64HashTreeBucket *dst_bucket = &(dst_seg->bucket[seg_index]);
+                                dst_bucket->counter[bucket_cnt[seg_index]].value = tmp_value;
+                                dst_bucket->counter[bucket_cnt[seg_index]].subkey = PUT_KEY_VALUE_FLAG(tmp_key);
+                                bucket_cnt[seg_index]++;
+                                break;
+                            }
+                        }
                     }
                 }
             }
