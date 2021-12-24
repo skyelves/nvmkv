@@ -1353,7 +1353,7 @@ int main(int argc, char *argv[]) {
 
     vlff = new_varlengthfastfair();
 //    bt = new_blink_tree(numThread);
-//     correctnessTest();
+     correctnessTest();
 
 //     speedTest();
 
@@ -1374,7 +1374,7 @@ int main(int argc, char *argv[]) {
 //        fast_free();
 //    }
 //    profile();
-    range_query_correctness_test();
+//    range_query_correctness_test();
 //    cout << ht->node_cnt << endl;
 //    cout << ht->get_access << endl;
 
