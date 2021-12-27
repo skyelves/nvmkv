@@ -566,7 +566,8 @@ void correctnessTest() {
 //        ff->put(mykey[i], (char *) &mm[mykey[i]]);
 //        wort_put(wort, mykey[i], 8, &mm[mykey[i]]);
 //        cceh->put(mykey[i], i + 1);
-        ht->crash_consistent_put(NULL, mykey[i], i + 1, 0);
+//        ht->crash_consistent_put(NULL, mykey[i], i + 1, 0);
+        l64ht->crash_consistent_put(NULL, mykey[i], i + 1, 0);
 //        for (int j = 0; j < testNum; ++j) {
 //            int64_t res = cceh->get(mykey[j]);
 //            if (res != mm[mykey[j]]) {
@@ -592,7 +593,8 @@ void correctnessTest() {
 //        res = roart->get(mykey[i]);
 //        res = *(int64_t *) ff->get(mykey[i]);
 //        res = *(int64_t *) wort_get(wort, mykey[i], 8);
-        res = ht->get(mykey[i]);
+//        res = ht->get(mykey[i]);
+        res = l64ht->get(mykey[i]);
         if (res != mm[mykey[i]]) {
             cout << i << ", " << mykey[i] << ", " << res << ", " << mm[mykey[i]] << endl;
 //            return;
@@ -661,7 +663,7 @@ void range_query_correctness_test() {
     for (int i = 0; i < testNum; i += 1) {
         l64ht->crash_consistent_put(NULL, mykey[i], 1);
         // roart->put(i + 1, i + 1);
-        ff->put(mykey[i], (char *) &value);
+//        ff->put(mykey[i], (char *) &value);
         woart_put(woart, mykey[i], 8, &value);
         lbt->insert(mykey[i], &value);
 //        wort_put(wort, mykey[i], 8, &value);
@@ -675,7 +677,7 @@ void range_query_correctness_test() {
     for (int i = 0; i < 10; ++i) {
 //        res1 = ht->scan(mykey[i], mykey[i] + 10000);
 //        res2 = wort_scan(wort, mykey[i], mykey[i] + 10000);
-        res3 = ff->scan(mykey[i], mykey[i] + 10000);
+//        res3 = ff->scan(mykey[i], mykey[i] + 10000);
         res4 = woart_scan(woart, mykey[i], mykey[i] + 10000);
         res5 = lbt->rangeQuery(mykey[i], mykey[i] + 10000);
         l64ht->node_scan(NULL, mykey[i], mykey[i] + 10000, res, 0);
@@ -1349,9 +1351,9 @@ int main(int argc, char *argv[]) {
 
     vlff = new_varlengthfastfair();
 //    bt = new_blink_tree(numThread);
-    // correctnessTest();
+//     correctnessTest();
 
-     speedTest();
+//     speedTest();
 
 //    varLengthTest();
 
@@ -1370,7 +1372,7 @@ int main(int argc, char *argv[]) {
 //        fast_free();
 //    }
 //    profile();
-//    range_query_correctness_test();
+    range_query_correctness_test();
 //    cout << ht->node_cnt << endl;
 //    cout << ht->get_access << endl;
 
