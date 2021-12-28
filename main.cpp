@@ -559,7 +559,7 @@ void correctnessTest() {
 
     uint64_t value = 1;
     for (int i = 0; i < testNum; ++i) {
-        mykey[i] = rng_next(&r);
+        mykey[i] = rng_next(&r) % testNum;
 //        mykey[i] = i + 1;
         mm[mykey[i]] = i + 1;
 //        roart->put(mykey[i], i + 1);

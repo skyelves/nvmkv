@@ -25,6 +25,10 @@
 
 #define GET_SUBKEY(key, start, length) ( (key>>(64 - start - length) & (((uint64_t)1<<length)-1)))
 
+#define REMOVE_NODE_FLAG(key) (key & (((uint64_t)1<<56)-1) )
+#define PUT_KEY_VALUE_FLAG(key) (key | ((uint64_t)1<<56))
+#define GET_NODE_FLAG(key) (key>>56)
+
 #define HT_INIT_GLOBAL_DEPTH 0
 #define HT_BUCKET_SIZE 4
 #define HT_BUCKET_MASK_LEN 8
@@ -182,12 +186,10 @@ VarLengthHashTreeNode *new_varlengthhashtree_node(int prefixLen, unsigned char h
 
 class Length64HashTreeKeyValue {
 public:
-    bool type = 1;
     uint64_t key = 0;// indeed only need uint8 or uint16
     uint64_t value = 0;
 
     void operator =(Length64HashTreeKeyValue a){
-        this->type = a.type;
         this->key = a.key;
         this->value = a.value;
     };
@@ -206,7 +208,7 @@ public:
    
     Length64BucketKeyValue counter[HT_BUCKET_SIZE];
 
-    uint64_t get(uint64_t key);
+    uint64_t get(uint64_t key, bool& keyValueFlag);
 
     int find_place(uint64_t _key, uint64_t _key_len, uint64_t _depth);
 };
@@ -264,7 +266,7 @@ public:
 
     void node_put(int pos, Length64HashTreeKeyValue* kv);
     
-    uint64_t get(uint64_t subkey);
+    uint64_t get(uint64_t subkey, bool& keyValueFlag);
 
 };
 
