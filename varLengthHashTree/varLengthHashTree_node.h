@@ -247,10 +247,9 @@ class Length64HashTreeHeader{
 
 class Length64HashTreeNode {
 public:
-    bool type = 0;
+    Length64HashTreeHeader header;
     unsigned char global_depth = 0;
     uint32_t dir_size = 1;
-    Length64HashTreeHeader header;
     Length64HashTreeKeyValue* treeNodeValues;
     // used to represent the elements in the treenode prefix, but not in CCEH
     

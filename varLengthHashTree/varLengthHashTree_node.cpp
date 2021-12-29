@@ -646,7 +646,6 @@ void Length64HashTreeHeader::assign(unsigned char* key, unsigned char assignedLe
 }
 
 Length64HashTreeNode::Length64HashTreeNode(){
-    type = 0;
     global_depth = 0;
     dir_size = pow(2, global_depth);
     // dir = static_cast<HashTreeSegment **>(concurrency_fast_alloc(sizeof(HashTreeSegment *) * dir_size));
@@ -658,7 +657,6 @@ Length64HashTreeNode::Length64HashTreeNode(){
 Length64HashTreeNode::~Length64HashTreeNode(){}
 
 void Length64HashTreeNode::init(unsigned char headerDepth, unsigned char global_depth){
-    type = 0;
     this->global_depth = global_depth;
     this->dir_size = pow(2, global_depth);
     header.depth = headerDepth;

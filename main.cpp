@@ -1353,7 +1353,7 @@ int main(int argc, char *argv[]) {
 //    bt = new_blink_tree(numThread);
 //     correctnessTest();
 
-//     speedTest();
+     speedTest();
 
 //    varLengthTest();
 
@@ -1372,7 +1372,7 @@ int main(int argc, char *argv[]) {
 //        fast_free();
 //    }
 //    profile();
-    range_query_correctness_test();
+//    range_query_correctness_test();
 //    cout << ht->node_cnt << endl;
 //    cout << ht->get_access << endl;
 
