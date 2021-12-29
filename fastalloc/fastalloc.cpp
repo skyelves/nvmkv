@@ -53,15 +53,9 @@ void concurrency_fastalloc::init() {
     nvm_cnt++;
 }
 
-void *fastalloc::alloc(uint64_t size, bool _on_nvm, uint64_t align) {
-    if(align)
-        size = size / align * align + ((size % align) != 0) * align;
+void *fastalloc::alloc(uint64_t size, bool _on_nvm) {
+    size = size / 64 * 64 + ((size % 64) != 0) * 64;
     if (_on_nvm) {
-        if(align) {
-            uint64_t padding = align - (uint64_t)nvm_curr % align;
-            nvm_left -= padding;
-            nvm_curr += padding;
-        }
         if (unlikely(size > nvm_left)) {
 #ifdef __linux__
             string nvm_filename = "/mnt/aep1/test";
@@ -87,11 +81,6 @@ void *fastalloc::alloc(uint64_t size, bool _on_nvm, uint64_t align) {
             return tmp;
         }
     } else {
-        if(align) {
-            uint64_t padding = align - (uint64_t)dram_curr % align;
-            dram_left -= padding;
-            dram_curr += padding;
-        }
         if (unlikely(size > dram_left)) {
             dram[dram_cnt] = new char[ALLOC_SIZE];
             dram_curr = dram[dram_cnt];
@@ -138,12 +127,12 @@ void init_fast_allocator(bool isMultiThread) {
     }
 }
 
-void *fast_alloc(uint64_t size, bool _on_nvm, uint64_t align) {
-    return concurrency_myallocator->alloc(size, _on_nvm, align);
+void *fast_alloc(uint64_t size, bool _on_nvm) {
+    return concurrency_myallocator->alloc(size, _on_nvm);
 }
 
-void *concurrency_fast_alloc(uint64_t size, bool _on_nvm, uint64_t align){
-    return concurrency_myallocator->alloc(size, _on_nvm, align);
+void *concurrency_fast_alloc(uint64_t size, bool _on_nvm){
+    return concurrency_myallocator->alloc(size, _on_nvm);
 }
 
 void fast_free() {
@@ -151,7 +140,7 @@ void fast_free() {
         myallocator->free();
         delete myallocator;
     }
-    
+
     if(concurrency_myallocator!=NULL){
         concurrency_myallocator->free();
         delete concurrency_myallocator;

@@ -147,10 +147,10 @@ int numThread = 1;
 int test_algorithms_num = 10;
 bool test_case[10] = {0, // ht
                       0, // art
-                      0, // wort
+                      1, // wort
                       1, // woart
                       0, // cacheline_concious_extendible_hash
-                      0, // fast&fair
+                      1, // fast&fair
                       0, // roart
                       1, // ert
                       1, // lb+tree
@@ -158,9 +158,9 @@ bool test_case[10] = {0, // ht
 
 bool range_query_test_case[10] = {
         0, // ht
-        0, // wort
+        1, // wort
         1, // woart
-        0, // fast&fair
+        1, // fast&fair
         0, // roart
         1, // ert
         1, // lb+tree

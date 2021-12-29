@@ -47,7 +47,7 @@ public:
 
     virtual void init();
 
-    virtual void *alloc(uint64_t size, bool _on_nvm = true, uint64_t align = 0);
+    virtual void *alloc(uint64_t size, bool _on_nvm = true);
 
     virtual void free();
 
@@ -62,9 +62,9 @@ public:
 
 void init_fast_allocator(bool isMultiThread);
 
-void *fast_alloc(uint64_t size, bool _on_nvm = true, uint64_t align = 0);
+void *fast_alloc(uint64_t size, bool _on_nvm = true);
 
-void *concurrency_fast_alloc(uint64_t size, bool _on_nvm = true, uint64_t align = 0);
+void *concurrency_fast_alloc(uint64_t size, bool _on_nvm = true);
 
 void fast_free();
 
