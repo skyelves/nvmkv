@@ -196,7 +196,7 @@ void lbtree::qsortBleaf(bleaf *p, int start, int end, int pos[]) {
 }
 
 void lbtree::insert(key_type key, void *_ptr) {
-    void *ptr = (void *)(fast_alloc(sizeof(uint64_t)));
+    void *ptr = (void *)(fast_alloc(sizeof(uint64_t), true, 64));
     *(uint64_t *)ptr = *(uint64_t *)_ptr;
     Pointer8B parray[32];  // 0 .. root_level will be used
     short ppos[32];    // 1 .. root_level will be used
@@ -384,7 +384,7 @@ void lbtree::insert(key_type key, void *_ptr) {
         key_type split_key = lp->k(sorted_pos[split]);
 
         // 2.3 create new node
-        bleaf *newp = (bleaf *) fast_alloc(LEAF_SIZE);
+        bleaf *newp = (bleaf *) fast_alloc(LEAF_SIZE, true, 64);
 
         // 2.4 move entries sorted_pos[split .. LEAF_KEY_NUM-1]
         uint16_t freed_slots = 0;
@@ -518,7 +518,7 @@ void lbtree::insert(key_type key, void *_ptr) {
             }
 
             /* otherwise allocate a new non-leaf and redistribute the keys */
-            newp = (bnode *) fast_alloc(NONLEAF_SIZE);
+            newp = (bnode *) fast_alloc(NONLEAF_SIZE, true, 64);
 
             /* if key should be in the left node */
             if (pos <= LEFT_KEY_NUM) {
@@ -556,7 +556,7 @@ void lbtree::insert(key_type key, void *_ptr) {
         } /* end of while loop */
 
         /* root was splitted !! add another level */
-        newp = (bnode *) fast_alloc(NONLEAF_SIZE);
+        newp = (bnode *) fast_alloc(NONLEAF_SIZE, true, 64);
 
         newp->num() = 1;
         newp->lock() = 1;
@@ -841,8 +841,8 @@ void lbtree::del(key_type key) {
 }
 
 void lbtree::init() {
-    this->tree_meta = static_cast<treeMeta *>(fast_alloc(sizeof(treeMeta)));
-    auto nvm_address = fast_alloc(4 * KB);
+    this->tree_meta = static_cast<treeMeta *>(fast_alloc(sizeof(treeMeta), true, 64));
+    auto nvm_address = fast_alloc(4 * KB, true, 64);
     tree_meta->init(nvm_address);
 }
 
@@ -881,9 +881,9 @@ int lbtree::bulkloadSubtree(key_type input, int start_key, int num_key, float bf
 
 
     // 3. allocate nodes
-    pfirst[0] = fast_alloc(sizeof(bleaf) * n_nodes[0]);
+    pfirst[0] = fast_alloc(sizeof(bleaf) * n_nodes[0], true, 64);
     for (int i = 1; i <= top_level; i++) {
-        pfirst[i] = fast_alloc(sizeof(bnode) * n_nodes[i]);
+        pfirst[i] = fast_alloc(sizeof(bnode) * n_nodes[i], true, 64);
     }
 
     // 4. populate nodes
@@ -1007,7 +1007,7 @@ vector<lbtree::kv> lbtree::rangeQuery(key_type start , key_type end){
 }
 
 lbtree *new_lbtree() {
-    lbtree *mytree = static_cast<lbtree *>(fast_alloc(sizeof(lbtree)));
+    lbtree *mytree = static_cast<lbtree *>(fast_alloc(sizeof(lbtree), true, 64));
     mytree->init();
     mytree->bulkload(1, 1);
     return mytree;
