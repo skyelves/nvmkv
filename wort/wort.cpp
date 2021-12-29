@@ -149,7 +149,7 @@ static int longest_common_prefix(wort_leaf *l1, wort_leaf *l2, int depth) {
  * @return NULL if the item was not found, otherwise
  * the value pointer is returned.
  */
-void *wort_get(const wort_tree *t, const unsigned long key, int key_len) {
+uint64_t wort_get(const wort_tree *t, const unsigned long key, int key_len) {
     wort_node **child;
     wort_node *n = t->root;
     int prefix_len, depth = 0;
@@ -160,7 +160,7 @@ void *wort_get(const wort_tree *t, const unsigned long key, int key_len) {
             n = (wort_node *) LEAF_RAW(n);
             // Check if the expanded path matches
             if (!leaf_matches((wort_leaf *) n, key, key_len, depth)) {
-                return ((wort_leaf *) n)->value;
+                return *(uint64_t *)((wort_leaf *) n)->value;
             }
             return NULL;
         }

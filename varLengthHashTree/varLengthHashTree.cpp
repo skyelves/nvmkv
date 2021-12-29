@@ -778,17 +778,20 @@ uint64_t Length64HashTree::get(uint64_t key){
     }
     int pos = 0;
     while(pos<HT_KEY_LENGTH/SIZE_OF_CHAR){
-        if(HT_KEY_LENGTH/SIZE_OF_CHAR-pos <= currentNode->header.len){
-            if(currentNode->treeNodeValues[currentNode->header.len - HT_KEY_LENGTH+pos].key == key){
-                return (uint64_t)currentNode->treeNodeValues[currentNode->header.len - HT_KEY_LENGTH+pos].value;
-            }else{
+        if(currentNode->header.len) {
+            if (HT_KEY_LENGTH / SIZE_OF_CHAR - pos <= currentNode->header.len) {
+                if (currentNode->treeNodeValues[currentNode->header.len - HT_KEY_LENGTH + pos].key == key) {
+                    return (uint64_t) currentNode->treeNodeValues[currentNode->header.len - HT_KEY_LENGTH + pos].value;
+                } else {
+                    return 0;
+                }
+            }
+            if (!isSame((unsigned char *) currentNode->header.array, key, pos * SIZE_OF_CHAR,
+                        currentNode->header.len * SIZE_OF_CHAR)) {
                 return 0;
             }
+            pos += currentNode->header.len;
         }
-        if(!isSame((unsigned char*)currentNode->header.array,key,pos*SIZE_OF_CHAR,currentNode->header.len*SIZE_OF_CHAR)){
-            return 0;
-        }
-        pos += currentNode->header.len;
         // uint64_t subkey = GET_16BITS(key,pos);
         uint64_t subkey = GET_SUBKEY(key,pos*SIZE_OF_CHAR,HT_NODE_LENGTH);
         bool keyValueFlag = false;

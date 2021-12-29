@@ -101,7 +101,7 @@ void *wort_put(wort_tree *t, const unsigned long key, int key_len, void *value, 
  * @return NULL if the item was not found, otherwise
  * the value pointer is returned.
  */
-void *wort_get(const wort_tree *t, const unsigned long key, int key_len);
+uint64_t wort_get(const wort_tree *t, const unsigned long key, int key_len);
 
 void wort_all_subtree_kv(wort_node *n, vector<wort_key_value> &res);
 

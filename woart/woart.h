@@ -189,7 +189,7 @@ void *woart_put(woart_tree *t, const unsigned long key, int key_len, void *value
  * @return NULL if the item was not found, otherwise
  * the value pointer is returned.
  */
-void *woart_get(const woart_tree *t, const unsigned long key, int key_len);
+uint64_t woart_get(const woart_tree *t, const unsigned long key, int key_len);
 
 void woart_all_subtree_kv(woart_node *n, vector<woart_key_value> &res);
 

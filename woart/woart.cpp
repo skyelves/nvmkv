@@ -267,7 +267,7 @@ static int leaf_matches(const woart_leaf *n, unsigned long key, int key_len, int
  * @return NULL if the item was not found, otherwise
  * the value pointer is returned.
  */
-void *woart_get(const woart_tree *t, const unsigned long key, int key_len) {
+uint64_t woart_get(const woart_tree *t, const unsigned long key, int key_len) {
     woart_node **child;
     woart_node *n = t->root;
     int prefix_len, depth = 0;
@@ -278,7 +278,7 @@ void *woart_get(const woart_tree *t, const unsigned long key, int key_len) {
             n = (woart_node *) LEAF_RAW(n);
             // Check if the expanded path matches
             if (!leaf_matches((woart_leaf *) n, key, key_len, depth)) {
-                return ((woart_leaf *) n)->value;
+                return *(uint64_t *)((woart_leaf *) n)->value;
             }
             return NULL;
         }
@@ -752,7 +752,7 @@ void *woart_put(woart_tree *t, const unsigned long key, int key_len, void *value
     void *value_allocated = fast_alloc(value_len);
     memcpy(value_allocated, value, value_len);
     flush_buffer(value_allocated, value_len, true);
-    void *old = recursive_insert(t->root, &t->root, key, key_len, value, 0, &old_val);
+    void *old = recursive_insert(t->root, &t->root, key, key_len, value_allocated, 0, &old_val);
     if (!old_val) t->size++;
     return old;
 }
