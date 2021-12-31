@@ -693,45 +693,56 @@ void Length64HashTree:: crash_consistent_put(Length64HashTreeNode *_node, uint64
                 }
             }
             len += HT_NODE_LENGTH / SIZE_OF_CHAR;
-            if (next == 0) {
-                //not exists
-                Length64HashTreeKeyValue *kv = new_l64ht_key_value(key, value);
-                clflush((char *) kv, sizeof(Length64HashTreeKeyValue));
-                currentNode->put(subkey, (uint64_t) kv, tmp_seg, tmp_bucket, dir_index, seg_index, beforeAddress);
-                return;
-            } else {
-                if (keyValueFlag) {
-                    // next is key value pair, which means collides
-                    uint64_t prekey = ((Length64HashTreeKeyValue *) next)->key;
-                    uint64_t prevalue = ((Length64HashTreeKeyValue *) next)->value;
-                    if (unlikely(key == prekey)) {
-                        //same key, update the value
-                        ((Length64HashTreeKeyValue *) next)->value = value;
-                        clflush((char *) &(((Length64HashTreeKeyValue *) next)->value), 8);
-                        return;
-                    } else {
-                        //not same key: needs to create a new node
-                        Length64HashTreeNode *newNode = new_length64hashtree_node(HT_NODE_LENGTH,headerDepth+1);
-
-                        // put pre kv
-                        crash_consistent_put(newNode,prekey,prevalue,len);
-
-                        // put new kv
-                        crash_consistent_put(newNode,key,value,len);
-
-                        clflush((char *) newNode, sizeof(Length64HashTreeNode));
-
-                        // todo: think of crash consistency
-                        tmp_bucket->counter[i].subkey = REMOVE_NODE_FLAG(tmp_bucket->counter[i].subkey);
-                        tmp_bucket->counter[i].value = (uint64_t)newNode;
-                        clflush((char*)&tmp_bucket->counter[i].value,8);
-                        return;
-                    }
+            if (len == 8) {
+                if (next == 0) {
+                    currentNode->put(subkey, (uint64_t) value, tmp_seg, tmp_bucket, dir_index, seg_index, beforeAddress);
+                    return;
                 } else {
-                    // next is next extendible hash
-                    currentNode = (Length64HashTreeNode *) next;
-                    beforeAddress =  beforeA;
-                    headerDepth = currentNode->header.depth;
+                    tmp_bucket->counter[i].value = value;
+                    clflush((char *) &tmp_bucket->counter[i].value, 8);
+                    return;
+                }
+            } else {
+                if (next == 0) {
+                    //not exists
+                    Length64HashTreeKeyValue *kv = new_l64ht_key_value(key, value);
+                    clflush((char *) kv, sizeof(Length64HashTreeKeyValue));
+                    currentNode->put(subkey, (uint64_t) kv, tmp_seg, tmp_bucket, dir_index, seg_index, beforeAddress);
+                    return;
+                } else {
+                    if (keyValueFlag) {
+                        // next is key value pair, which means collides
+                        uint64_t prekey = ((Length64HashTreeKeyValue *) next)->key;
+                        uint64_t prevalue = ((Length64HashTreeKeyValue *) next)->value;
+                        if (unlikely(key == prekey)) {
+                            //same key, update the value
+                            ((Length64HashTreeKeyValue *) next)->value = value;
+                            clflush((char *) &(((Length64HashTreeKeyValue *) next)->value), 8);
+                            return;
+                        } else {
+                            //not same key: needs to create a new node
+                            Length64HashTreeNode *newNode = new_length64hashtree_node(HT_NODE_LENGTH, headerDepth + 1);
+
+                            // put pre kv
+                            crash_consistent_put(newNode, prekey, prevalue, len);
+
+                            // put new kv
+                            crash_consistent_put(newNode, key, value, len);
+
+                            clflush((char *) newNode, sizeof(Length64HashTreeNode));
+
+                            // todo: think of crash consistency
+                            tmp_bucket->counter[i].subkey = REMOVE_NODE_FLAG(tmp_bucket->counter[i].subkey);
+                            tmp_bucket->counter[i].value = (uint64_t) newNode;
+                            clflush((char *) &tmp_bucket->counter[i].value, 8);
+                            return;
+                        }
+                    } else {
+                        // next is next extendible hash
+                        currentNode = (Length64HashTreeNode *) next;
+                        beforeAddress = beforeA;
+                        headerDepth = currentNode->header.depth;
+                    }
                 }
             }
         }else{
@@ -803,10 +814,14 @@ uint64_t Length64HashTree::get(uint64_t key){
         }
         if(keyValueFlag){
             // is value
-            if(key == ((Length64HashTreeKeyValue*)next)->key){
-                return ((Length64HashTreeKeyValue*)next)->value;
-            }else{
-                return 0;
+            if (pos == 8) {
+                return next;
+            } else {
+                if (key == ((Length64HashTreeKeyValue *) next)->key) {
+                    return ((Length64HashTreeKeyValue *) next)->value;
+                } else {
+                    return 0;
+                }
             }
         }else{
             currentNode = (Length64HashTreeNode*)next;
@@ -822,7 +837,7 @@ void Length64HashTree::scan(uint64_t left, uint64_t right){
 
 
 
-void Length64HashTree::node_scan(Length64HashTreeNode *tmp, uint64_t left, uint64_t right, vector<Length64HashTreeKeyValue> &res, int pos){
+void Length64HashTree::node_scan(Length64HashTreeNode *tmp, uint64_t left, uint64_t right, vector<Length64HashTreeKeyValue> &res, int pos, uint64_t prefix){
     if(unlikely(tmp == NULL)){
         tmp = root;
     }
@@ -856,7 +871,13 @@ void Length64HashTree::node_scan(Length64HashTreeNode *tmp, uint64_t left, uint6
         }
     }
 
-    pos += tmp->header.len*SIZE_OF_CHAR;
+    if(tmp->header.len > 0) {
+        prefix = (prefix << tmp->header.len * SIZE_OF_CHAR);
+        for (int i = 0; i < tmp->header.len; ++i) {
+            prefix += tmp->header.array[i] << (tmp->header.len-i);
+        }
+        pos += tmp->header.len * SIZE_OF_CHAR;
+    }
     uint64_t leftSubkey = UINT64_MAX, rightSubkey = UINT64_MAX;
     if(leftPos == UINT64_MAX){
         leftSubkey = GET_SUBKEY(left,pos,HT_NODE_LENGTH);
@@ -866,6 +887,7 @@ void Length64HashTree::node_scan(Length64HashTreeNode *tmp, uint64_t left, uint6
         rightSubkey = GET_SUBKEY(right,pos,HT_NODE_LENGTH);
         rightPos = GET_SEG_NUM(rightSubkey, HT_NODE_LENGTH, tmp->global_depth);
     }
+    prefix = (prefix << HT_NODE_LENGTH);
     pos += HT_NODE_LENGTH;
     Length64HashTreeSegment *last_seg = NULL;
     for(uint32_t i=leftPos;i<=rightPos;i++){
@@ -883,16 +905,30 @@ void Length64HashTree::node_scan(Length64HashTreeNode *tmp, uint64_t left, uint6
                     continue;
                 }
                 if((leftSubkey==UINT64_MAX||curSubkey>leftSubkey)&&(rightSubkey==UINT64_MAX||curSubkey<rightSubkey)){
-                    if(keyValueFlag){
-                        res.push_back(*(Length64HashTreeKeyValue*)value);
-                    }else{
-                        getAllNodes((Length64HashTreeNode*)value,res);
+                    if (pos == 64){
+                        Length64HashTreeKeyValue tmp;
+                        tmp.key = curSubkey + prefix;
+                        tmp.value = value;
+                        res.push_back(tmp);
+                    } else {
+                        if (keyValueFlag) {
+                            res.push_back(*(Length64HashTreeKeyValue *) value);
+                        } else {
+                            getAllNodes((Length64HashTreeNode *) value, res, prefix + curSubkey);
+                        }
                     }
                 } else if(curSubkey==leftSubkey||curSubkey==rightSubkey){
-                    if(pos==HT_KEY_LENGTH||keyValueFlag){
-                        res.push_back(*(Length64HashTreeKeyValue*)value);
-                    }else{
-                        node_scan((Length64HashTreeNode*)value,left,right,res,pos);
+                    if (pos == 64){
+                        Length64HashTreeKeyValue tmp;
+                        tmp.key = curSubkey + prefix;
+                        tmp.value = value;
+                        res.push_back(tmp);
+                    } else {
+                        if (pos == HT_KEY_LENGTH || keyValueFlag) {
+                            res.push_back(*(Length64HashTreeKeyValue *) value);
+                        } else {
+                            node_scan((Length64HashTreeNode *) value, left, right, res, pos, prefix + curSubkey);
+                        }
                     }
                 }
             }
@@ -902,10 +938,19 @@ void Length64HashTree::node_scan(Length64HashTreeNode *tmp, uint64_t left, uint6
 
 }
 
-void Length64HashTree::getAllNodes(Length64HashTreeNode *tmp, vector<Length64HashTreeKeyValue> &res){
+void Length64HashTree::getAllNodes(Length64HashTreeNode *tmp, vector<Length64HashTreeKeyValue> &res, int pos, uint64_t prefix){
     if(tmp==NULL){
         return;
     }
+    if(tmp->header.len > 0) {
+        prefix = (prefix << tmp->header.len * SIZE_OF_CHAR);
+        for (int i = 0; i < tmp->header.len; ++i) {
+            prefix += tmp->header.array[i] << (tmp->header.len-i);
+        }
+        pos += tmp->header.len * SIZE_OF_CHAR;
+    }
+    prefix = (prefix << HT_NODE_LENGTH);
+    pos += HT_NODE_LENGTH;
     Length64HashTreeSegment *last_seg = NULL;
     for(int i=0;i<tmp->dir_size;i++){
         Length64HashTreeSegment *tmp_seg = *(Length64HashTreeSegment **)GET_SEG_POS(tmp,i);
@@ -918,13 +963,20 @@ void Length64HashTree::getAllNodes(Length64HashTreeNode *tmp, vector<Length64Has
                 bool keyValueFlag = GET_NODE_FLAG(tmp_seg->bucket[j].counter[k].subkey);
                 uint64_t curSubkey = REMOVE_NODE_FLAG(tmp_seg->bucket[j].counter[k].subkey);
                 uint64_t value = tmp_seg->bucket[j].counter[k].value;
-                if(curSubkey==0 || (tmp_seg != *(Length64HashTreeSegment **)GET_SEG_POS(tmp, GET_SEG_NUM(curSubkey, HT_NODE_LENGTH, tmp_seg->depth)))){
-                    continue;
-                }
-                if(keyValueFlag){
-                    res.push_back(*(Length64HashTreeKeyValue*)value);
-                }else{
-                    getAllNodes((Length64HashTreeNode*)value,res);
+                if(pos == 64){
+                    Length64HashTreeKeyValue tmp;
+                    tmp.key = curSubkey + prefix;
+                    tmp.value = value;
+                    res.push_back(tmp);
+                } else {
+                    if(curSubkey==0 || (tmp_seg != *(Length64HashTreeSegment **)GET_SEG_POS(tmp, GET_SEG_NUM(curSubkey, HT_NODE_LENGTH, tmp_seg->depth)))){
+                        continue;
+                    }
+                    if(keyValueFlag){
+                        res.push_back(*(Length64HashTreeKeyValue*)value);
+                    }else{
+                        getAllNodes((Length64HashTreeNode*)value, res, pos, prefix + curSubkey);
+                    }
                 }
             }
         }

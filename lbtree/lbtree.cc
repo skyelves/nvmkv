@@ -990,8 +990,8 @@ vector<lbtree::kv> lbtree::rangeQuery(key_type start , key_type end){
                 kv tmp;
                 tmp.k=i->ent[j].k;
                 tmp.v = i->ent[j].ch.value;
-                if(tmp.v != 1)
-                tmp.v = *((uint64_t *)i->ent[j].ch.value);
+//                if(tmp.v != 1)
+//                tmp.v = *((uint64_t *)i->ent[j].ch.value);
 //                if (tmp.v == 1)
 //                    cout << start << ", " << end << ", "<< tmp.k << ", " << tmp.v << endl;
                 res.push_back(tmp);
