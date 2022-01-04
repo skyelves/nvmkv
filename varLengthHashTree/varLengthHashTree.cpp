@@ -24,6 +24,8 @@
 #define _16_BITS_OF_BYTES 2
 #define _32_BITS_OF_BYTES 4
 
+#define MEMORY_PROFILE
+
 
 bool keyIsSame(unsigned char* key1, unsigned int length1, unsigned char* key2, unsigned int length2){
     if(length1!=length2){
@@ -983,6 +985,48 @@ void Length64HashTree::getAllNodes(Length64HashTreeNode *tmp, vector<Length64Has
             }
         }
     }
+}
+
+uint64_t Length64HashTree::memory_profile(Length64HashTreeNode *tmp, int pos) {
+    if(tmp==NULL){
+        tmp = root;
+//        memory_header = 0;
+//        memory_seg = 0;
+//        memory_kv = 0;
+    }
+    uint64_t res = tmp->dir_size * 8 + sizeof(Length64HashTreeNode);
+//    memory_header += tmp->dir_size * 8 + sizeof(Length64HashTreeNode);
+    pos += HT_NODE_LENGTH;
+    Length64HashTreeSegment *last_seg = NULL;
+    for(int i=0;i<tmp->dir_size;i++){
+        Length64HashTreeSegment *tmp_seg = *(Length64HashTreeSegment **)GET_SEG_POS(tmp,i);
+        if (tmp_seg == last_seg)
+            continue;
+        else {
+            last_seg = tmp_seg;
+            res += HT_MAX_BUCKET_NUM * sizeof(Length64HashTreeBucket);
+//            memory_seg += HT_MAX_BUCKET_NUM * sizeof(Length64HashTreeBucket);
+        }
+        for(auto j=0;j<HT_MAX_BUCKET_NUM;j++){
+            for(auto k=0;k<HT_BUCKET_SIZE;k++){
+                bool keyValueFlag = GET_NODE_FLAG(tmp_seg->bucket[j].counter[k].subkey);
+                uint64_t curSubkey = REMOVE_NODE_FLAG(tmp_seg->bucket[j].counter[k].subkey);
+                uint64_t value = tmp_seg->bucket[j].counter[k].value;
+                if(pos != 64){
+                    if(curSubkey==0 || (tmp_seg != *(Length64HashTreeSegment **)GET_SEG_POS(tmp, GET_SEG_NUM(curSubkey, HT_NODE_LENGTH, tmp_seg->depth)))){
+                        continue;
+                    }
+                    if(keyValueFlag){
+                        res += 16;
+//                        memory_kv += 16;
+                    }else{
+                        res += memory_profile((Length64HashTreeNode*)value, pos);
+                    }
+                }
+            }
+        }
+    }
+    return res;
 }
 
 Length64HashTree *new_length64HashTree(){

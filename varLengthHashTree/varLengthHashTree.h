@@ -57,6 +57,9 @@ private:
     Length64HashTreeNode *root = NULL;
 //    extendible_hash *root = NULL;
 public:
+//    double memory_header = 0;
+//    double memory_seg = 0;
+//    double memory_kv = 0;
 
     Length64HashTree();
 
@@ -76,6 +79,8 @@ public:
     void node_scan(Length64HashTreeNode *tmp, uint64_t left, uint64_t right, vector<Length64HashTreeKeyValue> &res, int pos=0, uint64_t prefix = 0);
 
     void getAllNodes(Length64HashTreeNode *tmp, vector<Length64HashTreeKeyValue> &res, int pos = 0, uint64_t prefix = 0);
+
+    uint64_t memory_profile(Length64HashTreeNode *tmp, int pos = 0);
 };
 
 Length64HashTree *new_length64HashTree();
