@@ -234,6 +234,8 @@ public:
 
 public:
 
+    uint64_t memory_usage = 0;
+
     class kv{
     public:
         key_type k;
@@ -261,6 +263,8 @@ public:
     int level() { return tree_meta->root_level; }
 
     vector<kv> rangeQuery(key_type key , key_type end);
+
+    uint64_t memory_profile();
 
 private:
 

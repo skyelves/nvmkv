@@ -385,6 +385,7 @@ void lbtree::insert(key_type key, void *_ptr) {
 
         // 2.3 create new node
         bleaf *newp = (bleaf *) fast_alloc(LEAF_SIZE);
+        memory_usage += LEAF_SIZE;
 
         // 2.4 move entries sorted_pos[split .. LEAF_KEY_NUM-1]
         uint16_t freed_slots = 0;
@@ -519,6 +520,7 @@ void lbtree::insert(key_type key, void *_ptr) {
 
             /* otherwise allocate a new non-leaf and redistribute the keys */
             newp = (bnode *) fast_alloc(NONLEAF_SIZE);
+            memory_usage += NONLEAF_SIZE;
 
             /* if key should be in the left node */
             if (pos <= LEFT_KEY_NUM) {
@@ -557,6 +559,7 @@ void lbtree::insert(key_type key, void *_ptr) {
 
         /* root was splitted !! add another level */
         newp = (bnode *) fast_alloc(NONLEAF_SIZE);
+        memory_usage += NONLEAF_SIZE;
 
         newp->num() = 1;
         newp->lock() = 1;
@@ -1005,6 +1008,11 @@ vector<lbtree::kv> lbtree::rangeQuery(key_type start , key_type end){
     }
     return res;
 }
+
+uint64_t lbtree::memory_profile(){
+    return memory_usage;
+}
+
 
 lbtree *new_lbtree() {
     lbtree *mytree = static_cast<lbtree *>(fast_alloc(sizeof(lbtree)));
