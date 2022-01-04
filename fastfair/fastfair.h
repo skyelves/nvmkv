@@ -60,6 +60,8 @@ private:
     char *root;
 
 public:
+    uint64_t memory_usage = 0;
+
     fastfair();
 
     void init();
@@ -82,6 +84,8 @@ public:
     void _scan(uint64_t min, uint64_t max, vector<ff_key_value> &buf);
 
     vector<ff_key_value> scan(uint64_t min, uint64_t max);
+
+    uint64_t memory_profile(page *p);
 
     void printAll();
 
