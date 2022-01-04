@@ -199,5 +199,7 @@ void woart_node_scan(woart_node *n, uint64_t left, uint64_t right, uint64_t dept
 
 vector<woart_key_value> woart_scan(const woart_tree *t, uint64_t left, uint64_t right, int key_len = 8);
 
+uint64_t woart_memory_profile(woart_node *n);
+
 
 #endif //NVMKV_WOwoart_H

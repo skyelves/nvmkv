@@ -110,4 +110,6 @@ void wort_node_scan(wort_node *n, uint64_t left, uint64_t right, uint64_t depth,
 
 vector<wort_key_value> wort_scan(const wort_tree *t, uint64_t left, uint64_t right, int key_len = 8);
 
+uint64_t wort_memory_profile(wort_node *n);
+
 #endif //NVMKV_WORT_H

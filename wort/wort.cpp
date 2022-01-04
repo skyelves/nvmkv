@@ -160,7 +160,7 @@ uint64_t wort_get(const wort_tree *t, const unsigned long key, int key_len) {
             n = (wort_node *) LEAF_RAW(n);
             // Check if the expanded path matches
             if (!leaf_matches((wort_leaf *) n, key, key_len, depth)) {
-                return *(uint64_t *)((wort_leaf *) n)->value;
+                return *(uint64_t *) ((wort_leaf *) n)->value;
             }
             return NULL;
         }
@@ -504,3 +504,25 @@ vector<wort_key_value> wort_scan(const wort_tree *t, uint64_t left, uint64_t rig
     wort_node_scan(t->root, left, right, 0, res);
     return res;
 }
+
+uint64_t wort_memory_profile(wort_node *n) {
+    if (n == NULL) {
+        return 0;
+    }
+    uint64_t res = 0;
+    wort_node *tmp = n;
+    wort_node **child;
+    if (IS_LEAF(tmp)) {
+        res += sizeof(wort_leaf);
+    } else {
+        // Recursively search
+        res += sizeof(wort_node16);
+        for (int i = 0; i < 16; ++i) {
+            child = find_child(tmp, i);
+            wort_node *next = (child) ? *child : NULL;
+            res += wort_memory_profile(next);
+        }
+    }
+    return res;
+}
+
