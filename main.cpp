@@ -2,6 +2,7 @@
 #include <iostream>
 #include <unistd.h>
 #include <stdio.h>
+#include <cstdlib>
 #include <map>
 #include <unordered_map>
 #include <vector>
@@ -158,12 +159,12 @@ bool test_case[10] = {0, // ht
 
 bool range_query_test_case[10] = {
         0, // ht
-        1, // wort
-        1, // woart
-        1, // fast&fair
+        0, // wort
+        0, // woart
+        0, // fast&fair
         0, // roart
-        1, // ert
-        1, // lb+tree
+        0, // ert
+        0, // lb+tree
         0
 };
 
@@ -200,19 +201,27 @@ enum YCSBRunOp {
     Get,
     Scan,
     Update,
+    Insert,
 };
 
 std::vector<uint64_t> allRunKeys;
+std::vector<uint64_t> allRunScanSize;
 std::vector<uint64_t> allRunValues;
 std::vector<uint64_t> allLoadKeys;
 std::vector<uint64_t> allLoadValues;
+
+std::vector<char *> allRunKeysStr;
+std::vector<uint64_t> allRunScanSizeStr;
+std::vector<uint64_t> allRunKeysLenStr;
+std::vector<char *> allLoadKeysStr;
+std::vector<uint64_t> allLoadKeysLenStr;
 
 std::vector<YCSBRunOp> allRunOp;
 std::unordered_map<uint64_t, uint64_t> *oracleMap;
 
 int value = 1;
 
-void parseLine(std::string rawStr, uint64_t &hashKey, uint64_t &hashValue, uint32_t &rangeNum, bool isScan) {
+void parseLine(std::string rawStr, uint64_t &hashKey, uint64_t &hashValue, uint32_t &scanNum, bool isScan) {
     uint32_t t = rawStr.find(" ");
     uint32_t t1 = rawStr.find(" ", t + 1);
     std::string tableName = rawStr.substr(t, t1 - t);
@@ -225,9 +234,9 @@ void parseLine(std::string rawStr, uint64_t &hashKey, uint64_t &hashValue, uint3
     if (fullKey.size() > 19) // key option4: key's tail, in range uint64_t
         fullKey = fullKey.substr(fullKey.size() - 19); // tail
     std::string fullValue = rawStr.substr(t2);
-    std::string rangeNumStr;
+    std::string scanNumStr;
     if (isScan) {
-        rangeNumStr = rawStr.substr(t2, t3 - t2);
+        scanNumStr = rawStr.substr(t2, t3 - t2);
         fullValue = rawStr.substr(t3);
     }
     static std::hash<std::string> hash_str;
@@ -235,11 +244,11 @@ void parseLine(std::string rawStr, uint64_t &hashKey, uint64_t &hashValue, uint3
     // hashKey = hash_str(fullKey); // use hash, or
     hashKey = std::stoll(fullKey); // just convert to int
     hashValue = hash_str(fullValue);
-    rangeNum = 0;
+    scanNum = 0;
     if (isScan) {
-        rangeNum = std::stoi(rangeNumStr);
+        scanNum = std::stoi(scanNumStr);
     }
-    // info("key:%s, hashed_key: %lx, hashed_value: %lx, rangeNum: %d", fullKey.c_str(), hashKey, hashValue, rangeNum);
+    // info("key:%s, hashed_key: %lx, hashed_value: %lx, scanNum: %d", fullKey.c_str(), hashKey, hashValue, scanNum);
     // info("hashed_key: %lx, hashed_value: %lx", hashKey, hashValue);
 }
 
@@ -250,30 +259,30 @@ void parseYCSBRunFile(std::string wlName, bool correctCheck = false) {
     std::ifstream runFile(wlName + ".run");
     assert(runFile.is_open());
     uint64_t opCnt = 0;
-    uint32_t rangeNum = 0;
+    uint32_t scanNum = 0;
     while (std::getline(runFile, rawStr)) {
         assert(rawStr.size() > 4);
         std::string opStr = rawStr.substr(0, 4);
         if (opStr == "READ") {
             // info("%s", rawStr.c_str());
-            parseLine(rawStr, hashKey, hashValue, rangeNum, false);
+            parseLine(rawStr, hashKey, hashValue, scanNum, false);
             allRunKeys.push_back(hashKey); // buffer this query
             allRunValues.push_back(0);
             allRunOp.push_back(YCSBRunOp::Get);
             opCnt++;
         } else if (opStr == "INSE" || opStr == "UPDA") {
             // info("%s", rawStr.c_str());
-            parseLine(rawStr, hashKey, hashValue, rangeNum, false);
+            parseLine(rawStr, hashKey, hashValue, scanNum, false);
             allRunKeys.push_back(hashKey);
             allRunValues.push_back(hashValue);
             allRunOp.push_back(YCSBRunOp::Update);
             if (correctCheck) (*oracleMap)[hashKey] = hashValue;
             opCnt++;
         } else if (opStr == "SCAN") {
-            parseLine(rawStr, hashKey, hashValue, rangeNum, true);
+            parseLine(rawStr, hashKey, hashValue, scanNum, true);
             allRunKeys.push_back(hashKey);
             // allRunValues.push_back(1024);
-            allRunValues.push_back(rangeNum);
+            allRunValues.push_back(scanNum);
             allRunOp.push_back(YCSBRunOp::Scan);
             opCnt++;
         } else {
@@ -303,7 +312,7 @@ void parseYCSBRunFile(std::string wlName, bool correctCheck = false) {
 void parseYCSBLoadFile(std::string wlName, bool correctCheck) {
     std::string rawStr;
     uint64_t opCnt = 0;
-    uint32_t rangeNum = 0;
+    uint32_t scanNum = 0;
     uint64_t hashKey, hashValue;
     std::ifstream loadFile(wlName + ".load");
     assert(loadFile.is_open());
@@ -313,7 +322,7 @@ void parseYCSBLoadFile(std::string wlName, bool correctCheck) {
         std::string opStr = rawStr.substr(0, 4);
         if (opStr == "INSE" || opStr == "UPDA") {
             // info("%s", rawStr.c_str());
-            parseLine(rawStr, hashKey, hashValue, rangeNum, false);
+            parseLine(rawStr, hashKey, hashValue, scanNum, false);
             allLoadKeys.push_back(hashKey);
             allLoadValues.push_back(hashValue);
             if (correctCheck) (*oracleMap)[hashKey] = hashValue;
@@ -358,9 +367,9 @@ void speedTest() {
     rng r;
     rng_init(&r, 1, 2);
     for (int i = 0; i < testNum; ++i) {
-//        mykey[i] = rng_next(&r);
+        mykey[i] = rng_next(&r);
 //        mykey[i] = rng_next(&r) & 0xffffffff00000000;
-        mykey[i] = rng_next(&r) % testNum;
+//        mykey[i] = rng_next(&r) % testNum;
 //        mykey[i] = rng_next(&r) % 100000000;
 //        mykey[i] = i;
     }
@@ -565,10 +574,11 @@ void correctnessTest() {
 //        roart->put(mykey[i], i + 1);
 //        ff->put(mykey[i], (char *) &mm[mykey[i]]);
 //        wort_put(wort, mykey[i], 8, &mm[mykey[i]]);
+//        woart_put(woart, mykey[i], 8, &mm[mykey[i]]);
 //        cceh->put(mykey[i], i + 1);
 //        ht->crash_consistent_put(NULL, mykey[i], i + 1, 0);
-//        l64ht->crash_consistent_put(NULL, mykey[i], i + 1, 0);
-        lbt->insert(mykey[i], &value);
+        l64ht->crash_consistent_put(NULL, mykey[i], i + 1, 0);
+//        lbt->insert(mykey[i], &value);
 //        for (int j = 0; j < testNum; ++j) {
 //            int64_t res = cceh->get(mykey[j]);
 //            if (res != mm[mykey[j]]) {
@@ -579,7 +589,7 @@ void correctnessTest() {
 //        }
     }
 
-    int64_t res = 0;
+    uint64_t res = 0;
 //    for (int i = 0; i < testNum; ++i) {
 //        mm[mykey[i]] = i + 2;
 //        ht->update(mykey[i], i + 2);
@@ -593,11 +603,12 @@ void correctnessTest() {
     for (int i = 0; i < testNum; ++i) {
 //        res = roart->get(mykey[i]);
 //        res = *(int64_t *) ff->get(mykey[i]);
-//        res = *(int64_t *) wort_get(wort, mykey[i], 8);
+//        res = wort_get(wort, mykey[i], 8);
+//        res = woart_get(woart, mykey[i], 8);
 //        res = ht->get(mykey[i]);
-//        res = l64ht->get(mykey[i]);
-        int pos;
-        lbt->lookup(mykey[i], &pos);
+        res = l64ht->get(mykey[i]);
+//        int pos;
+//        lbt->lookup(mykey[i], &pos);
         if (res != mm[mykey[i]]) {
             cout << i << ", " << mykey[i] << ", " << res << ", " << mm[mykey[i]] << endl;
 //            return;
@@ -643,7 +654,7 @@ void range_query_correctness_test() {
     uint64_t mmax = 0;
     uint64_t mmin = INT64_MAX;
     for (int i = 0; i < testNum; ++i) {
-        mykey[i] = rng_next(&r)%testNum;
+        mykey[i] = rng_next(&r) % testNum;
 //        mykey[i] = i;
         if (mykey[i] > mmax) {
             mmax = mykey[i];
@@ -684,7 +695,8 @@ void range_query_correctness_test() {
         res4 = woart_scan(woart, mykey[i], mykey[i] + 10000);
         res5 = lbt->rangeQuery(mykey[i], mykey[i] + 10000);
         l64ht->node_scan(NULL, mykey[i], mykey[i] + 10000, res, 0);
-        cout << res.size() << ", " << res1.size() << ", " << res2.size() << ", " << res3.size() << ", " << res4.size() << ", " << res5.size() << endl;
+        cout << res.size() << ", " << res1.size() << ", " << res2.size() << ", " << res3.size() << ", " << res4.size()
+             << ", " << res5.size() << endl;
 //        map<uint64_t, int> tmp_map;
 //        for (int j = 0; j < res.size(); ++j) {
 //            if(tmp_map.find(res[j].key)!=tmp_map.end()){
@@ -846,18 +858,18 @@ void concurrencyTest() {
         numThread = i;
         // vlht = new_varLengthHashtree();
 
-         cht = new_concurrency_hashtree(64, 0);
+        cht = new_concurrency_hashtree(64, 0);
         // con_cceh = new_concurrency_cceh();
         // con_fastfair = new_concurrency_fastfair();
 //        conwoart = new_conwoart_tree();
         lbt = new_lbtree();
 //        CONCURRENCY_Time_BODY("concurrency lbtree  " + to_string(i) + " threads ", {
-            for (int i = 0; i < numThread; i++) {
-                threads[i] = new std::thread(concurrency_lbr_put, i);
-            }
-            for (int i = 0; i < numThread; i++) {
-                threads[i]->join();
-            }
+        for (int i = 0; i < numThread; i++) {
+            threads[i] = new std::thread(concurrency_lbr_put, i);
+        }
+        for (int i = 0; i < numThread; i++) {
+            threads[i]->join();
+        }
 //        })
 
         CONCURRENCY_Time_BODY("concurrency lbtree  " + to_string(i) + " threads ", {
@@ -945,7 +957,7 @@ void concurrencyTest() {
 
         // timeval start, ends;
         // gettimeofday(&start, NULL);
-        // CONCURRENCY_Time_BODY("concurrency_cceh ", { 
+        // CONCURRENCY_Time_BODY("concurrency_cceh ", {
         //     for(int i=0;i<numThread;i++){
         //         threads[i]  = new std::thread(concurrency_put_with_thread,i);
         //     }
@@ -978,7 +990,7 @@ void concurrencyTest() {
         //     }
         // }
 
-        // CONCURRENCY_Time_BODY("concurrency_cceh ", { 
+        // CONCURRENCY_Time_BODY("concurrency_cceh ", {
         //         for(int i=0;i<numThread;i++){
         //         threads[i]  = new std::thread(concurrency_cceh_put,i);
         //         }
@@ -1034,15 +1046,15 @@ void concurrencyTest() {
 }
 
 void varLengthTest() {
-    int span[] = {1024};
-    testNum = 1000000;
+    int span[] = {4, 8, 16, 32, 64, 128, 1024};
+//    testNum = 1000000;
     unsigned char **keys = new unsigned char *[testNum];
     int *lengths = new int[testNum];
     rng r;
     rng_init(&r, 1, 2);
 
     for (int i = 0; i < testNum; i++) {
-         lengths[i] = span[0];
+        lengths[i] = span[0];
 //        lengths[i] = span[rng_next(&r) % 6];
         keys[i] = static_cast<unsigned char *>( malloc(lengths[i]));
 
@@ -1059,24 +1071,24 @@ void varLengthTest() {
     // }
 
 
-     Time_BODY(1,"varLengthHashTree put " , { vlht->crash_consistent_put(NULL,lengths[i],keys[i],1); })
-     Time_BODY(1,"varLengthHashTree get " , { vlht->get(lengths[i],keys[i]); })
+    Time_BODY(1, "varLengthHashTree put ", { vlht->crash_consistent_put(NULL, lengths[i], keys[i], 1); })
+    Time_BODY(1, "varLengthHashTree get ", { vlht->get(lengths[i], keys[i]); })
 
 
-     Time_BODY(1,"varLengthFast&Fair put " , { vlff->put((char*)keys[i],lengths[i],(char *) &value); })
-     Time_BODY(1,"varLengthFast&Fair get " , {
-         if(*(char*)(vlff->get((char*)keys[i],lengths[i]))!=1){
-             cout<<*(uint64_t*)keys[i]<<endl;
+//    Time_BODY(1, "varLengthFast&Fair put ", { vlff->put((char *) keys[i], lengths[i], (char *) &value); })
+//    Time_BODY(1, "varLengthFast&Fair get ", {
+//        if (*(char *) (vlff->get((char *) keys[i], lengths[i])) != 1) {
+//            cout << *(uint64_t *) keys[i] << endl;
+//        };
+//    })
+
+    Time_BODY(1, "varLengthWoart put ",
+              { var_length_woart_put(vlwt, (char *) keys[i], lengths[i] * 8, (char *) &value); })
+     Time_BODY(1,"varLengthWoart get " , {
+         if(*(char*)(var_length_woart_get(vlwt,(char*)keys[i],lengths[i]*8))!=1){
+             cout<<*(uint64_t*)&mykey[i]<<endl;
          };
      })
-
-//    Time_BODY(1, "varLengthWoart put ",
-//              { var_length_woart_put(vlwt, (char *) keys[i], lengths[i] * 8, (char *) &value); })
-//     Time_BODY(1,"varLengthWoart get " , {
-//         if(*(char*)(var_length_woart_get(vlwt,(char*)keys[i],lengths[i]*8))!=1){
-//             cout<<*(uint64_t*)&mykey[i]<<endl;
-//         };
-//     })
 
 
     Time_BODY(1, "varLengthWort put ", { var_length_wort_put(vlwot, (char *) keys[i], lengths[i], (char *) &value); })
@@ -1086,7 +1098,7 @@ void varLengthTest() {
         };
     })
 //    cout << concurrency_fastalloc_profile() << endl;
-    fast_free();
+//    fast_free();
 }
 
 void ycsb_test() {
@@ -1284,10 +1296,10 @@ void effect2() {
 }
 
 
-void amazon_review(const string fileName){
+void amazon_review(const string fileName) {
     ifstream file(fileName);
-    if(!file.good()){
-        cout<<fileName<<" not existed!"<<endl;
+    if (!file.good()) {
+        cout << fileName << " not existed!" << endl;
         return;
     }
     testNum = 15023059;
@@ -1297,31 +1309,31 @@ void amazon_review(const string fileName){
     const int keyLength = 16;
     string buffer;
     int pos = 0;
-    while(getline(file,buffer)){
+    while (getline(file, buffer)) {
         lengths[pos] = keyLength;
         keys[pos] = static_cast<unsigned char *>( malloc(lengths[pos]));
 //        memset(keys[pos],0,lengths[pos]);
-        int j = lengths[pos]-1;
-        for (int i=buffer.size()-1; i>=0; i--, j--) {
-            keys[pos][j] = (unsigned char)buffer[i];
+        int j = lengths[pos] - 1;
+        for (int i = buffer.size() - 1; i >= 0; i--, j--) {
+            keys[pos][j] = (unsigned char) buffer[i];
         }
-        for(;j>=0;j--){
+        for (; j >= 0; j--) {
             keys[pos][j] = 1;
         }
         pos++;
     }
     file.close();
-    cout<<"Finish reading the file and make the dataset! Contains "<<pos<<" keys"<<endl;
+    cout << "Finish reading the file and make the dataset! Contains " << pos << " keys" << endl;
 
 
-    Time_BODY(1,"varLengthHashTree put " , { vlht->crash_consistent_put(NULL,lengths[i],keys[i],1); })
-    Time_BODY(1,"varLengthHashTree get " , { vlht->get(lengths[i],keys[i]); })
+    Time_BODY(1, "varLengthHashTree put ", { vlht->crash_consistent_put(NULL, lengths[i], keys[i], 1); })
+    Time_BODY(1, "varLengthHashTree get ", { vlht->get(lengths[i], keys[i]); })
 
 
-    Time_BODY(1,"varLengthFast&Fair put " , { vlff->put((char*)keys[i],lengths[i],(char *) &value); })
-    Time_BODY(1,"varLengthFast&Fair get " , {
-        if(*(char*)(vlff->get((char*)keys[i],lengths[i]))!=1){
-            cout<<*(uint64_t*)keys[i]<<endl;
+    Time_BODY(1, "varLengthFast&Fair put ", { vlff->put((char *) keys[i], lengths[i], (char *) &value); })
+    Time_BODY(1, "varLengthFast&Fair get ", {
+        if (*(char *) (vlff->get((char *) keys[i], lengths[i])) != 1) {
+            cout << *(uint64_t *) keys[i] << endl;
         };
     })
 
@@ -1331,6 +1343,320 @@ void amazon_review(const string fileName){
             cout << *(uint64_t *) &mykey[i] << endl;
         };
     })
+
+}
+
+void parse_line(string rawStr, uint64_t &key, uint64_t &scanNum, YCSBRunOp &op) {
+    std::string opStr = rawStr.substr(0, 4);
+    uint32_t t = rawStr.find(" ");
+    uint32_t t1 = rawStr.find(" ", t + 1);
+    string keyStr = (opStr == "SCAN") ? rawStr.substr(t) : rawStr.substr(t, t1);
+    char *p;
+    key = strtoull(keyStr.c_str(), &p, 10);
+    if (opStr == "READ") {
+        op = YCSBRunOp::Get;
+    } else if (opStr == "INSE") {
+        op = YCSBRunOp::Insert;
+    } else if (opStr == "UPDA") {
+        op = YCSBRunOp::Update;
+    } else if (opStr == "SCAN") {
+        op = YCSBRunOp::Scan;
+        string scanNumStr = rawStr.substr(t1);
+        scanNum = strtoull(scanNumStr.c_str(), &p, 10);
+    }
+}
+
+void parse_line1(string rawStr, string &key, uint64_t &scanNum, YCSBRunOp &op) {
+    std::string opStr = rawStr.substr(0, 4);
+    uint32_t t = rawStr.find(" ");
+    uint32_t t1 = rawStr.find(" ", t + 1);
+    key = (opStr == "SCAN") ? rawStr.substr(t) : rawStr.substr(t, t1);
+    char *p;
+    if (opStr == "READ") {
+        op = YCSBRunOp::Get;
+    } else if (opStr == "INSE") {
+        op = YCSBRunOp::Insert;
+    } else if (opStr == "UPDA") {
+        op = YCSBRunOp::Update;
+    } else if (opStr == "SCAN") {
+        op = YCSBRunOp::Scan;
+        string scanNumStr = rawStr.substr(t1);
+        scanNum = strtoull(scanNumStr.c_str(), &p, 10);
+    }
+}
+
+inline uint64_t myalign(uint64_t len, uint64_t alignment) {
+    uint64_t quotient = len / alignment;
+    uint64_t remainder = len % alignment;
+    return quotient * alignment + alignment * (remainder != 0);
+}
+
+void parseLoadFile(std::string wlName, uint64_t len = 0, uint64_t type = 0) {
+    // type 0: uint64_t
+    // type 1: string
+    std::string rawStr;
+    uint64_t opCnt = 0;
+    uint64_t scanNum = 0;
+    YCSBRunOp op;
+    std::ifstream loadFile(wlName);
+    assert(loadFile.is_open());
+    cout << "ok" << endl;
+    while (opCnt < len && std::getline(loadFile, rawStr)) {
+        if (type == 0) {
+            uint64_t hashKey;
+            parse_line(rawStr, hashKey, scanNum, op);
+            if (op == YCSBRunOp::Insert || op == YCSBRunOp::Update) {
+                allLoadKeys.push_back(hashKey);
+                opCnt++;
+            }
+        } else if (type == 1) {
+            string hashKey;
+            parse_line1(rawStr, hashKey, scanNum, op);
+            if (op == YCSBRunOp::Insert || op == YCSBRunOp::Update) {
+                int tmplen = myalign(hashKey.size(), 4) + 1;
+                char *tmp = new char[tmplen];
+                memcpy(tmp, hashKey.c_str(), hashKey.size());
+                for (int i = hashKey.size(); i < tmplen; i++)
+                    tmp[i] = 1;
+                tmp[tmplen] = '\0';
+                allLoadKeysStr.push_back(tmp);
+                allLoadKeysLenStr.push_back(tmplen - 1);
+                opCnt++;
+            }
+        }
+    }
+    loadFile.close();
+    // info("Finish parse load file");
+    cout << "loaded" << endl;
+    nLoadOp = opCnt;
+}
+
+void parseRunFile(std::string wlName, uint64_t len = 0, uint64_t type = 0) {
+    std::string rawStr;
+    YCSBRunOp op;
+
+    std::ifstream runFile(wlName);
+    assert(runFile.is_open());
+    uint64_t opCnt = 0;
+    uint64_t scanNum = 0;
+    while (opCnt < len && std::getline(runFile, rawStr)) {
+        if (type == 0) {
+            uint64_t hashKey;
+            parse_line(rawStr, hashKey, scanNum, op);
+            allRunKeys.push_back(hashKey);
+            allRunOp.push_back(op);
+            opCnt++;
+            if (op == YCSBRunOp::Scan) {
+                allRunScanSize.push_back(scanNum);
+            }
+        } else if (type == 1) {
+            string hashKey;
+            parse_line1(rawStr, hashKey, scanNum, op);
+            int tmplen = myalign(hashKey.size(), 4) + 1;
+            char *tmp = new char[tmplen];
+            memcpy(tmp, hashKey.c_str(), hashKey.size());
+            for (int i = hashKey.size(); i < tmplen; i++)
+                tmp[i] = 1;
+            tmp[tmplen] = '\0';
+            allRunKeysStr.push_back(tmp);
+            allRunKeysLenStr.push_back(tmplen - 1);
+            allRunOp.push_back(op);
+            opCnt++;
+            if (op == YCSBRunOp::Scan) {
+                allRunScanSize.push_back(scanNum);
+            }
+        }
+    }
+    runFile.close();
+    nRunOp = opCnt;
+    // info("Finish parse run file");
+    cout << "run" << endl;
+}
+
+void SOSD(uint64_t _testNum = 100000000, string type = "a") {
+    bool first_load = false;
+    if (allLoadKeys.size() == 0)
+        first_load = true;
+#ifdef __linux__
+    if (first_load)
+        parseLoadFile("/home/wangke/index-microbench/workloads/SOSD/load_workloada", _testNum);
+    parseRunFile("/home/wangke/index-microbench/workloads/SOSD/txn_workload" + type, _testNum / 5);
+#else
+    if (first_load)
+        parseLoadFile("/Users/wangke/Desktop/Heterogeneous_Memory/ERT/index-microbench/workloads/SOSD/load_workloada",
+                      _testNum);
+    parseRunFile("/Users/wangke/Desktop/Heterogeneous_Memory/ERT/index-microbench/workloads/SOSD/txn_workload" + type,
+                 _testNum / 5);
+#endif
+    if (first_load) {
+        testNum = _testNum;
+
+        Time_BODY(test_case[2], "wort load ", { wort_put(wort, allLoadKeys[i], 8, &value); })
+
+        Time_BODY(test_case[3], "woart load ", { woart_put(woart, allLoadKeys[i], 8, &value); })
+
+        Time_BODY(test_case[5], "fast&fair load ", { ff->put(allLoadKeys[i], (char *) &value); })
+
+        Time_BODY(test_case[7], "ert load  ", { l64ht->crash_consistent_put(NULL, allLoadKeys[i], 1); })
+
+        Time_BODY(test_case[8], "lbtree load  ", { lbt->insert(allLoadKeys[i], &value); })
+    }
+
+//    testNum = _testNum / 5;
+    testNum = 1000;
+
+    int j = 0;
+    Time_BODY(test_case[2], "wort run  " + type + " ", {
+        if (allRunOp[i] == YCSBRunOp::Update || allRunOp[i] == YCSBRunOp::Insert) {
+            wort_put(wort, allRunKeys[i], 8, &value);
+        } else if (allRunOp[i] == YCSBRunOp::Get) {
+            wort_get(wort, allRunKeys[i], 8);
+        } else if (allRunOp[i] == YCSBRunOp::Scan) {
+            auto res = wort_scan(wort, allRunKeys[i], allRunScanSize[j++]);
+//            cout << i << " " << res.size() << endl;
+//            cout << res.size() << endl;
+//            if (i >= 10)
+//                break;
+        }
+    })
+
+    j = 0;
+    Time_BODY(test_case[3], "woart run  " + type + " ", {
+        if (allRunOp[i] == YCSBRunOp::Update || allRunOp[i] == YCSBRunOp::Insert) {
+            woart_put(woart, allRunKeys[i], 8, &value);
+        } else if (allRunOp[i] == YCSBRunOp::Get) {
+            woart_get(woart, allRunKeys[i], 8);
+        } else if (allRunOp[i] == YCSBRunOp::Scan) {
+            auto res = woart_scan(woart, allRunKeys[i], allRunScanSize[j++]);
+//            cout << res.size() << endl;
+//            if (i >= 10)
+//                break;
+        }
+    })
+
+    j = 0;
+    Time_BODY(test_case[5], "fast&fair run  " + type + " ", {
+        if (allRunOp[i] == YCSBRunOp::Update || allRunOp[i] == YCSBRunOp::Insert) {
+            ff->put(allRunKeys[i], (char *) &value);
+        } else if (allRunOp[i] == YCSBRunOp::Get) {
+            ff->get(allRunKeys[i]);
+        } else if (allRunOp[i] == YCSBRunOp::Scan) {
+            auto res = ff->scan(allRunKeys[i], allRunScanSize[j++]);
+//            cout << res.size() << endl;
+//            if (i >= 10)
+//                break;
+        }
+    })
+
+    j = 0;
+    Time_BODY(test_case[7], "ert run  " + type + " ", {
+        if (allRunOp[i] == YCSBRunOp::Update || allRunOp[i] == YCSBRunOp::Insert) {
+            l64ht->crash_consistent_put(NULL, allRunKeys[i], 1);
+        } else if (allRunOp[i] == YCSBRunOp::Get) {
+            l64ht->get(allRunKeys[i]);
+        } else if (allRunOp[i] == YCSBRunOp::Scan) {
+            l64ht->scan(allRunKeys[i], allRunScanSize[j++]);
+//            if(i>=10)
+//                break;
+        }
+    })
+
+    j = 0;
+    Time_BODY(test_case[8], "lbtree run  " + type + " ", {
+        if (allRunOp[i] == YCSBRunOp::Update || allRunOp[i] == YCSBRunOp::Insert) {
+            lbt->insert(allRunKeys[i], &value);
+        } else if (allRunOp[i] == YCSBRunOp::Get) {
+            int pos;
+            lbt->lookup(allRunKeys[i], &pos);
+        } else if (allRunOp[i] == YCSBRunOp::Scan) {
+            auto res = lbt->rangeQuery(allRunKeys[i], allRunScanSize[j++]);
+//            cout << res.size() << endl;
+//            if (i >= 10)
+//                break;
+        }
+    })
+
+}
+
+void wiki(uint64_t _testNum = 100000000, string type = "a") {
+    bool first_load = false;
+    if (allLoadKeysStr.size() == 0)
+        first_load = true;
+#ifdef __linux__
+    if (first_load)
+        parseLoadFile("/home/wangke/index-microbench/workloads/string/load_workloada", _testNum);
+    parseRunFile("/home/wangke/index-microbench/workloads/string/txn_workload" + type, _testNum / 5);
+#else
+    if (first_load)
+        parseLoadFile("/Users/wangke/Desktop/Heterogeneous_Memory/ERT/index-microbench/workloads/string/load_workloada",
+                      _testNum, 1);
+    parseRunFile("/Users/wangke/Desktop/Heterogeneous_Memory/ERT/index-microbench/workloads/string/txn_workload" + type,
+                 _testNum / 5, 1);
+#endif
+
+    if (first_load) {
+        testNum = _testNum;
+
+        for (int i = 0; i < testNum; ++i) {
+            vlht->crash_consistent_put(NULL, allLoadKeysLenStr[i], (unsigned char *) allLoadKeysStr[i], 1);
+        }
+
+        Time_BODY(1, "varLengthWort load ",
+                  { var_length_wort_put(vlwot, (char *) allLoadKeysStr[i], allLoadKeysLenStr[i], (char *) &value); })
+
+        Time_BODY(1, "varLengthWoart load ",
+                  {
+                      var_length_woart_put(vlwt, (char *) allLoadKeysStr[i], allLoadKeysLenStr[i] * 8, (char *) &value);
+                  })
+
+        Time_BODY(1, "varLengthFast&Fair load ",
+                  { vlff->put((char *) allLoadKeysStr[i], allLoadKeysLenStr[i], (char *) &value); })
+
+        Time_BODY(1, "varLengthHashTree load ",
+                  { vlht->crash_consistent_put(NULL, allLoadKeysLenStr[i], (unsigned char *) allLoadKeysStr[i], 1); })
+
+
+    }
+
+    testNum = _testNum / 5;
+
+    int j = 0;
+    Time_BODY(1, "varLengthWort run ", {
+        if (allRunOp[i] == YCSBRunOp::Update || allRunOp[i] == YCSBRunOp::Insert) {
+            var_length_wort_put(vlwot, (char *) allRunKeysStr[i], allRunKeysLenStr[i], (char *) &value);
+        } else if (allRunOp[i] == YCSBRunOp::Get) {
+            var_length_wort_get(vlwot, (char *) allRunKeysStr[i], allRunKeysLenStr[i]);
+        } else if (allRunOp[i] == YCSBRunOp::Scan) { ;
+        }
+    })
+
+    Time_BODY(1, "varLengthWoart run ", {
+        if (allRunOp[i] == YCSBRunOp::Update || allRunOp[i] == YCSBRunOp::Insert) {
+            var_length_woart_put(vlwt, (char *) allRunKeysStr[i], allRunKeysLenStr[i] * 8, (char *) &value);
+        } else if (allRunOp[i] == YCSBRunOp::Get) {
+            var_length_woart_get(vlwt, (char *) allRunKeysStr[i], allRunKeysLenStr[i] * 8);
+        } else if (allRunOp[i] == YCSBRunOp::Scan) { ;
+        }
+    })
+
+    Time_BODY(1, "varLengthFast&Fair run ", {
+        if (allRunOp[i] == YCSBRunOp::Update || allRunOp[i] == YCSBRunOp::Insert) {
+            vlff->put((char *) allRunKeysStr[i], allRunKeysLenStr[i], (char *) &value);
+        } else if (allRunOp[i] == YCSBRunOp::Get) {
+            vlff->get((char *) allRunKeysStr[i], allRunKeysLenStr[i]);
+        } else if (allRunOp[i] == YCSBRunOp::Scan) { ;
+        }
+    })
+
+    Time_BODY(1, "varLengthHashTree run ", {
+        if (allRunOp[i] == YCSBRunOp::Update || allRunOp[i] == YCSBRunOp::Insert) {
+            vlht->crash_consistent_put(NULL, allRunKeysLenStr[i], (unsigned char *) allRunKeysStr[i], 1);
+        } else if (allRunOp[i] == YCSBRunOp::Get) {
+            vlht->get(allRunKeysLenStr[i], (unsigned char *) allRunKeysStr[i]);
+        } else if (allRunOp[i] == YCSBRunOp::Scan) { ;
+        }
+    })
+
 
 }
 
@@ -1356,7 +1682,7 @@ int main(int argc, char *argv[]) {
 //    bt = new_blink_tree(numThread);
 //     correctnessTest();
 
-     speedTest();
+//     speedTest();
 
 //    varLengthTest();
 
@@ -1380,6 +1706,13 @@ int main(int argc, char *argv[]) {
 //    cout << ht->get_access << endl;
 
 //    amazon_review("az.txt");
+//    SOSD(10000, "a");
+//    SOSD(10000, "c");
+    SOSD(100000000, "e");
+
+//    wiki(1000000, "a");
+//    wiki(50000000, "c");
+//    wiki(50000000, "e");
     fast_free();
     return 0;
 }

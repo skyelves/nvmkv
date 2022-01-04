@@ -269,7 +269,7 @@ char *varlength_fastfair::get(char* key, int len) {
     }
 
     if (!t) {
-        printf("NOT FOUND %lu, t = %x\n", key, t);
+//        printf("NOT FOUND %lu, t = %x\n", key, t);
         return NULL;
     }
 

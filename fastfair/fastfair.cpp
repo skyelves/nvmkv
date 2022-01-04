@@ -53,7 +53,7 @@ char *fastfair::get(uint64_t key) {
     }
 
     if (!t) {
-        printf("NOT FOUND %lu, t = %x\n", key, t);
+//        printf("NOT FOUND %lu, t = %x\n", key, t);
         return NULL;
     }
 

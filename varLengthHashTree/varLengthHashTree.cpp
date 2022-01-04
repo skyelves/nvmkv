@@ -833,6 +833,7 @@ uint64_t Length64HashTree::get(uint64_t key){
 void Length64HashTree::scan(uint64_t left, uint64_t right){
     vector<Length64HashTreeKeyValue> res;
     node_scan(root,left,right,res,0);
+//    cout << res.size() << endl;
 }
 
 
@@ -896,6 +897,7 @@ void Length64HashTree::node_scan(Length64HashTreeNode *tmp, uint64_t left, uint6
             continue;
         else
             last_seg = tmp_seg;
+        //todo if leftsubkey == rightsubkey, there is no need to scan all the segment.
         for(auto j=0;j<HT_MAX_BUCKET_NUM;j++){
             for(auto k=0;k<HT_BUCKET_SIZE;k++){
                 bool keyValueFlag = GET_NODE_FLAG(tmp_seg->bucket[j].counter[k].subkey);
