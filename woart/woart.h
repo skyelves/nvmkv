@@ -60,6 +60,7 @@ static inline unsigned long ffz(unsigned long word) {
 
 typedef int(*woart_callback)(void *data, const unsigned char *key, uint32_t key_len, void *value);
 
+extern uint64_t woart_memory_usage;
 
 struct woart_key_value {
     uint64_t key;

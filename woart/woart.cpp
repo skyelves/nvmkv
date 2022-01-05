@@ -21,6 +21,8 @@
 #define SET_LEAF(x) ((void*)((uintptr_t)x | 1))
 #define LEAF_RAW(x) ((woart_leaf*)((void*)((uintptr_t)x & ~1)))
 
+uint64_t woart_memory_usage = 0;
+
 
 void flush_buffer(void *buf, unsigned long len, bool fence) {
     unsigned long i;
@@ -138,6 +140,7 @@ static woart_node *alloc_node(uint8_t type) {
     switch (type) {
         case NODE4:
             ret = fast_alloc(sizeof(woart_node4));
+            woart_memory_usage += sizeof(woart_node4) - sizeof(woart_leaf);
 //            posix_memalign(&ret, 64, sizeof(woart_node4));
             n = static_cast<woart_node *>(ret);
             for (i = 0; i < 4; i++)
@@ -145,18 +148,21 @@ static woart_node *alloc_node(uint8_t type) {
             break;
         case NODE16:
             ret = fast_alloc(sizeof(woart_node16));
+            woart_memory_usage += sizeof(woart_node16) - sizeof(woart_node4);
 //            posix_memalign(&ret, 64, sizeof(woart_node16));
             n = static_cast<woart_node *>(ret);
             ((woart_node16 *) n)->bitmap = 0;
             break;
         case NODE48:
             ret = fast_alloc(sizeof(woart_node48));
+            woart_memory_usage += sizeof(woart_node48) - sizeof(woart_node16);
 //            posix_memalign(&ret, 64, sizeof(woart_node48));
             n = static_cast<woart_node *>(ret);
             memset(n, 0, sizeof(woart_node48));
             break;
         case NODE256:
             ret = fast_alloc(sizeof(woart_node256));
+            woart_memory_usage += sizeof(woart_node256) - sizeof(woart_node48);
 //            posix_memalign(&ret, 64, sizeof(woart_node256));
             n = static_cast<woart_node *>(ret);
             memset(n, 0, sizeof(woart_node256));
@@ -180,6 +186,7 @@ int woart_tree_init(woart_tree *t) {
 
 woart_tree *new_woart_tree() {
     woart_tree *_new_woart_tree = static_cast<woart_tree *>(fast_alloc(sizeof(woart_tree)));
+    woart_memory_usage += sizeof(woart_tree);
     woart_tree_init(_new_woart_tree);
     return _new_woart_tree;
 }
@@ -345,6 +352,7 @@ static woart_leaf *make_leaf(const unsigned long key, int key_len, void *value, 
     woart_leaf *l;
     void *ret;
     ret = fast_alloc(sizeof(woart_leaf));
+    woart_memory_usage += sizeof(woart_leaf);
 //    posix_memalign(&ret, 64, sizeof(woart_leaf));
     l = static_cast<woart_leaf *>(ret);
     l->value = value;
@@ -750,6 +758,7 @@ static void *recursive_insert(woart_node *n, woart_node **ref, const unsigned lo
 void *woart_put(woart_tree *t, const unsigned long key, int key_len, void *value, int value_len) {
     int old_val = 0;
     void *value_allocated = fast_alloc(value_len);
+    woart_memory_usage += value_len;
     memcpy(value_allocated, value, value_len);
     flush_buffer(value_allocated, value_len, true);
     void *old = recursive_insert(t->root, &t->root, key, key_len, value_allocated, 0, &old_val);
