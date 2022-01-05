@@ -619,31 +619,44 @@ void correctnessTest() {
 }
 
 void profile() {
-    out.open("/Users/wangke/Desktop/ht_profile.csv");
+//    out.open("/Users/wangke/Desktop/ht_profile.csv");
     mykey = new uint64_t[testNum];
     rng r;
     rng_init(&r, 1, 2);
     for (int i = 0; i < testNum; ++i) {
-        mykey[i] = rng_next(&r);
+//        mykey[i] = rng_next(&r);
+        mykey[i] = rng_next(&r) % testNum;
     }
     uint64_t value = 1;
     timeval start, ends;
     gettimeofday(&start, NULL);
     for (int i = 0; i < testNum; ++i) {
 //        cceh->put(mykey[i], value);
-        ht->crash_consistent_put(NULL, mykey[i], i + 1, 0);
-        if (i % 10000 == 0) {
+//        ht->crash_consistent_put(NULL, mykey[i], i + 1, 0);
+//        wort_put(wort, mykey[i], 8, &value);
+//        woart_put(woart, mykey[i], 8, &value);
+//        ff->put(mykey[i], (char *) &value);
+        l64ht->crash_consistent_put(NULL, mykey[i], i + 1, 0);
+//        lbt->insert(mykey[i], &value);
+//        if (i % 10000 == 0) {
 //            out << i << ", " << cceh->dir_size << ", "
 //                << (double) i / (cceh_seg_num * CCEH_BUCKET_SIZE * CCEH_MAX_BUCKET_NUM) << endl;
 //            out << i << ", " << ht_dir_num << ", " << ht_seg_num << ", "
 //                << (double) i / (ht_seg_num * HT_MAX_BUCKET_NUM * HT_BUCKET_SIZE) << endl;
-        }
+//        }
     }
     gettimeofday(&ends, NULL);
     double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
 //    out << t1 << endl << t2 << endl << t3 << endl;
 //    out << timeCost << endl;
-    out.close();
+//    out.close();
+//    cout << concurrency_fastalloc_profile() / testNum << endl;
+//    cout << wort_memory_profile(wort->root) << endl;
+//    cout << woart_memory_profile(woart->root) << endl;
+//    cout << ff->memory_profile(NULL) << endl;
+    cout << l64ht->memory_profile(NULL) << endl;
+//    cout << l64ht->memory_header / testNum << endl << l64ht->memory_seg / testNum << endl << l64ht->memory_kv / testNum << endl;
+//    cout << lbt->memory_profile() << endl;
 }
 
 void range_query_correctness_test() {
@@ -1700,7 +1713,7 @@ int main(int argc, char *argv[]) {
 //    } catch (void *) {
 //        fast_free();
 //    }
-//    profile();
+    profile();
 //    range_query_correctness_test();
 //    cout << ht->node_cnt << endl;
 //    cout << ht->get_access << endl;
@@ -1708,7 +1721,7 @@ int main(int argc, char *argv[]) {
 //    amazon_review("az.txt");
 //    SOSD(10000, "a");
 //    SOSD(10000, "c");
-    SOSD(100000000, "e");
+//    SOSD(100000000, "e");
 
 //    wiki(1000000, "a");
 //    wiki(50000000, "c");

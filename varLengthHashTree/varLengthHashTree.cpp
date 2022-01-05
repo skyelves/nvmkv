@@ -973,7 +973,7 @@ void Length64HashTree::getAllNodes(Length64HashTreeNode *tmp, vector<Length64Has
                     tmp.value = value;
                     res.push_back(tmp);
                 } else {
-                    if(curSubkey==0 || (tmp_seg != *(Length64HashTreeSegment **)GET_SEG_POS(tmp, GET_SEG_NUM(curSubkey, HT_NODE_LENGTH, tmp_seg->depth)))){
+                    if((curSubkey==0 && value == 0)|| (tmp_seg != *(Length64HashTreeSegment **)GET_SEG_POS(tmp, GET_SEG_NUM(curSubkey, HT_NODE_LENGTH, tmp_seg->depth)))){
                         continue;
                     }
                     if(keyValueFlag){
@@ -1013,7 +1013,7 @@ uint64_t Length64HashTree::memory_profile(Length64HashTreeNode *tmp, int pos) {
                 uint64_t curSubkey = REMOVE_NODE_FLAG(tmp_seg->bucket[j].counter[k].subkey);
                 uint64_t value = tmp_seg->bucket[j].counter[k].value;
                 if(pos != 64){
-                    if(curSubkey==0 || (tmp_seg != *(Length64HashTreeSegment **)GET_SEG_POS(tmp, GET_SEG_NUM(curSubkey, HT_NODE_LENGTH, tmp_seg->depth)))){
+                    if((curSubkey==0 && value == 0)|| (tmp_seg != *(Length64HashTreeSegment **)GET_SEG_POS(tmp, GET_SEG_NUM(curSubkey, HT_NODE_LENGTH, tmp_seg->depth)))) {
                         continue;
                     }
                     if(keyValueFlag){
