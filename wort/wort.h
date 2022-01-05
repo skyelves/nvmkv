@@ -33,6 +33,8 @@
 
 typedef int(*wort_callback)(void *data, const unsigned char *key, uint32_t key_len, void *value);
 
+extern uint64_t wort_memory_usage;
+
 struct wort_key_value {
     uint64_t key;
     uint64_t value;
