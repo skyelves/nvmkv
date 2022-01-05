@@ -197,6 +197,7 @@ void lbtree::qsortBleaf(bleaf *p, int start, int end, int pos[]) {
 
 void lbtree::insert(key_type key, void *_ptr) {
     void *ptr = (void *)(fast_alloc(sizeof(uint64_t)));
+    memory_usage += sizeof(uint64_t);
     *(uint64_t *)ptr = *(uint64_t *)_ptr;
     Pointer8B parray[32];  // 0 .. root_level will be used
     short ppos[32];    // 1 .. root_level will be used
@@ -847,6 +848,7 @@ void lbtree::init() {
     this->tree_meta = static_cast<treeMeta *>(fast_alloc(sizeof(treeMeta)));
     auto nvm_address = fast_alloc(4 * KB);
     tree_meta->init(nvm_address);
+    memory_usage += 4 * KB + sizeof(treeMeta);
 }
 
 int lbtree::bulkload(int keynum, key_type input, float bfill) {
@@ -885,8 +887,10 @@ int lbtree::bulkloadSubtree(key_type input, int start_key, int num_key, float bf
 
     // 3. allocate nodes
     pfirst[0] = fast_alloc(sizeof(bleaf) * n_nodes[0]);
+    memory_usage += sizeof(bleaf) * n_nodes[0];
     for (int i = 1; i <= top_level; i++) {
         pfirst[i] = fast_alloc(sizeof(bnode) * n_nodes[i]);
+        memory_usage += sizeof(bleaf) * n_nodes[i];
     }
 
     // 4. populate nodes
@@ -1016,6 +1020,7 @@ uint64_t lbtree::memory_profile(){
 
 lbtree *new_lbtree() {
     lbtree *mytree = static_cast<lbtree *>(fast_alloc(sizeof(lbtree)));
+    mytree->memory_usage += sizeof(lbtree);
     mytree->init();
     mytree->bulkload(1, 1);
     return mytree;
