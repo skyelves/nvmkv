@@ -892,6 +892,30 @@ void Length64HashTree::node_scan(Length64HashTreeNode *tmp, uint64_t left, uint6
     }
     prefix = (prefix << HT_NODE_LENGTH);
     pos += HT_NODE_LENGTH;
+    if (leftSubkey == rightSubkey) {
+        bool keyValueFlag;
+        uint64_t dir_index = GET_SEG_NUM(leftSubkey, HT_NODE_LENGTH, tmp->global_depth);
+        Length64HashTreeSegment *tmp_seg = *(Length64HashTreeSegment **)GET_SEG_POS(tmp,dir_index);
+        uint64_t seg_index = GET_BUCKET_NUM(leftSubkey, HT_BUCKET_MASK_LEN);
+        Length64HashTreeBucket *tmp_bucket = &(tmp_seg->bucket[seg_index]);
+        uint64_t value = tmp_bucket->get(leftSubkey, keyValueFlag);
+        if(value==0 || (tmp_seg != *(Length64HashTreeSegment **)GET_SEG_POS(tmp, GET_SEG_NUM(leftSubkey, HT_NODE_LENGTH, tmp_seg->depth)))){
+            return;
+        }
+        if (pos == 64) {
+            Length64HashTreeKeyValue tmp;
+            tmp.key = leftSubkey + prefix;
+            tmp.value = value;
+            res.push_back(tmp);
+        } else {
+            if (keyValueFlag) {
+                res.push_back(*(Length64HashTreeKeyValue *) value);
+            } else {
+                node_scan((Length64HashTreeNode *) value, left, right, res, pos, prefix + leftSubkey);
+            }
+        }
+        return;
+    }
     Length64HashTreeSegment *last_seg = NULL;
     for(uint32_t i=leftPos;i<=rightPos;i++){
         Length64HashTreeSegment *tmp_seg = *(Length64HashTreeSegment **)GET_SEG_POS(tmp,i);
