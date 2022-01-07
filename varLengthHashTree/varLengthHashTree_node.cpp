@@ -693,6 +693,8 @@ void Length64HashTreeNode::put(uint64_t subkey, uint64_t value, Length64HashTree
                     uint64_t tmp_value = tmp_seg->bucket[i].counter[j].value;
                     dir_index = GET_SEG_NUM(tmp_key, HT_NODE_LENGTH, global_depth);
                     if (dir_index >= mid) {
+//                        tmp_seg->bucket[i].counter[j].subkey = 0;
+//                        tmp_seg->bucket[i].counter[j].value = 0;
                         Length64HashTreeSegment *dst_seg = new_seg;
                         seg_index = i;
                         Length64HashTreeBucket *dst_bucket = &(dst_seg->bucket[seg_index]);

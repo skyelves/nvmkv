@@ -857,54 +857,55 @@ vector<woart_key_value> woart_scan(const woart_tree *t, uint64_t left, uint64_t 
 }
 
 uint64_t woart_memory_profile(woart_node *n) {
-    if (n == NULL) {
-        return 0;
-    }
-    uint64_t res = 0;
-    woart_node *tmp = n;
-    woart_node **child;
-    if (IS_LEAF(tmp)) {
-        res += sizeof(woart_leaf);
-    } else {
-        // Recursively search
-        switch (n->type) {
-            case NODE4: {
-                res += sizeof(woart_node4);
-                for (int i = 0; i < 4; ++i) {
-                    child = find_child(tmp, i);
-                    woart_node *next = (child) ? *child : NULL;
-                    res += woart_memory_profile(next);
-                }
-                break;
-            }
-            case NODE16: {
-                res += sizeof(woart_node16);
-                for (int i = 0; i < 16; ++i) {
-                    child = find_child(tmp, i);
-                    woart_node *next = (child) ? *child : NULL;
-                    res += woart_memory_profile(next);
-                }
-                break;
-            }
-            case NODE48: {
-                res += sizeof(woart_node48);
-                for (int i = 0; i < 48; ++i) {
-                    child = find_child(tmp, i);
-                    woart_node *next = (child) ? *child : NULL;
-                    res += woart_memory_profile(next);
-                }
-                break;
-            }
-            case NODE256: {
-                res += sizeof(woart_node256);
-                for (int i = 0; i < 256; ++i) {
-                    child = find_child(tmp, i);
-                    woart_node *next = (child) ? *child : NULL;
-                    res += woart_memory_profile(next);
-                }
-                break;
-            }
-        }
-    }
-    return res;
+    return woart_memory_usage;
+//    if (n == NULL) {
+//        return 0;
+//    }
+//    uint64_t res = 0;
+//    woart_node *tmp = n;
+//    woart_node **child;
+//    if (IS_LEAF(tmp)) {
+//        res += sizeof(woart_leaf);
+//    } else {
+//        // Recursively search
+//        switch (n->type) {
+//            case NODE4: {
+//                res += sizeof(woart_node4);
+//                for (int i = 0; i < 4; ++i) {
+//                    child = find_child(tmp, i);
+//                    woart_node *next = (child) ? *child : NULL;
+//                    res += woart_memory_profile(next);
+//                }
+//                break;
+//            }
+//            case NODE16: {
+//                res += sizeof(woart_node16);
+//                for (int i = 0; i < 16; ++i) {
+//                    child = find_child(tmp, i);
+//                    woart_node *next = (child) ? *child : NULL;
+//                    res += woart_memory_profile(next);
+//                }
+//                break;
+//            }
+//            case NODE48: {
+//                res += sizeof(woart_node48);
+//                for (int i = 0; i < 48; ++i) {
+//                    child = find_child(tmp, i);
+//                    woart_node *next = (child) ? *child : NULL;
+//                    res += woart_memory_profile(next);
+//                }
+//                break;
+//            }
+//            case NODE256: {
+//                res += sizeof(woart_node256);
+//                for (int i = 0; i < 256; ++i) {
+//                    child = find_child(tmp, i);
+//                    woart_node *next = (child) ? *child : NULL;
+//                    res += woart_memory_profile(next);
+//                }
+//                break;
+//            }
+//        }
+//    }
+//    return res;
 }
