@@ -21,8 +21,29 @@ void ROART_KEY::Init(char *key_, size_t key_len_, char *value_, size_t val_len_)
     fkey = (uint8_t *) key_;
 }
 
+void ROART_KEY::Init(uint64_t key_, size_t key_len_, uint64_t value_) {
+    value = value_;
+    key_len = key_len_;
+    val_len = sizeof(uint64_t);
+    key = key_;
+    fkey = (uint8_t *)&key;
+}
+
+ROART_KEY *ROART_KEY::make_leaf(char *key, size_t key_len, uint64_t value) {
+    void *aligned_alloc;
+    posix_memalign(&aligned_alloc, 64, sizeof(ROART_KEY) + key_len);
+    ROART_KEY *k = reinterpret_cast<ROART_KEY *>(aligned_alloc);
+
+    k->value = value;
+    k->key_len = key_len;
+    memcpy(k->fkey, key, key_len);
+
+    return k;
+}
+
 ROART_KEY *ROART_KEY::make_leaf(uint64_t key, size_t key_len, uint64_t value) {
-    void *aligned_alloc = fast_alloc(sizeof(ROART_KEY) + key_len);
+    void *aligned_alloc;
+    posix_memalign(&aligned_alloc, 64, sizeof(ROART_KEY) + key_len);
     ROART_KEY *k = reinterpret_cast<ROART_KEY *>(aligned_alloc);
 
     k->value = value;

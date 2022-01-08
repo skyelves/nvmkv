@@ -23,7 +23,7 @@
 
 using namespace std;
 
-//#define ZENTRY
+#define ZENTRY
 
 const size_t LeafArrayLength = 64;
 const size_t FingerPrintShift = 48;
@@ -426,10 +426,15 @@ public:
 
 class LeafArray : public N {
 public:
-    atomic<uint64_t> leaf[LeafArrayLength];
-    atomic<bitset<LeafArrayLength>> bitmap; // 0 means used slot; 1 means empty slot
+    std::atomic<uint64_t> leaf[LeafArrayLength];
+    std::atomic<std::bitset<LeafArrayLength>>
+            bitmap; // 0 means used slot; 1 means empty slot
 
-    LeafArray(uint32_t level = -1);
+public:
+    LeafArray(uint32_t level = -1) : N(NTypes::LeafArray, level, {}, 0) {
+        bitmap.store(std::bitset<LeafArrayLength>{}.reset());
+        memset(leaf, 0, sizeof(leaf));
+    }
 
     virtual ~LeafArray() {}
 
@@ -459,13 +464,13 @@ public:
 
     bool isFull() const;
 
-    void splitAndUnlock(N *parentNode, uint8_t parentKey, bool &need_restart);
+    void splitAndUnlock(N *parentNode, uint8_t parentROART_KEY, bool &need_restart);
 
-    vector<ROART_Leaf *> getSortedLeaf(const ROART_KEY *start, const ROART_KEY *end,
-                                 int start_level, bool compare_start,
-                                 bool compare_end);
+    std::vector<ROART_Leaf *> getSortedLeaf(const ROART_KEY *start, const ROART_KEY *end,
+                                            int start_level, bool compare_start,
+                                            bool compare_end);
 
-    void graphviz_debug(ofstream &f);
+    void graphviz_debug(std::ofstream &f);
 
 } __attribute__((aligned(64)));
 

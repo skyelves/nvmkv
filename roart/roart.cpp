@@ -725,6 +725,7 @@ vector<ROART_KEY> ROART::scan(uint64_t min, uint64_t max) {
     ROART_Leaf **result = new ROART_Leaf *[res_len];
     lookupRange(start, end, continue_key, result, res_len, res_cnt);
     cout << res_cnt << endl;
+    return res;
 }
 
 

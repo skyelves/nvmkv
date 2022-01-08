@@ -2036,6 +2036,26 @@ void N256::graphviz_debug(std::ofstream &f) {
     }
 }
 
+inline void clflush(void *data, size_t len) {
+    volatile char *ptr = (char *) ((unsigned long) data & (~(CACHELINESIZE - 1)));
+    mfence();
+    for (; ptr < (char *) data + len; ptr += CACHELINESIZE) {
+        asm volatile("clflush %0" : "+m" (*(volatile char *) ptr));
+    }
+    mfence();
+}
+
+inline size_t size_align(size_t s, int align) {
+    return ((s + align - 1) / align) * align;
+}
+
+void *alloc_new_node_from_type(NTypes type) {
+
+    size_t node_size = size_align(get_node_size(type), 64);
+    void *addr = fast_alloc(node_size);
+
+    return addr;
+}
 
 inline uint64_t bitmap_find_first(bitset<LeafArrayLength> bitmap) {
     for (int i = 0; i < LeafArrayLength; ++i) {
@@ -2051,11 +2071,6 @@ inline uint64_t bitmap_find_next(bitset<LeafArrayLength> bitmap, uint64_t cur) {
             return i;
     }
     return LeafArrayLength;
-}
-
-LeafArray::LeafArray(uint32_t level) : N(NTypes::LeafArray, level, {}, 0) {
-    bitmap.store(std::bitset<LeafArrayLength>{}.reset());
-    memset(leaf, 0, sizeof(leaf));
 }
 
 size_t LeafArray::getRightmostSetBit() const {
@@ -2088,19 +2103,23 @@ ROART_Leaf *LeafArray::lookup(const ROART_KEY *k) const {
 
 #ifdef FIND_FIRST
     auto i = b[0] ? 0 : 1;
-    while (i < LeafArrayLength) {
-        auto fingerprint_ptr = this->leaf[i].load();
-        if (fingerprint_ptr != 0) {
-            uint16_t thisfp = fingerprint_ptr >> FingerPrintShift;
-            auto ptr = reinterpret_cast<Leaf *>(
-                fingerprint_ptr ^
-                (static_cast<uintptr_t>(thisfp) << FingerPrintShift));
-            if (finger_print == thisfp && ptr->checkKey(k)) {
-                return ptr;
-            }
+while (i < LeafArrayLength) {
+    auto fingerprint_ptr = this->leaf[i].load();
+    if (fingerprint_ptr != 0) {
+        uint16_t thisfp = fingerprint_ptr >> FingerPrintShift;
+        auto ptr = reinterpret_cast<ROART_Leaf *>(
+            fingerprint_ptr ^
+            (static_cast<uintptr_t>(thisfp) << FingerPrintShift));
+        if (finger_print == thisfp && ptr->checkKey(k)) {
+            return ptr;
         }
-        i = b._Find_next(i);
     }
+#ifdef __linux__
+    i = b._Find_next(i);
+#else
+    i = bitmap_find_next(b, i);
+#endif
+}
 #else
     for (int i = 0; i < LeafArrayLength; i++) {
         if (b[i] == false)
@@ -2138,7 +2157,7 @@ bool LeafArray::insert(ROART_Leaf *l, bool flush) {
                 (reinterpret_cast<uintptr_t>(l));
         leaf[pos].store(s);
         if (flush)
-            clflush((char *) &leaf[pos], sizeof(std::atomic<uintptr_t>));
+            clflush((void *) &leaf[pos], sizeof(std::atomic<uintptr_t>));
 
         return true;
     } else {
@@ -2159,7 +2178,8 @@ bool LeafArray::remove(const ROART_KEY *k) {
                     (static_cast<uintptr_t>(thisfp) << FingerPrintShift));
             if (finger_print == thisfp && ptr->checkKey(k)) {
                 leaf[i].store(0);
-                clflush((char *) &leaf[i], sizeof(std::atomic<uintptr_t>));
+                clflush(&leaf[i], sizeof(std::atomic<uintptr_t>));
+//                    EpochGuard::DeleteNode(ptr);
                 b[i] = false;
                 bitmap.store(b);
                 return true;
@@ -2249,9 +2269,9 @@ void LeafArray::splitAndUnlock(N *parentNode, uint8_t parentKey,
 
     auto b = bitmap.load();
     auto leaf_count = b.count();
-    vector<char *> keys;
+    std::vector<char *> keys;
     //    char **keys = new char *[leaf_count];
-    vector<int> lens;
+    std::vector<int> lens;
     //    int *lens = new int[leaf_count];
 
     auto i = b[0] ? 0 : 1;
@@ -2273,7 +2293,7 @@ void LeafArray::splitAndUnlock(N *parentNode, uint8_t parentKey,
     }
     //    printf("spliting\n");
 
-    vector<char> common_prefix;
+    std::vector<char> common_prefix;
     int level = 0;
     level = parentNode->getLevel() + 1;
     // assume keys are not substring of another key
@@ -2303,11 +2323,11 @@ void LeafArray::splitAndUnlock(N *parentNode, uint8_t parentKey,
             break;
         level++;
     }
-    map<char, LeafArray *> split_array;
+    std::map<char, LeafArray *> split_array;
     for (i = 0; i < leaf_count; i++) {
         if (split_array.count(keys[i][level]) == 0) {
             split_array[keys[i][level]] =
-                    new(fast_alloc(get_node_size(NTypes::LeafArray)))
+                    new(alloc_new_node_from_type(NTypes::LeafArray))
                             LeafArray(level);
         }
         split_array.at(keys[i][level])->insert(getLeafAt(i), false);
@@ -2318,33 +2338,34 @@ void LeafArray::splitAndUnlock(N *parentNode, uint8_t parentKey,
     auto prefix_len = common_prefix.size();
     auto leaf_array_count = split_array.size();
     if (leaf_array_count <= 4) {
-        n = new(fast_alloc(get_node_size(NTypes::N4)))
+        n = new(alloc_new_node_from_type(NTypes::N4))
                 N4(level, prefix_start, prefix_len);
     } else if (leaf_array_count > 4 && leaf_array_count <= 16) {
-        n = new(fast_alloc(get_node_size(NTypes::N16)))
+        n = new(alloc_new_node_from_type(NTypes::N16))
                 N16(level, prefix_start, prefix_len);
     } else if (leaf_array_count > 16 && leaf_array_count <= 48) {
-        n = new(fast_alloc(get_node_size(NTypes::N48)))
+        n = new(alloc_new_node_from_type(NTypes::N48))
                 N48(level, prefix_start, prefix_len);
     } else if (leaf_array_count > 48 && leaf_array_count <= 256) {
-        n = new(fast_alloc(get_node_size(NTypes::N256)))
+        n = new(alloc_new_node_from_type(NTypes::N256))
                 N256(level, prefix_start, prefix_len);
     } else {
         assert(0);
     }
     for (const auto &p : split_array) {
         unchecked_insert(n, p.first, setLeafArray(p.second), true);
-        clflush((char *) p.second, sizeof(LeafArray));
+        clflush(p.second, sizeof(LeafArray));
     }
 
     N::change(parentNode, parentKey, n);
     parentNode->writeUnlock();
 
     this->writeUnlockObsolete();
+//        EpochGuard::DeleteNode(this);
 }
 
 ROART_Leaf *LeafArray::getLeafAt(size_t pos) const {
-    auto t = reinterpret_cast<uint64_t >(this->leaf[pos].load());
+    auto t = reinterpret_cast<uint64_t>(this->leaf[pos].load());
     t = (t << 16) >> 16;
     return reinterpret_cast<ROART_Leaf *>(t);
 }
@@ -2385,9 +2406,9 @@ std::vector<ROART_Leaf *> LeafArray::getSortedLeaf(const ROART_KEY *start, const
     }
 #ifdef SORT_LEAVES
     std::sort(leaves.begin(), leaves.end(),
-              [start_level](Leaf *a, Leaf *b) -> bool {
-                  leaf_lt(a, b, start_level);
-              });
+          [start_level](ROART_Leaf *a, ROART_Leaf *b) -> bool {
+              leaf_lt(a, b, start_level);
+          });
 #endif
     return leaves;
 }
@@ -2398,22 +2419,26 @@ bool LeafArray::update(const ROART_KEY *k, ROART_Leaf *l) {
 
 #ifdef FIND_FIRST
     auto i = b[0] ? 0 : 1;
-    while (i < LeafArrayLength) {
-        auto fingerprint_ptr = this->leaf[i].load();
-        if (fingerprint_ptr != 0) {
-            uint16_t thisfp = fingerprint_ptr >> FingerPrintShift;
-            auto ptr = reinterpret_cast<Leaf *>(
-                fingerprint_ptr ^
-                (static_cast<uintptr_t>(thisfp) << FingerPrintShift));
-            if (finger_print == thisfp && ptr->checkKey(k)) {
-                auto news = fingerPrintLeaf(finger_print, l);
-                leaf[i].store(news);
-                clflush(&leaf[i], sizeof(std::atomic<uintptr_t>));
-                return true;
-            }
+while (i < LeafArrayLength) {
+    auto fingerprint_ptr = this->leaf[i].load();
+    if (fingerprint_ptr != 0) {
+        uint16_t thisfp = fingerprint_ptr >> FingerPrintShift;
+        auto ptr = reinterpret_cast<ROART_Leaf *>(
+            fingerprint_ptr ^
+            (static_cast<uintptr_t>(thisfp) << FingerPrintShift));
+        if (finger_print == thisfp && ptr->checkKey(k)) {
+            auto news = fingerPrintLeaf(finger_print, l);
+            leaf[i].store(news);
+            clflush(&leaf[i], sizeof(std::atomic<uintptr_t>));
+            return true;
         }
-        i = b._Find_next(i);
     }
+#ifdef __linux__
+    i = b._Find_next(i);
+#else
+    i = bitmap_find_next(b, i);
+#endif
+}
 #else
     for (int i = 0; i < LeafArrayLength; i++) {
         if (b[i] == false)
@@ -2427,7 +2452,7 @@ bool LeafArray::update(const ROART_KEY *k, ROART_Leaf *l) {
             if (finger_print == thisfp && ptr->checkKey(k)) {
                 auto news = fingerPrintLeaf(finger_print, l);
                 leaf[i].store(news);
-                clflush((char *) &leaf[i], sizeof(std::atomic<uintptr_t>));
+                clflush(&leaf[i], sizeof(std::atomic<uintptr_t>));
                 return true;
             }
         }
