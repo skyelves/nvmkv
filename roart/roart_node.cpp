@@ -8,16 +8,82 @@ inline void mfence(void) {
     asm volatile("mfence":: :"memory");
 }
 
-inline void clflush(char *data, size_t len) {
+
+inline void clflush(void *data, size_t len) {
     volatile char *ptr = (char *) ((unsigned long) data & (~(CACHELINESIZE - 1)));
     mfence();
-    for (; ptr < data + len; ptr += CACHELINESIZE) {
+    for (; ptr < (char *)data + len; ptr += CACHELINESIZE) {
         asm volatile("clflush %0" : "+m" (*(volatile char *) ptr));
     }
     mfence();
 }
 
-ROART_Leaf::ROART_Leaf(const ROART_KEY *k) : ROART_BASENODE(NTypes::ROART_Leaf) {
+size_t size_align(size_t s, int align) {
+    return ((s + align - 1) / align) * align;
+}
+
+size_t get_node_size(NTypes type) {
+    switch (type) {
+        case NTypes::N4:
+            return sizeof(N4);
+        case NTypes::N16:
+            return sizeof(N16);
+        case NTypes::N48:
+            return sizeof(N48);
+        case NTypes::N256:
+            return sizeof(N256);
+        case NTypes::ROART_Leaf:
+            return sizeof(ROART_Leaf);
+        case NTypes::LeafArray:
+            return sizeof(LeafArray);
+        default:
+            std::cout << "[ALLOC NODE]\twrong type\n";
+            assert(0);
+    }
+}
+
+void *alloc_new_node_from_type(NTypes type) {
+
+    size_t node_size = size_align(get_node_size(type), 64);
+    void *addr = fast_alloc(node_size);
+
+    return addr;
+}
+
+
+void *alloc_new_node_from_size(size_t size) {
+
+    size_t node_size = size_align(size, 64);
+    void *addr = fast_alloc(node_size);
+
+    return addr;
+}
+
+ROART_Leaf::ROART_Leaf(uint64_t _key, uint64_t _value, uint8_t *_fkey) : BaseNode(NTypes::ROART_Leaf) {
+    key_len = sizeof(_key);
+    val_len = sizeof(_value);
+
+#ifdef KEY_INLINE
+    // have allocate the memory for kv
+    memcpy(kv, k->fkey, key_len);
+    memcpy(kv + key_len, (void *)k->value, val_len);
+#else
+    // allocate from NVM for variable key
+    fkey = new (alloc_new_node_from_size(key_len)) uint8_t[key_len];
+    value = new (alloc_new_node_from_size(val_len)) char[val_len];
+    memcpy(fkey, _fkey, key_len);
+    memcpy(value, (char *)&(_value), val_len);
+    clflush((void *)fkey, key_len);
+    clflush((void *)value, val_len);
+
+    // persist the key, without persist the link to leaf
+    // no one can see the key
+    // if crash without link the leaf, key can be reclaimed safely
+#endif
+}
+
+
+ROART_Leaf::ROART_Leaf(const ROART_KEY *k) : BaseNode(NTypes::ROART_Leaf) {
     key_len = k->key_len;
     val_len = k->val_len;
 #ifdef KEY_INLINE
@@ -26,12 +92,12 @@ ROART_Leaf::ROART_Leaf(const ROART_KEY *k) : ROART_BASENODE(NTypes::ROART_Leaf) 
     memcpy(kv + key_len, (void *)k->value, val_len);
 #else
     // allocate from NVM for variable key
-    fkey = new(fast_alloc(key_len)) uint8_t[key_len];
-    value = new(fast_alloc(val_len)) char[val_len];
+    fkey = new (alloc_new_node_from_size(key_len)) uint8_t[key_len];
+    value = new (alloc_new_node_from_size(val_len)) char[val_len];
     memcpy(fkey, k->fkey, key_len);
-    memcpy(value, (void *) &(k->value), val_len);
-    clflush((char *) fkey, key_len);
-    clflush((char *) value, val_len);
+    memcpy(value, (char *)&(k->value), val_len);
+    clflush((void *)fkey, key_len);
+    clflush((void *)value, val_len);
 
     // persist the key, without persist the link to leaf
     // no one can see the key
@@ -41,7 +107,7 @@ ROART_Leaf::ROART_Leaf(const ROART_KEY *k) : ROART_BASENODE(NTypes::ROART_Leaf) 
 
 // update value, so no need to alloc key
 ROART_Leaf::ROART_Leaf(uint8_t *key_, size_t key_len_, char *value_, size_t val_len_)
-        : ROART_BASENODE(NTypes::ROART_Leaf) {
+        : BaseNode(NTypes::ROART_Leaf) {
     key_len = key_len_;
     val_len = val_len_;
 #ifdef KEY_INLINE
@@ -49,47 +115,15 @@ ROART_Leaf::ROART_Leaf(uint8_t *key_, size_t key_len_, char *value_, size_t val_
     memcpy(kv + key_len, value_, val_len);
 #else
     fkey = key_; // no need to alloc a new key, key_ is persistent
-    value = new(fast_alloc(val_len)) char[val_len];
-    memcpy(value, (void *) value_, val_len);
-    clflush((char *) value, val_len);
-#endif
-}
-
-bool ROART_Leaf::checkKey(const ROART_KEY *k) const {
-#ifdef KEY_INLINE
-    if (key_len == k->getKeyLen() && memcmp(kv, k->fkey, key_len) == 0)
-            return true;
-        return false;
-#else
-    if (key_len == k->getKeyLen() && memcmp(fkey, k->fkey, key_len) == 0)
-        return true;
-    return false;
-#endif
-}
-
-size_t ROART_Leaf::getKeyLen() const {
-    return key_len;
-}
-
-char *ROART_Leaf::GetKey() {
-#ifdef KEY_INLINE
-    return kv;
-#else
-    return (char *) fkey;
-#endif
-}
-
-char *ROART_Leaf::GetValue() {
-#ifdef KEY_INLINE
-    return kv + key_len;
-#else
-    return value;
+    value = new (alloc_new_node_from_size(val_len)) char[val_len];
+    memcpy(value, (void *)value_, val_len);
+    clflush((void *)value, val_len);
 #endif
 }
 
 uint16_t ROART_Leaf::getFingerPrint() {
     uint16_t re = 0;
-    auto k = (uint8_t *)GetKey();
+    auto k = GetKey();
     for (int i = 0; i < key_len; i++) {
         re = re * 131 + k[i];
     }
@@ -100,7 +134,7 @@ void ROART_Leaf::graphviz_debug(std::ofstream &f) {
 //    char buf[1000] = {};
 //    sprintf(buf + strlen(buf), "node%lx [label=\"",
 //            reinterpret_cast<uintptr_t>(this));
-//    sprintf(buf + strlen(buf), "Leaf\n");
+//    sprintf(buf + strlen(buf), "ROART_Leaf\n");
 //    sprintf(buf + strlen(buf), "ROART_KEY Len: %d\n", this->key_len);
 //    for (int i = 0; i < this->key_len; i++) {
 //        sprintf(buf + strlen(buf), "%c ", this->kv[i]);
@@ -119,22 +153,143 @@ void ROART_Leaf::graphviz_debug(std::ofstream &f) {
     //    printf("leaf!");
 }
 
-N::N(NTypes type, uint32_t level, const uint8_t *prefix, uint32_t prefixLength)
-        : ROART_BASENODE(type), level(level) {
-    type_version_lock_obsolete = new std::atomic<uint64_t>;
-    type_version_lock_obsolete->store(0b100);
-    recovery_latch.store(0, std::memory_order_seq_cst);
-    setType(type);
-    setPrefix(prefix, prefixLength, false);
+void N::helpFlush(std::atomic<N *> *n) {
+    if (n == nullptr)
+        return;
+    N *now_node = n->load();
+    // printf("help\n");
+    if (N::isDirty(now_node)) {
+        //        printf("help, point to type is %d\n",
+        //               ((BaseNode *)N::clearDirty(now_node))->type);
+        clflush((void *)n, sizeof(N *));
+        //        clflush((char *)n, sizeof(N *), true, true);
+        n->compare_exchange_strong(now_node, N::clearDirty(now_node));
+    }
 }
 
-N::N(NTypes type, uint32_t level, const Prefix &prefi)
-        : ROART_BASENODE(type), prefix(prefi), level(level) {
-    type_version_lock_obsolete = new std::atomic<uint64_t>;
-    type_version_lock_obsolete->store(0b100);
-    recovery_latch.store(0, std::memory_order_seq_cst);
-    setType(type);
+void N::set_generation() {
+//    NVMMgr *mgr = get_nvm_mgr();
+//    generation_version = mgr->get_generation_version();
 }
+
+uint64_t N::get_generation() { return generation_version; }
+
+#ifdef INSTANT_RESTART
+void N::check_generation() {
+    //    if(generation_version != 1100000){
+    //        return;
+    //    }else{
+    //        generation_version++;
+    //        return;
+    //    }
+    uint64_t mgr_generation = get_threadlocal_generation();
+
+    uint64_t zero = 0;
+    uint64_t one = 1;
+    if (generation_version != mgr_generation) {
+        //        printf("start to recovery of this node %lld\n",
+        //        (uint64_t)this);
+        if (recovery_latch.compare_exchange_strong(zero, one)) {
+            //            printf("start to recovery of this node %lld\n",
+            //            (uint64_t)this);
+            type_version_lock_obsolete = new std::atomic<uint64_t>;
+            type_version_lock_obsolete->store(convertTypeToVersion(type));
+            type_version_lock_obsolete->fetch_add(0b100);
+
+            count = 0;
+            compactCount = 0;
+
+            NTypes t = this->type;
+            switch (t) {
+            case NTypes::N4: {
+                auto n = static_cast<N4 *>(this);
+                for (int i = 0; i < 4; i++) {
+#ifdef ZENTRY
+                    if (n->zens[i].load() != 0) {
+                        count++;
+                        compactCount = i;
+                    }
+#else
+                    N *child = n->children[i].load();
+                    if (child != nullptr) {
+                        count++;
+                        compactCount = i;
+                    }
+#endif
+                }
+                break;
+            }
+            case NTypes::N16: {
+                auto n = static_cast<N16 *>(this);
+                for (int i = 0; i < 16; i++) {
+#ifdef ZENTRY
+                    if (n->zens[i].load() != 0) {
+                        count++;
+                        compactCount = i;
+                    }
+#else
+                    N *child = n->children[i].load();
+                    if (child != nullptr) {
+                        count++;
+                        compactCount = i;
+                    }
+#endif
+                }
+                break;
+            }
+            case NTypes::N48: {
+                auto n = static_cast<N48 *>(this);
+                for (int i = 0; i < 48; i++) {
+#ifdef ZENTRY
+                    auto p = getZentryKeyPtr(n->zens[i]);
+                    if (p.second != nullptr) {
+                        n->childIndex[p.first] = i;
+                        count++;
+                        compactCount = i;
+                    }
+#else
+                    N *child = n->children[i].load();
+                    if (child != nullptr) {
+                        count++;
+                        compactCount = i;
+                    }
+#endif
+                }
+                break;
+            }
+            case NTypes::N256: {
+                auto n = static_cast<N256 *>(this);
+                for (int i = 0; i < 256; i++) {
+                    N *child = n->children[i].load();
+                    if (child != nullptr) {
+                        count++;
+                        compactCount = i;
+                    }
+                }
+                break;
+            }
+            case NTypes::LeafArray: {
+                auto n = static_cast<LeafArray *>(this);
+                n->reload();
+                break;
+            }
+            default: {
+                std::cout << "[Recovery]\twrong type " << (int)type << "\n";
+                assert(0);
+            }
+            }
+
+            generation_version = mgr_generation;
+            clflush(&generation_version, sizeof(uint64_t));
+            recovery_latch.store(zero);
+
+        } else {
+            while (generation_version != mgr_generation) {
+            }
+        }
+    }
+}
+#endif
 
 void N::setType(NTypes type) {
     type_version_lock_obsolete->fetch_add(convertTypeToVersion(type));
@@ -144,90 +299,12 @@ uint64_t N::convertTypeToVersion(NTypes type) {
     return (static_cast<uint64_t>(type) << 60);
 }
 
-N *N::setDirty(N *val) {
-    return (N *) ((uint64_t) val | dirty_bit);
-}
-
-N *N::clearDirty(N *val) {
-    return (N *) ((uint64_t) val & (~dirty_bit));
-}
-
-bool N::isDirty(N *val) {
-    return (uint64_t) val & dirty_bit;
-}
-
-void N::helpFlush(std::atomic<N *> *n) {
-    if (n == nullptr)
-        return;
-    N *now_node = n->load();
-    // printf("help\n");
-    if (N::isDirty(now_node)) {
-        //        printf("help, point to type is %d\n",
-        //               ((BaseNode *)N::clearDirty(now_node))->type);
-        clflush((char *) n, sizeof(N *));
-        //        clflush((char *)n, sizeof(N *), true, true);
-        n->compare_exchange_strong(now_node, N::clearDirty(now_node));
-    }
-}
-
 NTypes N::getType() const {
     return static_cast<NTypes>(
             type_version_lock_obsolete->load(std::memory_order_relaxed) >> 60);
 }
 
-uint32_t N::getLevel() const {
-    return level;
-}
-
-uint32_t N::getCount(N *node) {
-#ifdef INSTANT_RESTART
-    node->check_generation();
-#endif
-    switch (node->getType()) {
-        case NTypes::N4: {
-            auto n = static_cast<const N4 *>(node);
-            return n->getCount();
-        }
-        case NTypes::N16: {
-            auto n = static_cast<const N16 *>(node);
-            return n->getCount();
-        }
-        case NTypes::N48: {
-            auto n = static_cast<const N48 *>(node);
-            return n->getCount();
-        }
-        case NTypes::N256: {
-            auto n = static_cast<const N256 *>(node);
-            return n->getCount();
-        }
-        case NTypes::LeafArray: {
-            auto n = static_cast<const LeafArray *>(node);
-            return n->getCount();
-        }
-        default: {
-            return 0;
-        }
-    }
-}
-
-void N::setCount(uint16_t count_, uint16_t compactCount_) {
-    count = count_;
-    compactCount = compactCount_;
-}
-
-bool N::isLocked(uint64_t version) const { return ((version & 0b10) == 0b10); }
-
-uint64_t N::getVersion() const { return type_version_lock_obsolete->load(); }
-
-bool N::isObsolete(uint64_t version) { return (version & 1) == 1; }
-
-bool N::checkOrRestart(uint64_t startRead) const {
-    return readVersionOrRestart(startRead);
-}
-
-bool N::readVersionOrRestart(uint64_t startRead) const {
-    return startRead == type_version_lock_obsolete->load();
-}
+uint32_t N::getLevel() const { return level; }
 
 // wait to get lock, restart if obsolete
 void N::writeLockOrRestart(bool &needRestart) {
@@ -246,6 +323,7 @@ void N::writeLockOrRestart(bool &needRestart) {
             version, version + 0b10));
 }
 
+// restart if locked or obsolete or a different version
 void N::lockVersionOrRestart(uint64_t &version, bool &needRestart) {
     if (isLocked(version) || isObsolete(version)) {
         needRestart = true;
@@ -259,36 +337,140 @@ void N::lockVersionOrRestart(uint64_t &version, bool &needRestart) {
     }
 }
 
-void N::writeUnlock() {
-    type_version_lock_obsolete->fetch_add(0b10);
-}
+void N::writeUnlock() { type_version_lock_obsolete->fetch_add(0b10); }
 
-N *N::getChild(const uint8_t k, N *node) {
+N *N::getAnyChild(N *node) {
 #ifdef INSTANT_RESTART
     node->check_generation();
 #endif
     switch (node->getType()) {
         case NTypes::N4: {
-            auto n = static_cast<N4 *>(node);
-            return n->getChild(k);
+            auto n = static_cast<const N4 *>(node);
+            return n->getAnyChild();
         }
         case NTypes::N16: {
-            auto n = static_cast<N16 *>(node);
-            return n->getChild(k);
+            auto n = static_cast<const N16 *>(node);
+            return n->getAnyChild();
         }
         case NTypes::N48: {
-            auto n = static_cast<N48 *>(node);
-            return n->getChild(k);
+            auto n = static_cast<const N48 *>(node);
+            return n->getAnyChild();
         }
         case NTypes::N256: {
-            auto n = static_cast<N256 *>(node);
-            return n->getChild(k);
+            auto n = static_cast<const N256 *>(node);
+            return n->getAnyChild();
+        }
+        case NTypes::LeafArray: {
+            auto n = static_cast<const LeafArray *>(node);
+            return n->getAnyChild();
         }
         default: {
             assert(false);
         }
     }
     return nullptr;
+}
+
+void N::change(N *node, uint8_t key, N *val) {
+#ifdef INSTANT_RESTART
+    node->check_generation();
+#endif
+    switch (node->getType()) {
+        case NTypes::N4: {
+            auto n = static_cast<N4 *>(node);
+            n->change(key, val);
+            return;
+        }
+        case NTypes::N16: {
+            auto n = static_cast<N16 *>(node);
+            n->change(key, val);
+            return;
+        }
+        case NTypes::N48: {
+            auto n = static_cast<N48 *>(node);
+            n->change(key, val);
+            return;
+        }
+        case NTypes::N256: {
+            auto n = static_cast<N256 *>(node);
+            n->change(key, val);
+            return;
+        }
+        default: {
+            assert(false);
+        }
+    }
+}
+
+template <typename curN, typename biggerN>
+void N::tryInsertOrGrowAndUnlock(curN *n, N *parentNode, uint8_t keyParent,
+                                 uint8_t key, N *val, NTypes type,
+                                 bool &needRestart) {
+    if (n->insert(key, val, true)) {
+        n->writeUnlock();
+        return;
+    }
+
+    // grow and lock parent
+    parentNode->writeLockOrRestart(needRestart);
+    if (needRestart) {
+        // free_node(type, nBig);
+        n->writeUnlock();
+        return;
+    }
+
+    // allocate a bigger node from NVMMgr
+#ifdef ARTPMDK
+    biggerN *nBig = new (allocate_size(sizeof(biggerN)))
+        biggerN(n->getLevel(), n->getPrefi()); // not persist
+#else
+    auto nBig = new (alloc_new_node_from_type(type))
+            biggerN(n->getLevel(), n->getPrefi()); // not persist
+#endif
+    n->copyTo(nBig);               // not persist
+    nBig->insert(key, val, false); // not persist
+    // persist the node
+    clflush((void *)nBig, sizeof(biggerN));
+    //    clflush((char *)nBig, sizeof(biggerN), true, true);
+
+    N::change(parentNode, keyParent, nBig);
+    parentNode->writeUnlock();
+
+    n->writeUnlockObsolete();
+//    EpochGuard::DeleteNode((void *)n);
+}
+
+template <typename curN>
+void N::compactAndInsertAndUnlock(curN *n, N *parentNode, uint8_t keyParent,
+                                  uint8_t key, N *val, NTypes type,
+                                  bool &needRestart) {
+    // compact and lock parent
+    parentNode->writeLockOrRestart(needRestart);
+    if (needRestart) {
+        // free_node(type, nNew);
+        n->writeUnlock();
+        return;
+    }
+
+    // allocate a new node from NVMMgr
+#ifdef ARTPMDK
+    curN *nNew = new (allocate_size(sizeof(curN)))
+        curN(n->getLevel(), n->getPrefi()); // not persist
+#else
+    auto nNew = new (alloc_new_node_from_type(type))
+            curN(n->getLevel(), n->getPrefi()); // not persist
+#endif
+    n->copyTo(nNew);               // not persist
+    nNew->insert(key, val, false); // not persist
+    // persist the node
+    clflush((void *)nNew, sizeof(curN));
+    //    clflush((char *)nNew, sizeof(curN), true, true);
+
+    N::change(parentNode, keyParent, nNew);
+    parentNode->writeUnlock();
+
+    n->writeUnlockObsolete();
+//    EpochGuard::DeleteNode((void *)n);
 }
 
 void N::insertAndUnlock(N *node, N *parentNode, uint8_t keyParent, uint8_t key,
@@ -342,35 +524,104 @@ void N::insertAndUnlock(N *node, N *parentNode, uint8_t keyParent, uint8_t key,
     }
 }
 
-void N::change(N *node, uint8_t key, N *val) {
+N *N::getChild(const uint8_t k, N *node) {
 #ifdef INSTANT_RESTART
     node->check_generation();
 #endif
     switch (node->getType()) {
         case NTypes::N4: {
             auto n = static_cast<N4 *>(node);
-            n->change(key, val);
+            return n->getChild(k);
+        }
+        case NTypes::N16: {
+            auto n = static_cast<N16 *>(node);
+            return n->getChild(k);
+        }
+        case NTypes::N48: {
+            auto n = static_cast<N48 *>(node);
+            return n->getChild(k);
+        }
+        case NTypes::N256: {
+            auto n = static_cast<N256 *>(node);
+            return n->getChild(k);
+        }
+        default: {
+            assert(false);
+        }
+    }
+    return nullptr;
+}
+
+// only use in normally shutdown
+void N::deleteChildren(N *node) {
+    if (N::isLeaf(node)) {
+        return;
+    }
+#ifdef INSTANT_RESTART
+    node->check_generation();
+#endif
+    switch (node->getType()) {
+        case NTypes::N4: {
+            auto n = static_cast<N4 *>(node);
+            n->deleteChildren();
             return;
         }
         case NTypes::N16: {
             auto n = static_cast<N16 *>(node);
-            n->change(key, val);
+            n->deleteChildren();
             return;
         }
         case NTypes::N48: {
             auto n = static_cast<N48 *>(node);
-            n->change(key, val);
+            n->deleteChildren();
             return;
         }
         case NTypes::N256: {
             auto n = static_cast<N256 *>(node);
-            n->change(key, val);
+            n->deleteChildren();
             return;
         }
         default: {
             assert(false);
         }
     }
+}
+
+template <typename curN, typename smallerN>
+void N::removeAndShrink(curN *n, N *parentNode, uint8_t keyParent, uint8_t key,
+                        NTypes type, bool &needRestart) {
+    if (n->remove(key, parentNode == nullptr, true)) {
+        n->writeUnlock();
+        return;
+    }
+
+    // shrink and lock parent
+    parentNode->writeLockOrRestart(needRestart);
+    if (needRestart) {
+        // free_node(type, nSmall);
+        n->writeUnlock();
+        return;
+    }
+
+    // allocate a smaller node from NVMMgr
+#ifdef ARTPMDK
+    smallerN *nSmall = new (allocate_size(sizeof(smallerN)))
+        smallerN(n->getLevel(), n->getPrefi()); // not persist
+#else
+    auto nSmall = new (alloc_new_node_from_type(type))
+            smallerN(n->getLevel(), n->getPrefi()); // not persist
+#endif
+    n->remove(key, true, true);
+    n->copyTo(nSmall); // not persist
+
+    // persist the node
+    clflush((void *)nSmall, sizeof(smallerN));
+    //    clflush((char *)nSmall, sizeof(smallerN), true, true);
+    N::change(parentNode, keyParent, nSmall);
+
+    parentNode->writeUnlock();
+    n->writeUnlockObsolete();
+//    EpochGuard::DeleteNode((void *)n);
 }
 
 void N::removeAndUnlock(N *node, uint8_t key, N *parentNode, uint8_t keyParent,
@@ -409,6 +660,56 @@ void N::removeAndUnlock(N *node, uint8_t key, N *parentNode, uint8_t keyParent,
     }
 }
 
+bool N::isLocked(uint64_t version) const { return ((version & 0b10) == 0b10); }
+
+uint64_t N::getVersion() const { return type_version_lock_obsolete->load(); }
+
+bool N::isObsolete(uint64_t version) { return (version & 1) == 1; }
+
+bool N::checkOrRestart(uint64_t startRead) const {
+    return readVersionOrRestart(startRead);
+}
+
+bool N::readVersionOrRestart(uint64_t startRead) const {
+    return startRead == type_version_lock_obsolete->load();
+}
+
+void N::setCount(uint16_t count_, uint16_t compactCount_) {
+    count = count_;
+    compactCount = compactCount_;
+}
+
+// only invoked in the critical section
+uint32_t N::getCount(N *node) {
+#ifdef INSTANT_RESTART
+    node->check_generation();
+#endif
+    switch (node->getType()) {
+        case NTypes::N4: {
+            auto n = static_cast<const N4 *>(node);
+            return n->getCount();
+        }
+        case NTypes::N16: {
+            auto n = static_cast<const N16 *>(node);
+            return n->getCount();
+        }
+        case NTypes::N48: {
+            auto n = static_cast<const N48 *>(node);
+            return n->getCount();
+        }
+        case NTypes::N256: {
+            auto n = static_cast<const N256 *>(node);
+            return n->getCount();
+        }
+        case NTypes::LeafArray: {
+            auto n = static_cast<const LeafArray *>(node);
+            return n->getCount();
+        }
+        default: {
+            return 0;
+        }
+    }
+}
 
 Prefix N::getPrefi() const { return prefix.load(); }
 
@@ -424,7 +725,7 @@ void N::setPrefix(const uint8_t *prefix, uint32_t length, bool flush) {
         this->prefix.store(p, std::memory_order_release);
     }
     if (flush)
-        clflush((char *) &(this->prefix), sizeof(Prefix));
+        clflush((void *)&(this->prefix), sizeof(Prefix));
 }
 
 void N::addPrefixBefore(N *node, uint8_t key) {
@@ -441,7 +742,7 @@ void N::addPrefixBefore(N *node, uint8_t key) {
     }
     p.prefixCount += nodeP.prefixCount + 1;
     this->prefix.store(p, std::memory_order_release);
-    clflush((char *) &(this->prefix), sizeof(Prefix));
+    clflush((void *)&(this->prefix), sizeof(Prefix));
 }
 
 bool N::isLeaf(const N *n) {
@@ -524,38 +825,6 @@ void N::deleteNode(N *node) {
     delete node;
 }
 
-N *N::getAnyChild(N *node) {
-#ifdef INSTANT_RESTART
-    node->check_generation();
-#endif
-    switch (node->getType()) {
-        case NTypes::N4: {
-            auto n = static_cast<const N4 *>(node);
-            return n->getAnyChild();
-        }
-        case NTypes::N16: {
-            auto n = static_cast<const N16 *>(node);
-            return n->getAnyChild();
-        }
-        case NTypes::N48: {
-            auto n = static_cast<const N48 *>(node);
-            return n->getAnyChild();
-        }
-        case NTypes::N256: {
-            auto n = static_cast<const N256 *>(node);
-            return n->getAnyChild();
-        }
-        case NTypes::LeafArray: {
-            auto n = static_cast<const LeafArray *>(node);
-            return n->getAnyChild();
-        }
-        default: {
-            assert(false);
-        }
-    }
-    return nullptr;
-}
-
 // invoke in the insert
 // not all nodes are in the critical secton
 ROART_Leaf *N::getAnyChildTid(const N *n) {
@@ -568,41 +837,6 @@ ROART_Leaf *N::getAnyChildTid(const N *n) {
         assert(nextNode != nullptr);
         if (isLeaf(nextNode)) {
             return getLeaf(nextNode);
-        }
-    }
-}
-
-// only use in normally shutdown
-void N::deleteChildren(N *node) {
-    if (N::isLeaf(node)) {
-        return;
-    }
-#ifdef INSTANT_RESTART
-    node->check_generation();
-#endif
-    switch (node->getType()) {
-        case NTypes::N4: {
-            auto n = static_cast<N4 *>(node);
-            n->deleteChildren();
-            return;
-        }
-        case NTypes::N16: {
-            auto n = static_cast<N16 *>(node);
-            n->deleteChildren();
-            return;
-        }
-        case NTypes::N48: {
-            auto n = static_cast<N48 *>(node);
-            n->deleteChildren();
-            return;
-        }
-        case NTypes::N256: {
-            auto n = static_cast<N256 *>(node);
-            n->deleteChildren();
-            return;
-        }
-        default: {
-            assert(false);
         }
     }
 }
@@ -646,29 +880,29 @@ void N::rebuild_node(N *node, std::vector<std::pair<uint64_t, size_t>> &rs,
     if (N::isLeaf(node)) {
         // leaf node
 #ifdef RECLAIM_MEMORY
-        Leaf *leaf = N::getLeaf(node);
-            if ((uint64_t)leaf < start_addr || (uint64_t)leaf >= end_addr)
-                return;
+        ROART_Leaf *leaf = N::getLeaf(node);
+        if ((uint64_t)leaf < start_addr || (uint64_t)leaf >= end_addr)
+            return;
 #ifdef KEY_INLINE
-            size_t size =
-                size_align(sizeof(Leaf) + leaf->key_len + leaf->val_len, 64);
-            //        size = convert_power_two(size);
-            rs.push_back(std::make_pair((uint64_t)leaf, size));
+        size_t size =
+            size_align(sizeof(ROART_Leaf) + leaf->key_len + leaf->val_len, 64);
+        //        size = convert_power_two(size);
+        rs.push_back(std::make_pair((uint64_t)leaf, size));
 #else
-            NTypes type = leaf->type;
-            size_t size = size_align(get_node_size(type), 64);
-            //        size = convert_power_two(size);
-            rs.insert(std::make_pair((uint64_t)leaf, size));
+        NTypes type = leaf->type;
+        size_t size = size_align(get_node_size(type), 64);
+        //        size = convert_power_two(size);
+        rs.insert(std::make_pair((uint64_t)leaf, size));
 
-            // leaf key also need to insert into rs set
-            size = leaf->key_len;
-            //        size = convert_power_two(size);
-            rs.insert(std::make_pair((uint64_t)(leaf->fkey), size));
+        // leaf key also need to insert into rs set
+        size = leaf->key_len;
+        //        size = convert_power_two(size);
+        rs.insert(std::make_pair((uint64_t)(leaf->fkey), size));
 
-            // value
-            size = leaf->val_len;
-            //        size = convert_power_two(size);
-            rs.insert(std::make_pair((uint64_t)(leaf->value), size));
+        // value
+        size = leaf->val_len;
+        //        size = convert_power_two(size);
+        rs.insert(std::make_pair((uint64_t)(leaf->value), size));
 #endif // KEY_INLINE
 
 #endif
@@ -678,10 +912,10 @@ void N::rebuild_node(N *node, std::vector<std::pair<uint64_t, size_t>> &rs,
     NTypes type = node->type;
 #ifdef RECLAIM_MEMORY
     if ((uint64_t)node >= start_addr && (uint64_t)node < end_addr) {
-            size_t size = size_align(get_node_size(type), 64);
-            //    size = convert_power_two(size);
-            rs.push_back(std::make_pair((uint64_t)node, size));
-        }
+        size_t size = size_align(get_node_size(type), 64);
+        //    size = convert_power_two(size);
+        rs.push_back(std::make_pair((uint64_t)node, size));
+    }
 #endif
 
     int xcount = 0;
@@ -750,14 +984,14 @@ void N::rebuild_node(N *node, std::vector<std::pair<uint64_t, size_t>> &rs,
             break;
         }
         default: {
-            std::cout << "[Rebuild]\twrong type is " << (int) type << "\n";
+            std::cout << "[Rebuild]\twrong type is " << (int)type << "\n";
             assert(0);
         }
     }
     // reset count and version and lock
 #ifdef INSTANT_RESTART
 #else
-    if ((uint64_t) node >= start_addr && (uint64_t) node < end_addr) {
+    if ((uint64_t)node >= start_addr && (uint64_t)node < end_addr) {
         node->setCount(xcount, xcompactCount);
         node->type_version_lock_obsolete = new std::atomic<uint64_t>;
         node->type_version_lock_obsolete->store(convertTypeToVersion(type));
@@ -767,7 +1001,6 @@ void N::rebuild_node(N *node, std::vector<std::pair<uint64_t, size_t>> &rs,
     }
 #endif
 }
-
 void N::graphviz_debug(std::ofstream &f, N *node) {
 #ifdef INSTANT_RESTART
     node->check_generation();
@@ -843,28 +1076,23 @@ bool N::key_keylen_lt(char *a, const int alen, char *b, const int blen,
     }
     return alen < blen;
 }
-
 bool N::leaf_lt(ROART_Leaf *a, ROART_Leaf *b, int compare_level) {
     return key_keylen_lt(a->GetKey(), a->key_len, b->GetKey(), b->key_len,
                          compare_level);
 }
-
 bool N::leaf_key_lt(ROART_Leaf *a, const ROART_KEY *b, const int compare_level) {
     return key_keylen_lt(a->GetKey(), a->key_len,
                          reinterpret_cast<char *>(b->fkey), b->key_len,
                          compare_level);
 }
-
 bool N::key_leaf_lt(const ROART_KEY *a, ROART_Leaf *b, const int compare_level) {
     return key_keylen_lt(reinterpret_cast<char *>(a->fkey), a->key_len,
                          b->GetKey(), b->key_len, compare_level);
 }
-
 bool N::key_key_lt(const ROART_KEY *a, const ROART_KEY *b) {
     return key_keylen_lt(reinterpret_cast<char *>(a->fkey), a->key_len,
                          reinterpret_cast<char *>(b->fkey), b->key_len, 0);
 }
-
 uint8_t N::getZentryKey(uintptr_t zentry) {
     return uint8_t(zentry >> ZentryKeyShift);
 }
@@ -873,203 +1101,12 @@ N *N::getZentryPtr(uintptr_t zentry) {
     const uintptr_t mask = (1LL << ZentryKeyShift) - 1;
     return reinterpret_cast<N *>(zentry & mask);
 }
-
 std::pair<uint8_t, N *> N::getZentryKeyPtr(uintptr_t zentry) {
     return {getZentryKey(zentry), getZentryPtr(zentry)};
 }
-
 uintptr_t N::makeZentry(uint8_t key, N *node) {
     return (uintptr_t(key) << ZentryKeyShift) |
            reinterpret_cast<uintptr_t>(node);
-}
-
-size_t get_node_size(NTypes type) {
-    switch (type) {
-        case NTypes::N4:
-            return sizeof(N4);
-        case NTypes::N16:
-            return sizeof(N16);
-        case NTypes::N48:
-            return sizeof(N48);
-        case NTypes::N256:
-            return sizeof(N256);
-        case NTypes::ROART_Leaf:
-            return sizeof(ROART_Leaf);
-        case NTypes::LeafArray:
-            return sizeof(LeafArray);
-        default:
-            std::cout << "[ALLOC NODE]\twrong type\n";
-            assert(0);
-    }
-}
-
-template<typename curN, typename biggerN>
-void N::tryInsertOrGrowAndUnlock(curN *n, N *parentNode, uint8_t keyParent,
-                                 uint8_t key, N *val, NTypes type,
-                                 bool &needRestart) {
-    if (n->insert(key, val, true)) {
-        n->writeUnlock();
-        return;
-    }
-
-    // grow and lock parent
-    parentNode->writeLockOrRestart(needRestart);
-    if (needRestart) {
-        // free_node(type, nBig);
-        n->writeUnlock();
-        return;
-    }
-
-    // allocate a bigger node from NVMMgr
-#ifdef ARTPMDK
-    biggerN *nBig = new (allocate_size(sizeof(biggerN)))
-            biggerN(n->getLevel(), n->getPrefi()); // not persist
-#else
-    uint64_t nbig_size = get_node_size(type);
-    auto nBig = new(fast_alloc(nbig_size)) biggerN(n->getLevel(), n->getPrefi()); // not persist
-#endif
-    n->copyTo(nBig);               // not persist
-    nBig->insert(key, val, false); // not persist
-    // persist the node
-    clflush((char *) nBig, sizeof(biggerN));
-    //    clflush((char *)nBig, sizeof(biggerN), true, true);
-
-    N::change(parentNode, keyParent, nBig);
-    parentNode->writeUnlock();
-
-    n->writeUnlockObsolete();
-}
-
-template<typename curN>
-void N::compactAndInsertAndUnlock(curN *n, N *parentNode, uint8_t keyParent,
-                                  uint8_t key, N *val, NTypes type,
-                                  bool &needRestart) {
-    // compact and lock parent
-    parentNode->writeLockOrRestart(needRestart);
-    if (needRestart) {
-        // free_node(type, nNew);
-        n->writeUnlock();
-        return;
-    }
-
-    // allocate a new node from NVMMgr
-#ifdef ARTPMDK
-    curN *nNew = new (allocate_size(sizeof(curN)))
-            curN(n->getLevel(), n->getPrefi()); // not persist
-#else
-    uint64_t nnew_size = get_node_size(type);
-    auto nNew = new(fast_alloc(nnew_size))
-            curN(n->getLevel(), n->getPrefi()); // not persist
-#endif
-    n->copyTo(nNew);               // not persist
-    nNew->insert(key, val, false); // not persist
-    // persist the node
-    clflush((char *) nNew, sizeof(curN));
-    //    clflush((char *)nNew, sizeof(curN), true, true);
-
-    N::change(parentNode, keyParent, nNew);
-    parentNode->writeUnlock();
-
-    n->writeUnlockObsolete();
-}
-
-template<typename curN, typename smallerN>
-void N::removeAndShrink(curN *n, N *parentNode, uint8_t keyParent, uint8_t key,
-                        NTypes type, bool &needRestart) {
-    if (n->remove(key, parentNode == nullptr, true)) {
-        n->writeUnlock();
-        return;
-    }
-
-    // shrink and lock parent
-    parentNode->writeLockOrRestart(needRestart);
-    if (needRestart) {
-        // free_node(type, nSmall);
-        n->writeUnlock();
-        return;
-    }
-
-    // allocate a smaller node from NVMMgr
-#ifdef ARTPMDK
-    smallerN *nSmall = new (allocate_size(sizeof(smallerN)))
-            smallerN(n->getLevel(), n->getPrefi()); // not persist
-#else
-    uint64_t nsmall_size = get_node_size(type);
-    auto nSmall = new(fast_alloc(nsmall_size))
-            smallerN(n->getLevel(), n->getPrefi()); // not persist
-#endif
-    n->remove(key, true, true);
-    n->copyTo(nSmall); // not persist
-
-    // persist the node((void *)
-    clflush((char *) nSmall, sizeof(smallerN));
-    //    clflush((char *)nSmall, sizeof(smallerN), true, true);
-    N::change(parentNode, keyParent, nSmall);
-
-    parentNode->writeUnlock();
-    n->writeUnlockObsolete();
-}
-
-N4::N4(uint32_t level, const uint8_t *prefix, uint32_t prefixLength) : N(NTypes::N4, level, prefix, prefixLength) {
-#ifdef ZENTRY
-    memset(zens, 0, sizeof(zens));
-#else
-    memset(keys, 0, sizeof(keys));
-    memset(children, 0, sizeof(children));
-#endif
-}
-
-N4::N4(uint32_t level, const Prefix &prefi) : N(NTypes::N4, level, prefi) {
-#ifdef ZENTRY
-    memset(zens, 0, sizeof(zens));
-#else
-    memset(keys, 0, sizeof(keys));
-    memset(children, 0, sizeof(children));
-#endif
-}
-
-bool N4::insert(uint8_t key, N *n, bool flush) {
-    if (compactCount == 4) {
-        return false;
-    }
-#ifdef ZENTRY
-    zens[compactCount].store(makeZentry(key, n));
-    if (flush)
-        clflush((char *)&zens[compactCount], sizeof(std::atomic<uintptr_t>));
-
-#else
-    keys[compactCount].store(key, std::memory_order_seq_cst);
-    if (flush)
-        clflush((char *) &keys[compactCount], sizeof(std::atomic<uint8_t>));
-
-    children[compactCount].store(n, std::memory_order_seq_cst);
-    if (flush) {
-        clflush((char *) &children[compactCount], sizeof(std::atomic<N *>));
-    }
-#endif
-    compactCount++;
-    count++;
-    return true;
-}
-
-template<class NODE>
-void N4::copyTo(NODE *n) const {
-    for (uint32_t i = 0; i < compactCount; ++i) {
-#ifdef ZENTRY
-        auto z = zens[i].load();
-            N *child = getZentryPtr(z);
-            if (child != nullptr) {
-                // not flush
-                n->insert(getZentryKey(z), child, false);
-            }
-#else
-        N *child = children[i].load();
-        if (child != nullptr) {
-            // not flush
-            n->insert(keys[i].load(), child, false);
-        }
-#endif
-    }
 }
 
 void N4::deleteChildren() {
@@ -1086,6 +1123,29 @@ void N4::deleteChildren() {
     }
 }
 
+bool N4::insert(uint8_t key, N *n, bool flush) {
+    if (compactCount == 4) {
+        return false;
+    }
+#ifdef ZENTRY
+    zens[compactCount].store(makeZentry(key, n));
+    if (flush)
+        clflush(&zens[compactCount], sizeof(std::atomic<uintptr_t>));
+
+#else
+    keys[compactCount].store(key, std::memory_order_seq_cst);
+    if (flush)
+        clflush((void *)&keys[compactCount], sizeof(std::atomic<uint8_t>));
+
+    children[compactCount].store(n, std::memory_order_seq_cst);
+    if (flush) {
+        clflush((void *)&children[compactCount], sizeof(std::atomic<N *>));
+    }
+#endif
+    compactCount++;
+    count++;
+    return true;
+}
 
 void N4::change(uint8_t key, N *val) {
     for (uint32_t i = 0; i < compactCount; ++i) {
@@ -1093,14 +1153,14 @@ void N4::change(uint8_t key, N *val) {
         auto p = getZentryKeyPtr(zens[i].load());
         if (p.second != nullptr && p.first == key) {
             zens[i].store(makeZentry(key, val));
-            clflush((char *)&zens[i], sizeof(std::atomic<uintptr_t>));
+            clflush((void *)&zens[i], sizeof(std::atomic<uintptr_t>));
             return;
         }
 #else
         N *child = children[i].load();
         if (child != nullptr && keys[i].load() == key) {
             children[i].store(val, std::memory_order_seq_cst);
-            clflush((char *) &children[i], sizeof(std::atomic<N *>));
+            clflush((void *)&children[i], sizeof(std::atomic<N *>));
             return;
         }
 #endif
@@ -1130,14 +1190,14 @@ bool N4::remove(uint8_t k, bool force, bool flush) {
         auto p = getZentryKeyPtr(zens[i].load());
         if (p.second != nullptr && p.first == k) {
             zens[i].store(0);
-            clflush((char *)&zens[i], sizeof(std::atomic<uintptr_t>));
+            clflush(&zens[i], sizeof(std::atomic<uintptr_t>));
             count--;
             return true;
         }
 #else
         if (children[i] != nullptr && keys[i].load() == k) {
             children[i].store(nullptr, std::memory_order_seq_cst);
-            clflush((char *) &children[i], sizeof(std::atomic<N *>));
+            clflush((void *)&children[i], sizeof(std::atomic<N *>));
             count--;
             return true;
         }
@@ -1237,7 +1297,6 @@ uint32_t N4::getCount() const {
     }
     return cnt;
 }
-
 void N4::graphviz_debug(std::ofstream &f) {
     char buf[1000] = {};
     sprintf(buf + strlen(buf), "node%lx [label=\"",
@@ -1297,55 +1356,6 @@ void N4::graphviz_debug(std::ofstream &f) {
     }
 }
 
-uint8_t N16::flipSign(uint8_t keyByte) {
-    // Flip the sign bit, enables signed SSE comparison of unsigned values,
-    // used by Node16
-    return keyByte ^ 128;
-}
-
-unsigned N16::ctz(uint16_t x) {
-    // Count trailing zeros, only defined for x>0
-#ifdef __GNUC__
-    return __builtin_ctz(x);
-#else
-    // Adapted from Hacker's Delight
-        unsigned n = 1;
-        if ((x & 0xFF) == 0) {
-            n += 8;
-            x = x >> 8;
-        }
-        if ((x & 0x0F) == 0) {
-            n += 4;
-            x = x >> 4;
-        }
-        if ((x & 0x03) == 0) {
-            n += 2;
-            x = x >> 2;
-        }
-        return n - (x & 1);
-#endif
-}
-
-N16::N16(uint32_t level, const uint8_t *prefix, uint32_t prefixLength)
-        : N(NTypes::N16, level, prefix, prefixLength) {
-
-#ifdef ZENTRY
-    memset(zens, 0, sizeof(zens));
-#else
-    memset(keys, 0, sizeof(keys));
-    memset(children, 0, sizeof(children));
-#endif
-}
-
-N16::N16(uint32_t level, const Prefix &prefi) : N(NTypes::N16, level, prefi) {
-#ifdef ZENTRY
-    memset(zens, 0, sizeof(zens));
-#else
-    memset(keys, 0, sizeof(keys));
-    memset(children, 0, sizeof(children));
-#endif
-}
-
 bool N16::insert(uint8_t key, N *n, bool flush) {
     if (compactCount == 16) {
         return false;
@@ -1354,40 +1364,19 @@ bool N16::insert(uint8_t key, N *n, bool flush) {
 #ifdef ZENTRY
     zens[compactCount].store(makeZentry(flipSign(key), n));
     if (flush)
-        clflush((char *)&zens[compactCount], sizeof(std::atomic<uintptr_t>));
+        clflush(&zens[compactCount], sizeof(std::atomic<uintptr_t>));
 #else
     keys[compactCount].store(flipSign(key), std::memory_order_seq_cst);
     if (flush)
-        clflush((char *) &keys[compactCount], sizeof(std::atomic<uint8_t>));
+        clflush((void *)&keys[compactCount], sizeof(std::atomic<uint8_t>));
 
     children[compactCount].store(n, std::memory_order_seq_cst);
     if (flush)
-        clflush((char *) &children[compactCount], sizeof(std::atomic<N *>));
+        clflush((void *)&children[compactCount], sizeof(std::atomic<N *>));
 #endif
     compactCount++;
     count++;
     return true;
-}
-
-template<class NODE>
-void N16::copyTo(NODE *n) const {
-    for (unsigned i = 0; i < compactCount; i++) {
-
-#ifdef ZENTRY
-        auto z = zens[i].load();
-            N *child = getZentryPtr(z);
-            if (child != nullptr) {
-                // not flush
-                n->insert(flipSign(getZentryKey(z)), child, false);
-            }
-#else
-        N *child = children[i].load();
-        if (child != nullptr) {
-            // not flush
-            n->insert(flipSign(keys[i].load()), child, false);
-        }
-#endif
-    }
 }
 
 void N16::change(uint8_t key, N *val) {
@@ -1395,10 +1384,10 @@ void N16::change(uint8_t key, N *val) {
     assert(childPos != -1);
 #ifdef ZENTRY
     zens[childPos].store(makeZentry(flipSign(key), val));
-    clflush((char *)&zens[childPos], sizeof(std::atomic<uintptr_t>));
+    clflush(&zens[childPos], sizeof(std::atomic<uintptr_t>));
 #else
     children[childPos].store(val, std::memory_order_seq_cst);
-    clflush((char *) &children[childPos], sizeof(std::atomic<N *>));
+    clflush(&children[childPos], sizeof(std::atomic<N *>));
 #endif
 }
 
@@ -1409,8 +1398,8 @@ int N16::getChildPos(const uint8_t k) {
         keys[i] = getZentryKey(zens[i].load());
     }
     __m128i cmp = _mm_cmpeq_epi8(
-        _mm_set1_epi8(flipSign(k)),
-        _mm_loadu_si128(reinterpret_cast<const __m128i *>(keys)));
+            _mm_set1_epi8(flipSign(k)),
+            _mm_loadu_si128(reinterpret_cast<const __m128i *>(keys)));
     unsigned bitfield = _mm_movemask_epi8(cmp) & ((1 << compactCount) - 1);
     while (bitfield) {
         uint8_t pos = ctz(bitfield);
@@ -1422,8 +1411,8 @@ int N16::getChildPos(const uint8_t k) {
     return -1;
 #else
     __m128i cmp = _mm_cmpeq_epi8(
-            _mm_set1_epi8(flipSign(k)),
-            _mm_loadu_si128(reinterpret_cast<const __m128i *>(keys)));
+        _mm_set1_epi8(flipSign(k)),
+        _mm_loadu_si128(reinterpret_cast<const __m128i *>(keys)));
     unsigned bitfield = _mm_movemask_epi8(cmp) & ((1 << compactCount) - 1);
     while (bitfield) {
         uint8_t pos = ctz(bitfield);
@@ -1443,8 +1432,8 @@ N *N16::getChild(const uint8_t k) {
         keys[i] = getZentryKey(zens[i].load());
     }
     __m128i cmp = _mm_cmpeq_epi8(
-        _mm_set1_epi8(flipSign(k)),
-        _mm_loadu_si128(reinterpret_cast<const __m128i *>(keys)));
+            _mm_set1_epi8(flipSign(k)),
+            _mm_loadu_si128(reinterpret_cast<const __m128i *>(keys)));
     unsigned bitfield = _mm_movemask_epi8(cmp) & ((1 << 16) - 1);
     while (bitfield) {
         uint8_t pos = ctz(bitfield);
@@ -1458,8 +1447,8 @@ N *N16::getChild(const uint8_t k) {
     return nullptr;
 #else
     __m128i cmp = _mm_cmpeq_epi8(
-            _mm_set1_epi8(flipSign(k)),
-            _mm_loadu_si128(reinterpret_cast<const __m128i *>(keys)));
+        _mm_set1_epi8(flipSign(k)),
+        _mm_loadu_si128(reinterpret_cast<const __m128i *>(keys)));
     unsigned bitfield = _mm_movemask_epi8(cmp) & ((1 << 16) - 1);
     while (bitfield) {
         uint8_t pos = ctz(bitfield);
@@ -1482,10 +1471,10 @@ bool N16::remove(uint8_t k, bool force, bool flush) {
     assert(leafPlace != -1);
 #ifdef ZENTRY
     zens[leafPlace].store(0);
-    clflush((char *)&zens[leafPlace], sizeof(std::atomic<uintptr_t>));
+    clflush(&zens[leafPlace], sizeof(std::atomic<uintptr_t>));
 #else
     children[leafPlace].store(nullptr, std::memory_order_seq_cst);
-    clflush((char *) &children[leafPlace], sizeof(std::atomic<N *>));
+    clflush((void *)&children[leafPlace], sizeof(std::atomic<N *>));
 #endif
     count--;
     assert(getChild(k) == nullptr);
@@ -1568,7 +1557,6 @@ uint32_t N16::getCount() const {
     }
     return cnt;
 }
-
 void N16::graphviz_debug(std::ofstream &f) {
     char buf[10000] = {};
     sprintf(buf + strlen(buf), "node%lx [label=\"",
@@ -1628,43 +1616,6 @@ void N16::graphviz_debug(std::ofstream &f) {
     }
 }
 
-N48::N48(uint32_t level, const uint8_t *prefix, uint32_t prefixLength)
-        : N(NTypes::N48, level, prefix, prefixLength) {
-    memset(childIndex, emptyMarker, sizeof(childIndex));
-#ifdef ZENTRY
-    memset(zens, 0, sizeof(zens));
-#else
-    memset(children, 0, sizeof(children));
-#endif
-}
-
-N48::N48(uint32_t level, const Prefix &prefi) : N(NTypes::N48, level, prefi) {
-    memset(childIndex, emptyMarker, sizeof(childIndex));
-#ifdef ZENTRY
-    memset(zens, 0, sizeof(zens));
-#else
-    memset(children, 0, sizeof(children));
-#endif
-}
-
-template<class NODE>
-void N48::copyTo(NODE *n) const {
-    for (unsigned i = 0; i < 256; i++) {
-        uint8_t index = childIndex[i].load();
-#ifdef ZENTRY
-        auto child = getZentryPtr(zens[i].load());
-            if (index != emptyMarker && child != nullptr) {
-                // not flush
-                n->insert(i, child, false);
-            }
-#else
-        if (index != emptyMarker && children[index].load() != nullptr) {
-            // not flush
-            n->insert(i, children[index].load(), false);
-        }
-#endif
-    }
-}
 
 bool N48::insert(uint8_t key, N *n, bool flush) {
     if (compactCount == 48) {
@@ -1676,16 +1627,16 @@ bool N48::insert(uint8_t key, N *n, bool flush) {
 
     zens[compactCount].store(makeZentry(key, n));
     if (flush) {
-        clflush((char *)&zens[compactCount], sizeof(std::atomic<uintptr_t>));
+        clflush(&zens[compactCount], sizeof(std::atomic<uintptr_t>));
     }
 #else
     childIndex[key].store(compactCount, std::memory_order_seq_cst);
     if (flush)
-        clflush((char *) &childIndex[key], sizeof(std::atomic<uint8_t>));
+        clflush((void *)&childIndex[key], sizeof(std::atomic<uint8_t>));
 
     children[compactCount].store(n, std::memory_order_seq_cst);
     if (flush) {
-        clflush((char *) &children[compactCount], sizeof(std::atomic<N *>));
+        clflush((void *)&children[compactCount], sizeof(std::atomic<N *>));
     }
 #endif
 
@@ -1699,10 +1650,10 @@ void N48::change(uint8_t key, N *val) {
     assert(index != emptyMarker);
 #ifdef ZENTRY
     zens[index].store(makeZentry(key, val));
-    clflush((char *)&zens[index], sizeof(std::atomic<uintptr_t>));
+    clflush(&zens[index], sizeof(std::atomic<uintptr_t>));
 #else
     children[index].store(val, std::memory_order_seq_cst);
-    clflush((char *) &children[index], sizeof(std::atomic<N *>));
+    clflush((void *)&children[index], sizeof(std::atomic<N *>));
 #endif
 }
 
@@ -1728,10 +1679,10 @@ bool N48::remove(uint8_t k, bool force, bool flush) {
     assert(index != emptyMarker);
 #ifdef ZENTRY
     zens[index].store(0);
-    clflush((char *)&zens[index], sizeof(std::atomic<uintptr_t>));
+    clflush(&zens[index], sizeof(std::atomic<uintptr_t>));
 #else
     children[index].store(nullptr, std::memory_order_seq_cst);
-    clflush((char *) &children[index], sizeof(std::atomic<N *>));
+    clflush((void *)&children[index], sizeof(std::atomic<N *>));
 #endif
     count--;
     assert(getChild(k) == nullptr);
@@ -1817,7 +1768,6 @@ uint32_t N48::getCount() const {
     }
     return cnt;
 }
-
 void N48::graphviz_debug(std::ofstream &f) {
     char buf[10000] = {};
     sprintf(buf + strlen(buf), "node%lx [label=\"",
@@ -1883,25 +1833,6 @@ void N48::graphviz_debug(std::ofstream &f) {
     }
 }
 
-N256::N256(uint32_t level, const uint8_t *prefix, uint32_t prefixLength)
-        : N(NTypes::N256, level, prefix, prefixLength) {
-    memset(children, '\0', sizeof(children));
-}
-
-N256::N256(uint32_t level, const Prefix &prefi) : N(NTypes::N256, level, prefi) {
-    memset(children, '\0', sizeof(children));
-}
-
-template<class NODE>
-void N256::copyTo(NODE *n) const {
-    for (int i = 0; i < 256; ++i) {
-        N *child = children[i].load();
-        if (child != nullptr) {
-            // not flush
-            n->insert(i, child, false);
-        }
-    }
-}
 
 void N256::deleteChildren() {
     for (uint64_t i = 0; i < 256; ++i) {
@@ -1915,12 +1846,12 @@ void N256::deleteChildren() {
 
 bool N256::insert(uint8_t key, N *val, bool flush) {
     if (flush) {
-        uint64_t oldp = (1ull << 56) | ((uint64_t) key << 48);
+        uint64_t oldp = (1ull << 56) | ((uint64_t)key << 48);
     }
 
     children[key].store(val, std::memory_order_seq_cst);
     if (flush) {
-        clflush((char *) &children[key], sizeof(std::atomic<N *>));
+        clflush((void *)&children[key], sizeof(std::atomic<N *>));
     }
 
     count++;
@@ -1930,7 +1861,7 @@ bool N256::insert(uint8_t key, N *val, bool flush) {
 void N256::change(uint8_t key, N *n) {
 
     children[key].store(n, std::memory_order_seq_cst);
-    clflush((char *) &children[key], sizeof(std::atomic<N *>));
+    clflush((void *)&children[key], sizeof(std::atomic<N *>));
 }
 
 N *N256::getChild(const uint8_t k) {
@@ -1944,7 +1875,7 @@ bool N256::remove(uint8_t k, bool force, bool flush) {
     }
 
     children[k].store(nullptr, std::memory_order_seq_cst);
-    clflush((char *) &children[k], sizeof(std::atomic<N *>));
+    clflush((void *)&children[k], sizeof(std::atomic<N *>));
     count--;
     return true;
 }
@@ -1987,12 +1918,11 @@ uint32_t N256::getCount() const {
     }
     return cnt;
 }
-
 void N256::graphviz_debug(std::ofstream &f) {
     char buf[10000] = {};
     sprintf(buf + strlen(buf), "node%lx [label=\"",
             reinterpret_cast<uintptr_t>(this));
-    sprintf(buf + strlen(buf), "N256 %d\n", level);
+    sprintf(buf + strlen(buf), "N256 %d\n",level);
     auto pre = this->getPrefi();
     sprintf(buf + strlen(buf), "Prefix Len: %d\n", pre.prefixCount);
     sprintf(buf + strlen(buf), "Prefix: ");
@@ -2034,27 +1964,6 @@ void N256::graphviz_debug(std::ofstream &f) {
             }
         }
     }
-}
-
-inline void clflush(void *data, size_t len) {
-    volatile char *ptr = (char *) ((unsigned long) data & (~(CACHELINESIZE - 1)));
-    mfence();
-    for (; ptr < (char *) data + len; ptr += CACHELINESIZE) {
-        asm volatile("clflush %0" : "+m" (*(volatile char *) ptr));
-    }
-    mfence();
-}
-
-inline size_t size_align(size_t s, int align) {
-    return ((s + align - 1) / align) * align;
-}
-
-void *alloc_new_node_from_type(NTypes type) {
-
-    size_t node_size = size_align(get_node_size(type), 64);
-    void *addr = fast_alloc(node_size);
-
-    return addr;
 }
 
 inline uint64_t bitmap_find_first(bitset<LeafArrayLength> bitmap) {
@@ -2131,6 +2040,53 @@ while (i < LeafArrayLength) {
                     fingerprint_ptr ^
                     (static_cast<uintptr_t>(thisfp) << FingerPrintShift));
             if (finger_print == thisfp && ptr->checkKey(k)) {
+                return ptr;
+            }
+        }
+    }
+#endif
+
+    return nullptr;
+}
+
+ROART_Leaf *LeafArray::mylookup(uint64_t _key, unsigned long _key_len, uint8_t *_fkey) const {
+    uint16_t finger_print = 0;
+    for (int i = 0; i < _key_len; i++) {
+        finger_print = finger_print * 131 + _fkey[i];
+    }
+
+    auto b = bitmap.load();
+
+#ifdef FIND_FIRST
+    auto i = b[0] ? 0 : 1;
+while (i < LeafArrayLength) {
+    auto fingerprint_ptr = this->leaf[i].load();
+    if (fingerprint_ptr != 0) {
+        uint16_t thisfp = fingerprint_ptr >> FingerPrintShift;
+        auto ptr = reinterpret_cast<ROART_Leaf *>(
+            fingerprint_ptr ^
+            (static_cast<uintptr_t>(thisfp) << FingerPrintShift));
+        if (finger_print == thisfp && ptr->mycheckKey(_key_len, _fkey)) {
+            return ptr;
+        }
+    }
+#ifdef __linux__
+    i = b._Find_next(i);
+#else
+    i = bitmap_find_next(b, i);
+#endif
+}
+#else
+    for (int i = 0; i < LeafArrayLength; i++) {
+        if (b[i] == false)
+            continue;
+        auto fingerprint_ptr = this->leaf[i].load();
+        if (fingerprint_ptr != 0) {
+            uint16_t thisfp = fingerprint_ptr >> FingerPrintShift;
+            auto ptr = reinterpret_cast<ROART_Leaf *>(
+                    fingerprint_ptr ^
+                    (static_cast<uintptr_t>(thisfp) << FingerPrintShift));
+            if (finger_print == thisfp && ptr->mycheckKey(_key_len, _fkey)) {
                 return ptr;
             }
         }
