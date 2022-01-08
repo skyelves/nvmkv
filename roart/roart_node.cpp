@@ -4,6 +4,8 @@
 
 #include "roart_node.h"
 
+uint64_t roart_memory_usage = 0;
+
 inline void mfence(void) {
     asm volatile("mfence":: :"memory");
 }
@@ -46,6 +48,7 @@ void *alloc_new_node_from_type(NTypes type) {
 
     size_t node_size = size_align(get_node_size(type), 64);
     void *addr = fast_alloc(node_size);
+    roart_memory_usage += get_node_size(type);
 
     return addr;
 }
@@ -55,6 +58,7 @@ void *alloc_new_node_from_size(size_t size) {
 
     size_t node_size = size_align(size, 64);
     void *addr = fast_alloc(node_size);
+    roart_memory_usage += size;
 
     return addr;
 }

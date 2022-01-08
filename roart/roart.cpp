@@ -46,6 +46,7 @@ ROART::ROART() {
 
     // first open
     root = new(fast_alloc(sizeof(N256))) N256(0, {});
+    roart_memory_usage += sizeof(N256);
     clflush((char *) root, sizeof(N256));
     //        N::clflush((char *)root, sizeof(N256), true, true);
 //    std::cout << "[P-ART]\tfirst create a P-ART\n";
@@ -723,13 +724,13 @@ vector<ROART_KEY> ROART::scan(uint64_t min, uint64_t max) {
     vector<ROART_KEY> res;
     ROART_KEY *start, *end, *continue_key;
     size_t res_cnt = 0;
-    size_t res_len = 10000;
+    size_t res_len = 6300;
     start = new ROART_KEY(min, sizeof(uint64_t), 0);
     end = new ROART_KEY(max, sizeof(uint64_t), 0);
     continue_key = NULL;
     ROART_Leaf **result = new ROART_Leaf *[res_len];
     lookupRange(start, end, continue_key, result, res_len, res_cnt);
-//    cout << res_cnt << endl;
+    cout << res_cnt << endl;
     return res;
 }
 
@@ -787,6 +788,7 @@ typename ROART::OperationResults ROART::put(uint64_t key, uint64_t value) {
 #else
                 auto newNode = new(fast_alloc(get_node_size(NTypes::N4)))
                         N4(nextLevel, prefi); // not persist
+                roart_memory_usage += get_node_size(NTypes::N4);
 #endif
 
                 // 2)  add node and (tid, *k) as children
@@ -948,9 +950,12 @@ typename ROART::OperationResults ROART::put(uint64_t key, uint64_t value) {
 #else
             auto n4 = new (fast_alloc(get_node_size(NTypes::N4)))
                     N4(level + prefixLength, &fkey[level],
-                       prefixLength); // not persist//            auto n4 = new (fast_alloc(get_node_size(NTypes::N4)))
+                       prefixLength); // not persist
+//            auto n4 = new (fast_alloc(get_node_size(NTypes::N4)))
 //                N4(level + prefixLength, &k->fkey[level],
 //                   prefixLength); // not persist
+//                   prefixLength); // not persist
+            roart_memory_usage += get_node_size(NTypes::N4);
 #endif
 //            ROART_Leaf *newLeaf = allocLeaf(k);
             ROART_Leaf *newLeaf = allocLeaf(key, value, fkey);
@@ -1129,6 +1134,7 @@ ROART_Leaf *ROART::allocLeaf(const ROART_KEY *k) const {
 #else
     ROART_Leaf *newLeaf =
             new(fast_alloc(get_node_size(NTypes::ROART_Leaf))) ROART_Leaf(k); // not persist
+    roart_memory_usage += get_node_size(NTypes::ROART_Leaf);
     clflush((char *) newLeaf, sizeof(ROART_Leaf));
     return newLeaf;
 #endif
@@ -1152,6 +1158,7 @@ ROART_Leaf *ROART::allocLeaf(uint64_t _key, uint64_t _value, uint8_t *_fkey) con
 #else
     ROART_Leaf *newLeaf =
             new(fast_alloc(get_node_size(NTypes::ROART_Leaf))) ROART_Leaf(_key, _value, _fkey); // not persist
+    roart_memory_usage += get_node_size(NTypes::ROART_Leaf);
     clflush((char *) newLeaf, sizeof(ROART_Leaf));
     return newLeaf;
 #endif
@@ -1489,5 +1496,6 @@ void ROART::graphviz_debug() {
 
 ROART *new_roart() {
     ROART *_new_roart = new(fast_alloc(sizeof(ROART))) ROART();
+    roart_memory_usage += sizeof(ROART);
     return _new_roart;
 }

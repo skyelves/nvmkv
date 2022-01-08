@@ -28,6 +28,8 @@ using namespace std;
 const size_t LeafArrayLength = 64;
 const size_t FingerPrintShift = 48;
 
+extern uint64_t roart_memory_usage;
+
 int gethelpcount();
 
 enum class NTypes : uint8_t {
