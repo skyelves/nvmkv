@@ -292,7 +292,7 @@ public:
     static void unchecked_insert(N *node, uint8_t roart_key_byte, N *child,
                                  bool flush);
 
-    static bool key_keylen_lt(char *a, const int alen, char *b, const int blen,
+    static bool key_keylen_lt(uint8_t *a, const int alen, uint8_t *b, const int blen,
                               const int compare_level);
 
     static bool leaf_lt(ROART_Leaf *a, ROART_Leaf *b, int compare_level);

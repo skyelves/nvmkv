@@ -77,7 +77,7 @@ public:
                      ROART_Leaf *result[], std::size_t resultLen,
                      std::size_t &resultCount) const;
 
-    vector<ROART_KEY> scan(uint64_t min, uint64_t max);
+    vector<ROART_KEY> scan(uint64_t min, uint64_t max, uint64_t size = 0);
 
     OperationResults put(uint64_t key, uint64_t value);
 

@@ -129,7 +129,10 @@ uint64_t ROART::get(uint64_t key) {
 #else
 uint64_t ROART::get(uint64_t key) {
     // enter a new epoch
-    uint8_t *fkey = (uint8_t *) &key;
+    uint8_t fkey[8];
+    for (int i = 0; i < 8; ++i) {
+        fkey[i] = (key >> ((7 - i) * 8)) & 255;
+    }
     uint64_t key_len = 8;
 
 //    ROART_KEY *k = new ROART_KEY(key, sizeof(uint64_t), 0);
@@ -571,6 +574,7 @@ bool ROART::lookupRange(const ROART_KEY *start, const ROART_KEY *end, ROART_KEY 
                 uint8_t startLevel = (start->getKeyLen() > level)
                                          ? start->fkey[level]
                                          : (uint8_t)0;
+//                uint8_t startLevel = (start->key >> ((start->key_len - level - 1) * 8)) & 255;
                 std::tuple<uint8_t, N *> children[256];
                 uint32_t childrenCount = 0;
                 N::getChildren(node, startLevel, 255, children, childrenCount);
@@ -615,6 +619,7 @@ bool ROART::lookupRange(const ROART_KEY *start, const ROART_KEY *end, ROART_KEY 
             case PCCompareResults::Equal: {
                 uint8_t endLevel = (end->getKeyLen() > level) ? end->fkey[level]
                                                               : (uint8_t)255;
+//                uint8_t endLevel = (end->key >> ((end->key_len - level - 1) * 8)) & 255;
                 std::tuple<uint8_t, N *> children[256];
                 uint32_t childrenCount = 0;
                 N::getChildren(node, 0, endLevel, children, childrenCount);
@@ -668,6 +673,9 @@ restart:
                 (start->getKeyLen() > level) ? start->fkey[level] : (uint8_t)0;
             uint8_t endLevel =
                 (end->getKeyLen() > level) ? end->fkey[level] : (uint8_t)255;
+//            cout << startLevel - 0 << endl << endLevel - 0 << endl;
+//            uint8_t startLevel = (start->key >> ((start->key_len - level - 1) * 8)) & 255;
+//            uint8_t endLevel = (end->key >> ((end->key_len - level - 1) * 8)) & 255;
             if (startLevel != endLevel) {
                 std::tuple<uint8_t, N *> children[256];
                 uint32_t childrenCount = 0;
@@ -720,17 +728,17 @@ restart:
 }
 #endif
 
-vector<ROART_KEY> ROART::scan(uint64_t min, uint64_t max) {
+vector<ROART_KEY> ROART::scan(uint64_t min, uint64_t max, uint64_t size) {
     vector<ROART_KEY> res;
     ROART_KEY *start, *end, *continue_key;
     size_t res_cnt = 0;
-    size_t res_len = 10000;
+    size_t res_len = size ? size : max - min;
     start = new ROART_KEY(min, sizeof(uint64_t), 0);
     end = new ROART_KEY(max, sizeof(uint64_t), 0);
     continue_key = NULL;
     ROART_Leaf **result = new ROART_Leaf *[res_len];
     lookupRange(start, end, continue_key, result, res_len, res_cnt);
-    cout << res_cnt << endl;
+//    cout << res_cnt << endl;
     return res;
 }
 
@@ -739,7 +747,11 @@ typename ROART::OperationResults ROART::put(uint64_t key, uint64_t value) {
 
 //    ROART_KEY *k;
 //    k = new ROART_KEY(key, sizeof(uint64_t), value);
-    uint8_t *fkey = (uint8_t *) &key;
+//    uint8_t *fkey = (uint8_t *) &key;
+    uint8_t fkey[8];
+    for (int i = 0; i < 8; ++i) {
+        fkey[i] = (key >> ((7 - i) * 8)) & 255;
+    }
     unsigned long key_len = 8;
     unsigned long val_len = 8;
 

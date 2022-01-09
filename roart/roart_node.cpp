@@ -1071,7 +1071,7 @@ void N::unchecked_insert(N *node, uint8_t roart_key_byte, N *child, bool flush) 
     }
 }
 
-bool N::key_keylen_lt(char *a, const int alen, char *b, const int blen,
+bool N::key_keylen_lt(uint8_t *a, const int alen, uint8_t *b, const int blen,
                       const int compare_level) {
     for (int i = compare_level; i < std::min(alen, blen); i++) {
         if (a[i] != b[i]) {
@@ -1081,21 +1081,21 @@ bool N::key_keylen_lt(char *a, const int alen, char *b, const int blen,
     return alen < blen;
 }
 bool N::leaf_lt(ROART_Leaf *a, ROART_Leaf *b, int compare_level) {
-    return key_keylen_lt(a->GetKey(), a->key_len, b->GetKey(), b->key_len,
+    return key_keylen_lt((uint8_t *)a->GetKey(), a->key_len, (uint8_t *)b->GetKey(), b->key_len,
                          compare_level);
 }
 bool N::leaf_key_lt(ROART_Leaf *a, const ROART_KEY *b, const int compare_level) {
-    return key_keylen_lt(a->GetKey(), a->key_len,
-                         reinterpret_cast<char *>(b->fkey), b->key_len,
+    return key_keylen_lt((uint8_t *)a->GetKey(), a->key_len,
+                         (uint8_t *)(b->fkey), b->key_len,
                          compare_level);
 }
 bool N::key_leaf_lt(const ROART_KEY *a, ROART_Leaf *b, const int compare_level) {
-    return key_keylen_lt(reinterpret_cast<char *>(a->fkey), a->key_len,
-                         b->GetKey(), b->key_len, compare_level);
+    return key_keylen_lt((uint8_t *)(a->fkey), a->key_len,
+                         (uint8_t *)b->GetKey(), b->key_len, compare_level);
 }
 bool N::key_key_lt(const ROART_KEY *a, const ROART_KEY *b) {
-    return key_keylen_lt(reinterpret_cast<char *>(a->fkey), a->key_len,
-                         reinterpret_cast<char *>(b->fkey), b->key_len, 0);
+    return key_keylen_lt((uint8_t *)(a->fkey), a->key_len,
+                         (uint8_t *)(b->fkey), b->key_len, 0);
 }
 uint8_t N::getZentryKey(uintptr_t zentry) {
     return uint8_t(zentry >> ZentryKeyShift);
