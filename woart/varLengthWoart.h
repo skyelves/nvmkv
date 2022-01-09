@@ -124,7 +124,7 @@ typedef struct {
  */
 typedef struct {
     void *value;
-    char* key;
+    unsigned char* key;
     uint32_t key_len;
 } var_length_woart_leaf;
 
@@ -168,7 +168,7 @@ var_length_woart_tree *new_var_length_woart_tree();
  * @return NULL if the item was newly inserted, otherwise
  * the old value pointer is returned.
  */
-void *var_length_woart_put(var_length_woart_tree *t, char* key, int key_len, void *value, int value_len = 8);
+void *var_length_woart_put(var_length_woart_tree *t, unsigned char* key, int key_len, void *value, int value_len = 8);
 
 /**
  * Searches for a value in the woart tree
@@ -178,7 +178,7 @@ void *var_length_woart_put(var_length_woart_tree *t, char* key, int key_len, voi
  * @return NULL if the item was not found, otherwise
  * the value pointer is returned.
  */
-void *var_length_woart_get(const var_length_woart_tree *t,  char* key, int key_len);
+void *var_length_woart_get(const var_length_woart_tree *t, unsigned char* key, int key_len);
 
 void var_length_woart_all_subtree_kv(var_length_woart_node *n, vector<var_length_woart_key_value> &res);
 

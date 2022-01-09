@@ -23,7 +23,7 @@
 #define SET_LEAF(x) ((void*)((uintptr_t)x | 1))
 #define LEAF_RAW(x) ((var_length_woart_leaf*)((void*)((uintptr_t)x & ~1)))
 
-#define GET_VAR_POS(key,pos) ((key[pos-1]))
+#define GET_VAR_POS(key,pos) ((key[pos]))
 
 
 inline unsigned long __ffs(unsigned long word) {
@@ -254,7 +254,7 @@ static inline int min(int a, int b) {
  * Returns the number of prefix characters shared between
  * the key and node.
  */
-static int check_prefix(const var_length_woart_node *n, char* key, int key_len, int depth) {
+static int check_prefix(const var_length_woart_node *n,unsigned char* key, int key_len, int depth) {
 //	int max_cmp = min(min(n->pwoartial_len, WOART_MAX_PREFIX_LEN), (key_len * INDEX_BITS) - depth);
     int max_cmp = min(min(n->path.pwoartial_len, WOART_MAX_PREFIX_LEN), WOART_MAX_HEIGHT - depth);
     int idx;
@@ -269,7 +269,7 @@ static int check_prefix(const var_length_woart_node *n, char* key, int key_len, 
  * Checks if a leaf matches
  * @return 0 on success.
  */
-static int leaf_matches(const var_length_woart_leaf *n, char* key, int key_len, int depth) {
+static int leaf_matches(const var_length_woart_leaf *n, unsigned char* key, int key_len, int depth) {
     (void) depth;
     // Fail if the key lengths are different
     if (n->key_len != (uint32_t) key_len) return 1;
@@ -287,7 +287,7 @@ static int leaf_matches(const var_length_woart_leaf *n, char* key, int key_len, 
  * @return NULL if the item was not found, otherwise
  * the value pointer is returned.
  */
-void *var_length_woart_get(const var_length_woart_tree *t, char* key, int key_len) {
+void *var_length_woart_get(const var_length_woart_tree *t,unsigned  char* key, int key_len) {
     var_length_woart_node **child;
     var_length_woart_node *n = t->root;
     int prefix_len, depth = 0;
@@ -360,7 +360,7 @@ static var_length_woart_leaf *minimum(const var_length_woart_node *n) {
     }
 }
 
-static var_length_woart_leaf *make_leaf(char* key, int key_len, void *value, bool flush) {
+static var_length_woart_leaf *make_leaf(unsigned char* key, int key_len, void *value, bool flush) {
     //woart_leaf *l = (woart_leaf*)malloc(sizeof(woart_leaf));
     var_length_woart_leaf *l;
     void *ret;
@@ -381,7 +381,7 @@ static int longest_common_prefix(var_length_woart_leaf *l1, var_length_woart_lea
     int idx, max_cmp = WOART_MAX_HEIGHT - depth;
 
     for (idx = 0; idx < max_cmp; idx++) {
-        if (l1->key[depth + idx-1] != l2->key[depth + idx-1]){
+        if (l1->key[depth + idx] != l2->key[depth + idx]){
             return idx;
         }
     }
@@ -611,7 +611,7 @@ static void add_child(var_length_woart_node *n, var_length_woart_node **ref, uns
 /**
  * Calculates the index at which the prefixes mismatch
  */
-static int prefix_mismatch(const var_length_woart_node *n, char* key, int key_len, int depth, var_length_woart_leaf **l) {
+static int prefix_mismatch(const var_length_woart_node *n, unsigned char* key, int key_len, int depth, var_length_woart_leaf **l) {
 //	int max_cmp = min(min(WOART_MAX_PREFIX_LEN, n->pwoartial_len), (key_len * INDEX_BITS) - depth);
     int max_cmp = min(min(WOART_MAX_PREFIX_LEN, n->path.pwoartial_len), WOART_MAX_HEIGHT - depth);
     int idx;
@@ -634,7 +634,7 @@ static int prefix_mismatch(const var_length_woart_node *n, char* key, int key_le
     return idx;
 }
 
-static void *recursive_insert(var_length_woart_node *n, var_length_woart_node **ref, char* key,
+static void *recursive_insert(var_length_woart_node *n, var_length_woart_node **ref, unsigned char* key,
                               int key_len, void *value, int depth, int *old) {
     // If we are at a NULL node, inject a leaf
     if (!n) {
@@ -667,10 +667,10 @@ static void *recursive_insert(var_length_woart_node *n, var_length_woart_node **
         int i, longest_prefix = longest_common_prefix(l, l2, depth);
         new_node->n.path.pwoartial_len = longest_prefix;
         for (i = 0; i < min(WOART_MAX_PREFIX_LEN, longest_prefix); i++)
-            new_node->n.path.pwoartial[i] = key[depth + i - 1];
+            new_node->n.path.pwoartial[i] = key[depth + i];
 
-        add_child4_noflush(new_node, ref, l->key[depth + longest_prefix-1], SET_LEAF(l));
-        add_child4_noflush(new_node, ref, l2->key[depth + longest_prefix-1], SET_LEAF(l2));
+        add_child4_noflush(new_node, ref, l->key[depth + longest_prefix], SET_LEAF(l));
+        add_child4_noflush(new_node, ref, l2->key[depth + longest_prefix], SET_LEAF(l2));
 
         mfence();
         flush_buffer(new_node, sizeof(var_length_woart_node4), false);
@@ -768,7 +768,7 @@ static void *recursive_insert(var_length_woart_node *n, var_length_woart_node **
  * @return NULL if the item was newly inserted, otherwise
  * the old value pointer is returned.
  */
-void *var_length_woart_put(var_length_woart_tree *t, char* key, int key_len, void *value, int value_len) {
+void *var_length_woart_put(var_length_woart_tree *t,unsigned char* key, int key_len, void *value, int value_len) {
     int old_val = 0;
     void *value_allocated = fast_alloc(value_len);
     memcpy(value_allocated, value, value_len);
