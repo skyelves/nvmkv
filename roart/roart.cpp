@@ -724,7 +724,7 @@ vector<ROART_KEY> ROART::scan(uint64_t min, uint64_t max) {
     vector<ROART_KEY> res;
     ROART_KEY *start, *end, *continue_key;
     size_t res_cnt = 0;
-    size_t res_len = 6300;
+    size_t res_len = 10000;
     start = new ROART_KEY(min, sizeof(uint64_t), 0);
     end = new ROART_KEY(max, sizeof(uint64_t), 0);
     continue_key = NULL;
@@ -937,6 +937,7 @@ typename ROART::OperationResults ROART::put(uint64_t key, uint64_t value) {
                 level + prefixLength == key_len) {
                 // duplicate leaf
                 memcpy(leaf->value, &(value), val_len);
+                clflush(leaf->value, val_len);
                 node->writeUnlock();
                 //                std::cout<<"ohfinish\n";
                 return OperationResults::Existed;
@@ -1498,4 +1499,26 @@ ROART *new_roart() {
     ROART *_new_roart = new(fast_alloc(sizeof(ROART))) ROART();
     roart_memory_usage += sizeof(ROART);
     return _new_roart;
+}
+
+uint64_t ROART::memory_profile(N *tmp) {
+//    return roart_memory_usage;
+    uint64_t res = 0;
+    if(tmp == nullptr) {
+        tmp = root;
+    }
+    if (N::isLeaf(tmp)) {
+        res += sizeof(ROART_Leaf);
+    } else {
+        res += get_node_size(tmp->getType());
+        std::tuple<uint8_t, N *> children[256];
+        uint32_t childrenCount = 0;
+        N::getChildren(tmp, 0u, 255u, children, childrenCount);
+        for (uint32_t i = 0; i < childrenCount; ++i) {
+            N *n = std::get<1>(children[i]);
+            res += memory_profile(n);
+        }
+    }
+
+    return res;
 }

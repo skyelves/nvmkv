@@ -87,6 +87,7 @@ public:
 
     ROART_Leaf *allocLeaf(uint64_t _key, uint64_t _value, uint8_t *_fkey) const;
 
+    uint64_t memory_profile(N *tmp = nullptr);
 
     void graphviz_debug();
 } __attribute__((aligned(64)));
