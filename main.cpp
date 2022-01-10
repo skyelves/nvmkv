@@ -27,6 +27,7 @@
 #include "woart/varLengthWoart.h"
 #include "wort/varLengthWort.h"
 #include "lbtree/lbtree.h"
+#include "lbtree/varLengthLbtree.h"
 
 
 using namespace std;
@@ -182,7 +183,9 @@ Length64HashTree *l64ht;
 varlength_fastfair *vlff;
 var_length_woart_tree *vlwt;
 var_length_wort_tree *vlwot;
+
 lbtree *lbt;
+varLengthLbtree * vllbt;
 
 conwoart_tree *conwoart;
 concurrencyhashtree *cht;
@@ -1065,10 +1068,11 @@ void varLengthTest() {
     int *lengths = new int[testNum];
     rng r;
     rng_init(&r, 1, 2);
-
+    unordered_map<int,int> LengthCount;
     for (int i = 0; i < testNum; i++) {
-        lengths[i] = span[6];
-//        lengths[i] = span[rng_next(&r) % 6];
+//        lengths[i] = span[6];
+        lengths[i] = span[rng_next(&r) % 7];
+        LengthCount[lengths[i]]++;
         keys[i] = static_cast<unsigned char *>( malloc(lengths[i]));
 
         for (int j = 0; j < lengths[i]; j++) {
@@ -1083,6 +1087,9 @@ void varLengthTest() {
     //     mykey[i] = rng_next(&r);
     // }
 
+    for(auto i:LengthCount){
+        cout<<i.first<<" "<<i.second<<endl;
+    }
 
     Time_BODY(1, "varLengthHashTree put ", { vlht->crash_consistent_put(NULL, lengths[i], keys[i], value); })
     Time_BODY(1, "varLengthHashTree get ", { vlht->get(lengths[i], keys[i]); })
@@ -1104,11 +1111,19 @@ void varLengthTest() {
      })
 
 
-    Time_BODY(1, "varLengthWort put ", { var_length_wort_put(vlwot, (char *) keys[i], lengths[i], (int *) &value); })
+    Time_BODY(1, "varLengthWort put ", { var_length_wort_put(vlwot, (unsigned char *) keys[i], lengths[i], (int *) &value); })
     Time_BODY(1, "varLengthWort get ", {
-        if (*(int *) (var_length_wort_get(vlwot, (char *) keys[i], lengths[i])) != value) {
+        if (*(int *) (var_length_wort_get(vlwot, (unsigned char *) keys[i], lengths[i])) != value) {
             cout << *(uint64_t *) &mykey[i] << endl;
         };
+    })
+
+
+    Time_BODY(1, "varLengthLbtree put ", {  vllbt->insert((unsigned char *) keys[i], lengths[i] , (void*) &value); })
+    Time_BODY(1, "varLengthLbtree get ", {
+        if(value != * (int *) vllbt->lookup((unsigned char*)keys[i],lengths[i])){
+            cout << *(uint64_t *) &mykey[i] << endl;
+        }
     })
 //    cout << concurrency_fastalloc_profile() << endl;
 //    fast_free();
@@ -1350,9 +1365,9 @@ void amazon_review(const string fileName) {
         };
     })
 
-    Time_BODY(1, "varLengthWort put ", { var_length_wort_put(vlwot, (char *) keys[i], lengths[i], (char *) &value); })
+    Time_BODY(1, "varLengthWort put ", { var_length_wort_put(vlwot, (unsigned char *) keys[i], lengths[i], (char *) &value); })
     Time_BODY(1, "varLengthWort get ", {
-        if (*(char *) (var_length_wort_get(vlwot, (char *) keys[i], lengths[i])) != 1) {
+        if (*(char *) (var_length_wort_get(vlwot, (unsigned char *) keys[i], lengths[i])) != 1) {
             cout << *(uint64_t *) &mykey[i] << endl;
         };
     })
@@ -1615,7 +1630,7 @@ void wiki(uint64_t _testNum = 100000000, string type = "a") {
         }
 
         Time_BODY(1, "varLengthWort load ",
-                  { var_length_wort_put(vlwot, (char *) allLoadKeysStr[i], allLoadKeysLenStr[i], (char *) &value); })
+                  { var_length_wort_put(vlwot, (unsigned char *) allLoadKeysStr[i], allLoadKeysLenStr[i], (char *) &value); })
 
         Time_BODY(1, "varLengthWoart load ",
                   {
@@ -1636,9 +1651,9 @@ void wiki(uint64_t _testNum = 100000000, string type = "a") {
     int j = 0;
     Time_BODY(1, "varLengthWort run ", {
         if (allRunOp[i] == YCSBRunOp::Update || allRunOp[i] == YCSBRunOp::Insert) {
-            var_length_wort_put(vlwot, (char *) allRunKeysStr[i], allRunKeysLenStr[i], (char *) &value);
+            var_length_wort_put(vlwot, (unsigned char *) allRunKeysStr[i], allRunKeysLenStr[i], (char *) &value);
         } else if (allRunOp[i] == YCSBRunOp::Get) {
-            var_length_wort_get(vlwot, (char *) allRunKeysStr[i], allRunKeysLenStr[i]);
+            var_length_wort_get(vlwot, (unsigned char *) allRunKeysStr[i], allRunKeysLenStr[i]);
         } else if (allRunOp[i] == YCSBRunOp::Scan) { ;
         }
     })
@@ -1682,8 +1697,8 @@ void varLengthCorrectnessTest(){
     rng_init(&r, 1, 2);
 
     for (int i = 0; i < testNum; i++) {
-        lengths[i] = span[6];
-//        lengths[i] = span[rng_next(&r) % 6];
+//        lengths[i] = span[6];
+        lengths[i] = span[rng_next(&r) % 7];
         keys[i] = static_cast<unsigned char *>( malloc(lengths[i]));
 
         for (int j = 0; j < lengths[i]; j++) {
@@ -1714,30 +1729,46 @@ void varLengthCorrectnessTest(){
 //    }
 //    cout<< "varLengthFast&Fair failed "<< failedCount <<endl;
 
-    failedCount = 0 ;
-    for (int i = 0; i < testNum; ++i) {
-        var_length_woart_put(vlwt, (unsigned char *) keys[i], lengths[i] * 8, (int *) &value);
-        if(value != * (int *) var_length_woart_get(vlwt,(unsigned char*)keys[i],lengths[i]*8)){
-            failedCount ++;
-        }
-    }
-    for (int i = 0; i < testNum; ++i) {
-        if(value != * (int *) var_length_woart_get(vlwt,(unsigned char*)keys[i],lengths[i]*8)){
-            failedCount ++;
-        }
-    }
-    cout<< "varLengthWoart failed "<< failedCount <<endl;
+//    failedCount = 0 ;
+//    for (int i = 0; i < testNum; ++i) {
+//        var_length_woart_put(vlwt, (unsigned char *) keys[i], lengths[i] * 8, (int *) &value);
+//        if(value != * (int *) var_length_woart_get(vlwt,(unsigned char*)keys[i],lengths[i]*8)){
+//            failedCount ++;
+//        }
+//    }
+//    for (int i = 0; i < testNum; ++i) {
+//        if(value != * (int *) var_length_woart_get(vlwt,(unsigned char*)keys[i],lengths[i]*8)){
+//            failedCount ++;
+//        }
+//    }
+//    cout<< "varLengthWoart failed "<< failedCount <<endl;
+//
+//    failedCount = 0 ;
+//    for (int i = 0; i < testNum; ++i) {
+//        var_length_wort_put(vlwot, (unsigned char *) keys[i], lengths[i], (char *) &value);
+//    }
+//    for (int i = 0; i < testNum; ++i) {
+//        if(value != * (int *) (var_length_wort_get(vlwot, (unsigned char *) keys[i], lengths[i]))){
+//            failedCount ++;
+//        }
+//    }
+//    cout<< "varLengthWort failed "<< failedCount <<endl;
+//
+
 
     failedCount = 0 ;
     for (int i = 0; i < testNum; ++i) {
-        var_length_wort_put(vlwot, (char *) keys[i], lengths[i], (char *) &value);
-    }
-    for (int i = 0; i < testNum; ++i) {
-        if(value != * (int *) (var_length_wort_get(vlwot, (char *) keys[i], lengths[i]))){
+        vllbt->insert((unsigned char *) keys[i], lengths[i] , (void*) &value);
+        if(value != * (int *) vllbt->lookup((unsigned char*)keys[i],lengths[i])){
             failedCount ++;
         }
     }
-    cout<< "varLengthWort failed "<< failedCount <<endl;
+    for (int i = 0; i < testNum; ++i) {
+        if(value != * (int *) vllbt->lookup((unsigned char*)keys[i],lengths[i])){
+            failedCount ++;
+        }
+    }
+    cout<< "varLengthlbtree failed "<< failedCount <<endl;
 }
 
 int main(int argc, char *argv[]) {
@@ -1759,6 +1790,7 @@ int main(int argc, char *argv[]) {
 // //    mt = new_mass_tree();
 
     vlff = new_varlengthfastfair();
+    vllbt = new_varLengthlbtree();
 //    bt = new_blink_tree(numThread);
 //     correctnessTest();
 
