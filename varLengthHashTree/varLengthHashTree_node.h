@@ -44,9 +44,9 @@
 class HashTreeKeyValue {
 public:
     bool type = 1;
-    unsigned char* key;// indeed only need uint8 or uint16
     unsigned int len;
     uint64_t value = 0;
+    unsigned char* key;// indeed only need uint8 or uint16
 
     HashTreeKeyValue(){
         key = NULL;

@@ -414,8 +414,11 @@ void *var_length_wort_put(var_length_wort_tree *t, char* key, int key_len, void 
     int old_val = 0;
     void *value_allocated = fast_alloc(value_len);
     memcpy(value_allocated, value, value_len);
+    char *key_allocated = (char *)fast_alloc(key_len);
+    memcpy(key_allocated, key, key_len);
     flush_buffer(value_allocated, value_len, true);
-    void *old = recursive_insert(t->root, &t->root, key, key_len, value_allocated, 0, &old_val);
+    flush_buffer(key_allocated, key_len, true);
+    void *old = recursive_insert(t->root, &t->root, key_allocated, key_len, value_allocated, 0, &old_val);
     if (!old_val) t->size++;
     return old;
 }

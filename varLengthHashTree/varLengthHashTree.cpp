@@ -94,7 +94,12 @@ VarLengthHashTree *new_varLengthHashtree() {
 
 
 void VarLengthHashTree:: crash_consistent_put(VarLengthHashTreeNode *_node, int length, unsigned char* key, uint64_t value, int pos){
-    crash_consistent_put(_node,length,key,value,(uint64_t)&root,pos);
+//    unsigned char *key_allocated = (unsigned char *)fast_alloc(length);
+//    memcpy(key_allocated, key, length);
+//    clflush((char *)key_allocated, length);
+//    crash_consistent_put(_node, length, key_allocated, value, (uint64_t)&root, pos);
+//    crash_consistent_put_without_lock(_node, length, key_allocated, value, (uint64_t)&root, pos);
+    crash_consistent_put_without_lock(_node, length, key, value, (uint64_t)&root, pos);
 }
 
 
@@ -324,6 +329,7 @@ void VarLengthHashTree:: crash_consistent_put(VarLengthHashTreeNode *_node, int 
                 newNode->put(subkey,(uint64_t)kv,(uint64_t)&newNode);
                 // newNode->put(GET_16BITS(currentNode->header.array,matchedPrefixLen),(uint64_t)currentNode);
                 newNode->put(GET_32BITS(currentNode->header.array,matchedPrefixLen),(uint64_t)currentNode,(uint64_t)&newNode);
+                clflush((char *) newNode, sizeof(VarLengthHashTreeNode));
 
                 // modify currentNode
                 matchedPrefixLen += 4;
@@ -334,8 +340,6 @@ void VarLengthHashTree:: crash_consistent_put(VarLengthHashTreeNode *_node, int 
                 currentNode->header.len -= matchedPrefixLen;
 
                 clflush((char*)&(currentNode->header),8);
-                clflush((char *) newNode, sizeof(VarLengthHashTreeNode));
-
                 // modify the successor
                 *(VarLengthHashTreeNode**)beforeAddress = newNode;
 
@@ -459,6 +463,8 @@ void VarLengthHashTree:: crash_consistent_put_without_lock(VarLengthHashTreeNode
 
             newNode->put(GET_32BITS(currentNode->header.array,matchedPrefixLen),(uint64_t)currentNode,(uint64_t)&newNode);
 
+            clflush((char *) newNode, sizeof(VarLengthHashTreeNode));
+
             matchedPrefixLen += HT_NODE_LENGTH/SIZE_OF_CHAR;
 
             // modify currentNode 
@@ -476,7 +482,6 @@ void VarLengthHashTree:: crash_consistent_put_without_lock(VarLengthHashTreeNode
             currentNode->header.len -= matchedPrefixLen;
 
             clflush((char*)&(currentNode->header),8);
-            clflush((char *) newNode, sizeof(VarLengthHashTreeNode));
 
             // modify the successor 
             *(VarLengthHashTreeNode**)beforeAddress = newNode;

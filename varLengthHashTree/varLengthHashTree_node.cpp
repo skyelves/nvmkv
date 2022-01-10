@@ -3,6 +3,8 @@
 //
 
 #include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 #include "varLengthHashTree_node.h"
 
 
@@ -24,9 +26,10 @@ inline void clflush(char *data, size_t len) {
 }
 
 HashTreeKeyValue *new_vlht_key_value(unsigned char* key, unsigned int len ,uint64_t value) {
-    HashTreeKeyValue *_new_key_value = static_cast<HashTreeKeyValue *>(concurrency_fast_alloc(sizeof(HashTreeKeyValue)));
+    HashTreeKeyValue *_new_key_value = static_cast<HashTreeKeyValue *>(concurrency_fast_alloc(sizeof(HashTreeKeyValue)+len));
     _new_key_value->type = 1;
-    _new_key_value->key = key;
+    _new_key_value->key = (unsigned char *)_new_key_value + sizeof(HashTreeKeyValue);
+    memcpy((char *)_new_key_value + sizeof(HashTreeKeyValue), key, len);
     _new_key_value->len = len;
     _new_key_value->value = value;
     return _new_key_value;
@@ -181,7 +184,7 @@ VarLengthHashTreeNode::VarLengthHashTreeNode() {
     dir_size = pow(2, global_depth);
     header.depth = 1;
     lock_meta = 0;
-    header.len = 0;
+    header.len = 7;
     // dir = static_cast<HashTreeSegment **>(concurrency_fast_alloc(sizeof(HashTreeSegment *) * dir_size));
     treeNodeValues = static_cast<HashTreeKeyValue**>(concurrency_fast_alloc(sizeof(HashTreeKeyValue* ) * (1+HT_NODE_PREFIX_MAX_BITS/HT_NODE_LENGTH)));
 
