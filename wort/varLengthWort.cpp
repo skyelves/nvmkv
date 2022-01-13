@@ -20,6 +20,8 @@
 
 #define CACHE_LINE_SIZE 64
 
+uint64_t wort_decompression_cnt = 0;
+
 static inline void mfence() {
     asm volatile("mfence":: : "memory");
 }
@@ -340,6 +342,7 @@ static void *recursive_insert(var_length_wort_node *n, var_length_wort_node **re
             goto RECURSE_SEARCH;
         }
 
+        wort_decompression_cnt++;
         // Create a new node
         var_length_wort_node16 *new_node = (var_length_wort_node16 *) var_length_alloc_node();
         new_node->n.depth = depth;

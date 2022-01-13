@@ -17,8 +17,9 @@
 
 #define GET_SEG_POS(currentNode,dir_index) (((uint64_t)(currentNode) + sizeof(VarLengthHashTreeNode) + dir_index*sizeof(HashTreeSegment*)))
 
-#define GET_32BITS(pointer,pos) (*((uint32_t *)(pointer+pos)))
-// #define GET_32BITS(pointer,pos) ((*(pointer+pos))<<24 | (*(pointer+pos+1))<< 16 | (*(pointer+pos+2))<<8 | *(pointer+pos+3))
+//#define GET_32BITS(pointer,pos) (*((uint32_t *)(pointer+pos)))
+ #define GET_32BITS(pointer,pos) ((*(pointer+pos))<<24 | (*(pointer+pos+1))<< 16 | (*(pointer+pos+2))<<8 | *(pointer+pos+3))
+#define GET_BUCKET_NUM_VARI(pointer, pos) (*(uint8_t *)(pointer + pos + 3))
 #define GET_16BITS(pointer,pos) ((*(pointer+pos))<<8 | (*(pointer+pos+1)))
 
 #define _16_BITS_OF_BYTES 2
@@ -393,8 +394,11 @@ void VarLengthHashTree:: crash_consistent_put_without_lock(VarLengthHashTreeNode
             uint64_t dir_index = GET_SEG_NUM(subkey, HT_NODE_LENGTH, currentNode->global_depth);
             HashTreeSegment *tmp_seg = *(HashTreeSegment **)GET_SEG_POS(currentNode,dir_index);
             uint64_t seg_index = GET_BUCKET_NUM(subkey, HT_BUCKET_MASK_LEN);
+            uint64_t test = GET_BUCKET_NUM_VARI(key, pos);
             HashTreeBucket *tmp_bucket = &(tmp_seg->bucket[seg_index]);
-
+#ifdef VLHT_PROFILE
+            bucket_cnt[seg_index]++;
+#endif
             int i;
             uint64_t beforeA;
             for (i = 0; i < HT_BUCKET_SIZE; ++i) {
@@ -445,7 +449,9 @@ void VarLengthHashTree:: crash_consistent_put_without_lock(VarLengthHashTreeNode
         }else{
             // if prefix is not match (shorter)
             // split a new tree node and insert 
-
+#ifdef VLHT_PROFILE
+            decompression_cnt++;
+#endif
             // build new tree node
             VarLengthHashTreeNode *newNode = new_varlengthhashtree_node(0,currentNode->header.depth);
             newNode->header.init(&currentNode->header,matchedPrefixLen,currentNode->header.depth);
@@ -846,6 +852,9 @@ void Length64HashTree::scan(uint64_t left, uint64_t right){
 
 
 void Length64HashTree::node_scan(Length64HashTreeNode *tmp, uint64_t left, uint64_t right, vector<Length64HashTreeKeyValue> &res, int pos, uint64_t prefix){
+#ifdef ERT_PROFILE
+    scan_cnt++;
+#endif
     if(unlikely(tmp == NULL)){
         tmp = root;
     }
@@ -921,6 +930,9 @@ void Length64HashTree::node_scan(Length64HashTreeNode *tmp, uint64_t left, uint6
         }
         return;
     }
+#ifdef ERT_PROFILE
+    scan_node_num++;
+#endif
     Length64HashTreeSegment *last_seg = NULL;
     for(uint32_t i=leftPos;i<=rightPos;i++){
         Length64HashTreeSegment *tmp_seg = *(Length64HashTreeSegment **)GET_SEG_POS(tmp,i);
@@ -972,6 +984,9 @@ void Length64HashTree::node_scan(Length64HashTreeNode *tmp, uint64_t left, uint6
 }
 
 void Length64HashTree::getAllNodes(Length64HashTreeNode *tmp, vector<Length64HashTreeKeyValue> &res, int pos, uint64_t prefix){
+#ifdef ERT_PROFILE
+    scan_node_num++;
+#endif
     if(tmp==NULL){
         return;
     }

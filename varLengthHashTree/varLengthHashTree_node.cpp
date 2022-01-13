@@ -11,6 +11,10 @@
 #define GET_SEG_NUM(key, key_len, depth)  ((key>>(key_len-depth))&(((uint64_t)1<<depth)-1))
 #define GET_BUCKET_NUM(key, bucket_mask_len) ((key)&(((uint64_t)1<<bucket_mask_len)-1))
 
+#ifdef VLHT_PROFILE
+uint64_t split_cnt = 0;
+uint64_t double_cnt = 0;
+#endif
 
 inline void mfence(void) {
     asm volatile("mfence":: :"memory");
@@ -198,7 +202,7 @@ VarLengthHashTreeNode::~VarLengthHashTreeNode() {
 }
 
 void VarLengthHashTreeNode::init(int prefixLen, unsigned char headerDepth, unsigned char global_depth) {
-    
+
     type = 0;
     this->global_depth = global_depth;
     this->dir_size = pow(2, global_depth);
@@ -235,6 +239,10 @@ void VarLengthHashTreeNode::put(uint64_t subkey, uint64_t value, HashTreeSegment
     if (bucket_index == -1) {
         //condition: full
         if (likely(tmp_seg->depth < global_depth)) {
+#ifdef VLHT_PROFILE
+            split_cnt++;
+#endif
+
             HashTreeSegment *new_seg = new_vlht_segment(tmp_seg->depth + 1);
             int64_t stride = pow(2, global_depth - tmp_seg->depth);
             int64_t left = dir_index - dir_index % stride;
@@ -271,6 +279,10 @@ void VarLengthHashTreeNode::put(uint64_t subkey, uint64_t value, HashTreeSegment
             return;
         } else {
             //condition: tmp_bucket->depth == global_depth
+#ifdef VLHT_PROFILE
+            double_cnt++;
+#endif
+
             VarLengthHashTreeNode *newNode = static_cast<VarLengthHashTreeNode *>(concurrency_fast_alloc(sizeof(VarLengthHashTreeNode)+sizeof(HashTreeSegment *)*dir_size*2));
             newNode->init(this);
 
@@ -308,7 +320,7 @@ bool VarLengthHashTreeNode::put_with_read_lock(uint64_t subkey, uint64_t value, 
     if (bucket_index == -1) {
         //condition: full
         if (likely(tmp_seg->depth < global_depth)) {
-            
+
             if(!read_lock()){
                 tmp_bucket->free_read_lock();
                 tmp_seg->free_read_lock();
@@ -343,7 +355,7 @@ bool VarLengthHashTreeNode::put_with_read_lock(uint64_t subkey, uint64_t value, 
                 std::this_thread::yield();
                 return false;
             }
-            
+
             if(tmp_seg->depth!=old_depth){
                 tmp_bucket->free_read_lock();
                 tmp_seg->free_write_lock();
@@ -429,7 +441,7 @@ bool VarLengthHashTreeNode::put_with_read_lock(uint64_t subkey, uint64_t value, 
         uint64_t old_value = tmp_bucket->counter[bucket_index].value;
         // free bucket read lock
         tmp_bucket->free_read_lock();
-  
+
         if(!tmp_bucket->write_lock()){
             tmp_seg->free_read_lock();
             std::this_thread::yield();
@@ -489,7 +501,7 @@ void VarLengthHashTreeHeader::init(VarLengthHashTreeHeader* oldHeader, unsigned 
 
 // make sure return n HT_NODE_LENGTH
 int VarLengthHashTreeHeader::computePrefix(unsigned char* key, int len, unsigned int pos){
-    int matchedLength = 0; 
+    int matchedLength = 0;
     for(int i=0;i<this->len;i++){
         if(pos+i>=len||key[pos+i]!=this->array[i]){
             return matchedLength - matchedLength%(HT_NODE_LENGTH/SIZE_OF_CHAR);
@@ -616,7 +628,7 @@ void Length64HashTreeHeader::init(Length64HashTreeHeader* oldHeader, unsigned ch
     this->depth = depth;
     this->len = length;
 }
- 
+
 int Length64HashTreeHeader::computePrefix(uint64_t key, int startPos){
     if(this->len==0){
         return 0;
@@ -630,7 +642,7 @@ int Length64HashTreeHeader::computePrefix(uint64_t key, int startPos){
         }
         res++;
     }
-    return res; 
+    return res;
 }
 
 void Length64HashTreeHeader::assign(uint64_t key, int startPos){
@@ -696,13 +708,13 @@ void Length64HashTreeNode::put(uint64_t subkey, uint64_t value, Length64HashTree
                     uint64_t tmp_value = tmp_seg->bucket[i].counter[j].value;
                     dir_index = GET_SEG_NUM(tmp_key, HT_NODE_LENGTH, global_depth);
                     if (dir_index >= mid) {
-//                        tmp_seg->bucket[i].counter[j].subkey = 0;
-//                        tmp_seg->bucket[i].counter[j].value = 0;
                         Length64HashTreeSegment *dst_seg = new_seg;
                         seg_index = i;
                         Length64HashTreeBucket *dst_bucket = &(dst_seg->bucket[seg_index]);
                         dst_bucket->counter[bucket_cnt].value = tmp_value;
                         dst_bucket->counter[bucket_cnt].subkey = tmp_seg->bucket[i].counter[j].subkey;
+//                        tmp_seg->bucket[i].counter[j].subkey = 0;
+//                        tmp_seg->bucket[i].counter[j].value = 0;
                         bucket_cnt++;
                     }
                 }

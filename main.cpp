@@ -153,7 +153,7 @@ bool test_case[10] = {0, // ht
                       1, // woart
                       0, // cacheline_concious_extendible_hash
                       1, // fast&fair
-                      0, // roart
+                      1, // roart
                       1, // ert
                       1, // lb+tree
                       0};
@@ -369,9 +369,9 @@ void speedTest() {
     rng r;
     rng_init(&r, 1, 2);
     for (int i = 0; i < testNum; ++i) {
-        mykey[i] = rng_next(&r);
+//        mykey[i] = rng_next(&r);
 //        mykey[i] = rng_next(&r) & 0xffffffff00000000;
-//        mykey[i] = rng_next(&r) % testNum;
+        mykey[i] = rng_next(&r) % testNum;
 //        mykey[i] = rng_next(&r) % 100000000;
 //        mykey[i] = i;
     }
@@ -626,8 +626,10 @@ void profile() {
     rng r;
     rng_init(&r, 1, 2);
     for (int i = 0; i < testNum; ++i) {
-//        mykey[i] = rng_next(&r);
-        mykey[i] = rng_next(&r) % testNum;
+        if (i % 3 == 0)
+            mykey[i] = rng_next(&r);
+        else
+            mykey[i] = rng_next(&r) % testNum;
     }
     uint64_t value = 1;
     timeval start, ends;
@@ -639,6 +641,8 @@ void profile() {
 //        woart_put(woart, mykey[i], 8, &value);
 //        ff->put(mykey[i], (char *) &value);
         l64ht->crash_consistent_put(NULL, mykey[i], i + 1, 0);
+        if(i % (testNum/10) == 0)
+            cout << l64ht->memory_profile(NULL) << endl;
 //        lbt->insert(mykey[i], &value);
 //        if (i % 10000 == 0) {
 //            out << i << ", " << cceh->dir_size << ", "
@@ -1102,22 +1106,22 @@ void varLengthTest() {
 //        };
 //    })
 
-    Time_BODY(1, "varLengthWoart put ",
-              { var_length_woart_put(vlwoart, (unsigned char *) keys[i], lengths[i] * 8, (int *) &value); })
-     Time_BODY(1,"varLengthWoart get " , {
-         if(*(int*)(var_length_woart_get(vlwoart,(unsigned char*)keys[i],lengths[i] * 8)) != value){
-             cout<<*(uint64_t*)&mykey[i]<<endl;
-         };
-     })
-
-
-
-    Time_BODY(1, "varLengthWort put ", { var_length_wort_put(vlwort, (char *) keys[i], lengths[i], (int *) &value); })
-    Time_BODY(1, "varLengthWort get ", {
-        if (*(int *) (var_length_wort_get(vlwort, (char *) keys[i], lengths[i])) != value) {
-            cout << *(uint64_t *) &mykey[i] << endl;
-        };
-    })
+//    Time_BODY(1, "varLengthWoart put ",
+//              { var_length_woart_put(vlwoart, (unsigned char *) keys[i], lengths[i] * 8, (int *) &value); })
+//     Time_BODY(1,"varLengthWoart get " , {
+//         if(*(int*)(var_length_woart_get(vlwoart,(unsigned char*)keys[i],lengths[i] * 8)) != value){
+//             cout<<*(uint64_t*)&mykey[i]<<endl;
+//         };
+//     })
+//
+//
+//
+//    Time_BODY(1, "varLengthWort put ", { var_length_wort_put(vlwort, (char *) keys[i], lengths[i], (int *) &value); })
+//    Time_BODY(1, "varLengthWort get ", {
+//        if (*(int *) (var_length_wort_get(vlwort, (char *) keys[i], lengths[i])) != value) {
+//            cout << *(uint64_t *) &mykey[i] << endl;
+//        };
+//    })
 
 
     Time_BODY(1, "varLengthLbtree put ", {  vllbt->insert((unsigned char *) keys[i], lengths[i] , (void*) &value); })
@@ -1399,7 +1403,7 @@ void parse_line1(string rawStr, string &key, uint64_t &scanNum, YCSBRunOp &op) {
     std::string opStr = rawStr.substr(0, 4);
     uint32_t t = rawStr.find(" ");
     uint32_t t1 = rawStr.find(" ", t + 1);
-    key = (opStr == "SCAN") ? rawStr.substr(t) : rawStr.substr(t, t1);
+    key = (opStr == "SCAN") ? rawStr.substr(t + 1) : rawStr.substr(t + 1, t1);
     char *p;
     if (opStr == "READ") {
         op = YCSBRunOp::Get;
@@ -1442,15 +1446,17 @@ void parseLoadFile(std::string wlName, uint64_t len = 0, uint64_t type = 0) {
             string hashKey;
             parse_line1(rawStr, hashKey, scanNum, op);
             if (op == YCSBRunOp::Insert || op == YCSBRunOp::Update) {
-                int tmplen = myalign(hashKey.size(), 4) + 1;
-                char *tmp = new char[tmplen];
-                memcpy(tmp, hashKey.c_str(), hashKey.size());
-                for (int i = hashKey.size(); i < tmplen; i++)
-                    tmp[i] = 1;
-                tmp[tmplen] = '\0';
-                allLoadKeysStr.push_back(tmp);
-                allLoadKeysLenStr.push_back(tmplen - 1);
-                opCnt++;
+                int tmplen = myalign(hashKey.size(), 4);
+                if(tmplen) {
+                    char *tmp = new char[tmplen];
+                    memcpy(tmp, hashKey.c_str(), hashKey.size());
+                    for (int i = hashKey.size(); i < tmplen; i++)
+                        tmp[i] = rand() % 256;
+                    allLoadKeysStr.push_back(tmp);
+                    allLoadKeysLenStr.push_back(tmplen - 1);
+
+                    opCnt++;
+                }
             }
         }
     }
@@ -1502,19 +1508,19 @@ void parseRunFile(std::string wlName, uint64_t len = 0, uint64_t type = 0) {
     cout << "run" << endl;
 }
 
-void SOSD(uint64_t _testNum = 100000000, string type = "a") {
+void SOSD(uint64_t _testNum = 100000000, string dir = "facebook", string type = "a") {
     bool first_load = false;
     if (allLoadKeys.size() == 0)
         first_load = true;
 #ifdef __linux__
     if (first_load)
-        parseLoadFile("/home/wangke/index-microbench/workloads/SOSD/load_workloada", _testNum);
-    parseRunFile("/home/wangke/index-microbench/workloads/SOSD/txn_workload" + type, _testNum / 5);
+        parseLoadFile("/home/wangke/index-microbench/workloads/" + dir + "/load_workloada", _testNum);
+    parseRunFile("/home/wangke/index-microbench/workloads/" + dir + "/txn_workload" + type, _testNum / 5);
 #else
     if (first_load)
-        parseLoadFile("/Users/wangke/Desktop/Heterogeneous_Memory/ERT/index-microbench/workloads/SOSD/load_workloada",
+        parseLoadFile("/Users/wangke/Desktop/Heterogeneous_Memory/ERT/index-microbench/workloads/" + dir + "/load_workloada",
                       _testNum);
-    parseRunFile("/Users/wangke/Desktop/Heterogeneous_Memory/ERT/index-microbench/workloads/SOSD/txn_workload" + type,
+    parseRunFile("/Users/wangke/Desktop/Heterogeneous_Memory/ERT/index-microbench/workloads/" + dir + "/txn_workload" + type,
                  _testNum / 5);
 #endif
     if (first_load) {
@@ -1526,13 +1532,24 @@ void SOSD(uint64_t _testNum = 100000000, string type = "a") {
 
         Time_BODY(test_case[5], "fast&fair load ", { ff->put(allLoadKeys[i], (char *) &value); })
 
+        Time_BODY(test_case[6], "roart load ", { roart->put(allLoadKeys[i], value); })
+
         Time_BODY(test_case[7], "ert load  ", { l64ht->crash_consistent_put(NULL, allLoadKeys[i], 1); })
 
         Time_BODY(test_case[8], "lbtree load  ", { lbt->insert(allLoadKeys[i], &value); })
     }
 
-//    testNum = _testNum / 5;
-    testNum = 1000;
+//    cout << ff->memory_profile(NULL) << endl;
+//    cout << lbt->memory_profile() << endl;
+//    cout << wort_memory_profile(wort->root) << endl;
+//    cout << woart_memory_profile(woart->root) << endl;
+//    cout << roart->memory_profile() << endl;
+//    cout << l64ht->memory_profile(NULL) << endl;
+
+    if(type == "e")
+        testNum = 10000;
+    else
+        testNum = _testNum / 5;
 
     int j = 0;
     Time_BODY(test_case[2], "wort run  " + type + " ", {
@@ -1578,6 +1595,20 @@ void SOSD(uint64_t _testNum = 100000000, string type = "a") {
     })
 
     j = 0;
+    Time_BODY(test_case[6], "roart run  " + type + " ", {
+        if (allRunOp[i] == YCSBRunOp::Update || allRunOp[i] == YCSBRunOp::Insert) {
+            roart->put(allRunKeys[i], value);
+        } else if (allRunOp[i] == YCSBRunOp::Get) {
+            roart->get(allRunKeys[i]);
+        } else if (allRunOp[i] == YCSBRunOp::Scan) {
+            auto res = roart->scan(allRunKeys[i], allRunScanSize[j++]);
+//            cout << res.size() << endl;
+//            if (i >= 10)
+//                break;
+        }
+    })
+
+    j = 0;
     Time_BODY(test_case[7], "ert run  " + type + " ", {
         if (allRunOp[i] == YCSBRunOp::Update || allRunOp[i] == YCSBRunOp::Insert) {
             l64ht->crash_consistent_put(NULL, allRunKeys[i], 1);
@@ -1589,6 +1620,9 @@ void SOSD(uint64_t _testNum = 100000000, string type = "a") {
 //                break;
         }
     })
+#ifdef ERT_PROFILE
+    cout <<l64ht->scan_cnt << endl << l64ht->scan_node_num << endl;
+#endif
 
     j = 0;
     Time_BODY(test_case[8], "lbtree run  " + type + " ", {
@@ -1607,20 +1641,20 @@ void SOSD(uint64_t _testNum = 100000000, string type = "a") {
 
 }
 
-void wiki(uint64_t _testNum = 100000000, string type = "a") {
+void string_test(uint64_t _testNum = 100000000, string dir = "wiki", string type = "a") {
     bool first_load = false;
     if (allLoadKeysStr.size() == 0)
         first_load = true;
 #ifdef __linux__
     if (first_load)
-        parseLoadFile("/home/wangke/index-microbench/workloads/string/load_workloada", _testNum);
-    parseRunFile("/home/wangke/index-microbench/workloads/string/txn_workload" + type, _testNum / 5);
+        parseLoadFile("/home/wangke/index-microbench/workloads/" + dir + "/load_workloada", _testNum, 1);
+    parseRunFile("/home/wangke/index-microbench/workloads/" + dir + "/txn_workload" + type, _testNum / 5, 1);
 #else
     if (first_load)
-        parseLoadFile("/Users/wangke/Desktop/Heterogeneous_Memory/ERT/index-microbench/workloads/string/load_workloada",
+        parseLoadFile("/Users/wangke/Desktop/Heterogeneous_Memory/ERT/index-microbench/workloads/" + dir + "/load_workloada",
                       _testNum, 1);
-    parseRunFile("/Users/wangke/Desktop/Heterogeneous_Memory/ERT/index-microbench/workloads/string/txn_workload" + type,
-                 _testNum / 5, 1);
+        parseRunFile("/Users/wangke/Desktop/Heterogeneous_Memory/ERT/index-microbench/workloads/" + dir + "/txn_workload" + type,
+                     _testNum / 5, 1);
 #endif
 
     if (first_load) {
@@ -1630,16 +1664,31 @@ void wiki(uint64_t _testNum = 100000000, string type = "a") {
             vlht->crash_consistent_put(NULL, allLoadKeysLenStr[i], (unsigned char *) allLoadKeysStr[i], 1);
         }
 
+
+        sort(vlht->bucket_cnt, vlht->bucket_cnt + 1024);
+        for (int i = 0; i < 30; ++i) {
+            cout << vlht->bucket_cnt[1023-i] << " ";
+        }
+        int ave = 0;
+        for (int i = 0; i < 1024; ++i) {
+            ave += vlht->bucket_cnt[i];
+        }
+        cout << endl << ave / 1024 << endl;
+        cout << vlht->decompression_cnt << endl;
+        cout << split_cnt << " " << double_cnt << endl;
+
         Time_BODY(1, "varLengthWort load ",
                   { var_length_wort_put(vlwort, (char *) allLoadKeysStr[i], allLoadKeysLenStr[i], (char *) &value); })
+
+                  cout << wort_decompression_cnt << endl;
 
         Time_BODY(1, "varLengthWoart load ",
                   {
                       var_length_woart_put(vlwoart, (unsigned char *) allLoadKeysStr[i], allLoadKeysLenStr[i] * 8, (char *) &value);
                   })
 
-        Time_BODY(1, "varLengthFast&Fair load ",
-                  { vlff->put((char *) allLoadKeysStr[i], allLoadKeysLenStr[i], (char *) &value); })
+//        Time_BODY(1, "varLengthFast&Fair load ",
+//                  { vlff->put((char *) allLoadKeysStr[i], allLoadKeysLenStr[i], (char *) &value); })
 
         Time_BODY(1, "varLengthHashTree load ",
                   { vlht->crash_consistent_put(NULL, allLoadKeysLenStr[i], (unsigned char *) allLoadKeysStr[i], 1); })
@@ -1647,8 +1696,10 @@ void wiki(uint64_t _testNum = 100000000, string type = "a") {
 
     }
 
-    testNum = _testNum / 5;
-
+    if(type == "e")
+        testNum = 1000;
+    else
+        testNum = _testNum / 5;
     int j = 0;
     Time_BODY(1, "varLengthWort run ", {
         if (allRunOp[i] == YCSBRunOp::Update || allRunOp[i] == YCSBRunOp::Insert) {
@@ -1668,14 +1719,14 @@ void wiki(uint64_t _testNum = 100000000, string type = "a") {
         }
     })
 
-    Time_BODY(1, "varLengthFast&Fair run ", {
-        if (allRunOp[i] == YCSBRunOp::Update || allRunOp[i] == YCSBRunOp::Insert) {
-            vlff->put((char *) allRunKeysStr[i], allRunKeysLenStr[i], (char *) &value);
-        } else if (allRunOp[i] == YCSBRunOp::Get) {
-            vlff->get((char *) allRunKeysStr[i], allRunKeysLenStr[i]);
-        } else if (allRunOp[i] == YCSBRunOp::Scan) { ;
-        }
-    })
+//    Time_BODY(1, "varLengthFast&Fair run ", {
+//        if (allRunOp[i] == YCSBRunOp::Update || allRunOp[i] == YCSBRunOp::Insert) {
+//            vlff->put((char *) allRunKeysStr[i], allRunKeysLenStr[i], (char *) &value);
+//        } else if (allRunOp[i] == YCSBRunOp::Get) {
+//            vlff->get((char *) allRunKeysStr[i], allRunKeysLenStr[i]);
+//        } else if (allRunOp[i] == YCSBRunOp::Scan) { ;
+//        }
+//    })
 
     Time_BODY(1, "varLengthHashTree run ", {
         if (allRunOp[i] == YCSBRunOp::Update || allRunOp[i] == YCSBRunOp::Insert) {
@@ -1797,7 +1848,7 @@ int main(int argc, char *argv[]) {
 
 //     speedTest();
 
-    varLengthTest();
+//    varLengthTest();
 //    varLengthCorrectnessTest();
 //    effect2();
 
@@ -1819,13 +1870,25 @@ int main(int argc, char *argv[]) {
 //    cout << ht->get_access << endl;
 
 //    amazon_review("az.txt");
-//    SOSD(10000, "a");
-//    SOSD(10000, "c");
-//    SOSD(100000000, "e");
+//    SOSD(100000000, "facebook", "a");
+//    SOSD(10000000, "facebook", "c");
+//    SOSD(10000000, "facebook", "e");
+    SOSD(20000000, "amazon", "a");
+//    SOSD(20000000, "amazon", "c");
+//    SOSD(20000000, "amazon", "e");
+//    SOSD(50000000, "wiki", "a");
+//    SOSD(50000000, "wiki", "c");
+//    SOSD(50000000, "wiki", "e");
 
-//    wiki(1000000, "a");
-//    wiki(50000000, "c");
-//    wiki(50000000, "e");
+//    string_test(100000, "wiki", "a");
+//    string_test(1000000, "wiki", "c");
+//    string_test(10000000, "wiki", "e");
+//    string_test(100000, "url", "a");
+//    string_test(50000000, "url", "c");
+//    string_test(50000000, "url", "e");
+//    string_test(1000000, "email", "a");
+//    string_test(50000000, "email", "c");
+//    string_test(50000000, "email", "e");
     fast_free();
     return 0;
 }

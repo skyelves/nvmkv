@@ -7,10 +7,15 @@
 
 #include "varLengthHashTree_node.h"
 
+//#define ERT_PROFILE
+
 class VarLengthHashTree {
 
 public:
-
+#ifdef VLHT_PROFILE
+    int bucket_cnt[1024] = {0};
+    int decompression_cnt = 0;
+#endif
     int init_depth = 0; //represent extendible hash initial global depth
     VarLengthHashTreeNode *root = NULL;
     int64_t lock_meta = 0;
@@ -60,6 +65,10 @@ public:
 //    double memory_header = 0;
 //    double memory_seg = 0;
 //    double memory_kv = 0;
+#ifdef ERT_PROFILE
+    int scan_node_num = 0;
+    int scan_cnt = 0;
+#endif
 
     Length64HashTree();
 

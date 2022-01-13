@@ -595,7 +595,7 @@ public:
                                 if (tmp_key == current->records[0].key) {
                                     if (tmp_ptr) {
 //                                        buf[off++] = (unsigned long) tmp_ptr;
-                                        ff_key_value tmp(tmp_key, *(uint64_t *) tmp_ptr);
+                                        ff_key_value tmp(tmp_key, (uint64_t)tmp_ptr);
                                         buf.push_back(tmp);
                                     }
                                 }
@@ -611,7 +611,7 @@ public:
                                     current->records[i - 1].ptr) {
                                     if (tmp_key == current->records[i].key) {
                                         if (tmp_ptr) {
-                                            ff_key_value tmp(tmp_key, *(uint64_t *) tmp_ptr);
+                                            ff_key_value tmp(tmp_key, (uint64_t) tmp_ptr);
                                             buf.push_back(tmp);
                                         }
                                     }
@@ -628,7 +628,7 @@ public:
                                     current->records[i - 1].ptr) {
                                     if (tmp_key == current->records[i].key) {
                                         if (tmp_ptr) {
-                                            ff_key_value tmp(tmp_key, *(uint64_t *) tmp_ptr);
+                                            ff_key_value tmp(tmp_key, (uint64_t) tmp_ptr);
                                             buf.push_back(tmp);
                                         }
                                     }
@@ -643,7 +643,7 @@ public:
                             if ((tmp_ptr = current->records[0].ptr) != NULL) {
                                 if (tmp_key == current->records[0].key) {
                                     if (tmp_ptr) {
-                                        ff_key_value tmp(tmp_key, *(uint64_t *) tmp_ptr);
+                                        ff_key_value tmp(tmp_key, (uint64_t) tmp_ptr);
                                         buf.push_back(tmp);
                                     }
                                 }

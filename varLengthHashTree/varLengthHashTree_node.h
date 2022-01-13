@@ -40,6 +40,13 @@
 #define HT_NODE_PREFIX_MAX_BITS 48
 #define HT_KEY_LENGTH 64
 
+#define VLHT_PROFILE
+
+#ifdef VLHT_PROFILE
+extern uint64_t split_cnt;
+extern uint64_t double_cnt;
+#endif
+
 // in fact, it's better to use two kv pair in internal nodes and leaf nodes
 class HashTreeKeyValue {
 public:

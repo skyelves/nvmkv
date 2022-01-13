@@ -32,6 +32,8 @@
 # endif
 #endif
 
+extern uint64_t wort_decompression_cnt;
+
 typedef int(*var_length_wort_callback)(void *data, const unsigned char *key, uint32_t key_len, void *value);
 
 struct var_length_wort_key_value {
