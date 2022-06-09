@@ -142,7 +142,7 @@ ofstream out;
 
 #define MULTITHREAD true
 
-int testNum = 100000;
+int testNum = 10000000;
 
 int numThread = 1;
 
@@ -621,7 +621,7 @@ void correctnessTest() {
 }
 
 void profile() {
-//    out.open("/Users/wangke/Desktop/ht_profile.csv");
+    out.open("lb_profile.csv");
     mykey = new uint64_t[testNum];
     rng r;
     rng_init(&r, 1, 2);
@@ -640,10 +640,10 @@ void profile() {
 //        wort_put(wort, mykey[i], 8, &value);
 //        woart_put(woart, mykey[i], 8, &value);
 //        ff->put(mykey[i], (char *) &value);
-        l64ht->crash_consistent_put(NULL, mykey[i], i + 1, 0);
-        if(i % (testNum/10) == 0)
-            cout << l64ht->memory_profile(NULL) << endl;
-//        lbt->insert(mykey[i], &value);
+//        l64ht->crash_consistent_put(NULL, mykey[i], i + 1, 0);
+//        if(i % (testNum/10) == 0)
+//            cout << l64ht->memory_profile(NULL) << endl;
+        lbt->insert(mykey[i], &value);
 //        if (i % 10000 == 0) {
 //            out << i << ", " << cceh->dir_size << ", "
 //                << (double) i / (cceh_seg_num * CCEH_BUCKET_SIZE * CCEH_MAX_BUCKET_NUM) << endl;
@@ -653,14 +653,14 @@ void profile() {
     }
     gettimeofday(&ends, NULL);
     double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
-//    out << t1 << endl << t2 << endl << t3 << endl;
-//    out << timeCost << endl;
+    out << _grow << endl << _update << endl << _travelsal << endl;
+    out << timeCost << endl;
 //    out.close();
 //    cout << concurrency_fastalloc_profile() / testNum << endl;
 //    cout << wort_memory_profile(wort->root) << endl;
 //    cout << woart_memory_profile(woart->root) << endl;
 //    cout << ff->memory_profile(NULL) << endl;
-    cout << l64ht->memory_profile(NULL) << endl;
+//    cout << l64ht->memory_profile(NULL) << endl;
 //    cout << l64ht->memory_header / testNum << endl << l64ht->memory_seg / testNum << endl << l64ht->memory_kv / testNum << endl;
 //    cout << lbt->memory_profile() << endl;
 }
@@ -1864,7 +1864,7 @@ int main(int argc, char *argv[]) {
 //    } catch (void *) {
 //        fast_free();
 //    }
-//    profile();
+    profile();
 //    range_query_correctness_test();
 //    cout << ht->node_cnt << endl;
 //    cout << ht->get_access << endl;
@@ -1873,7 +1873,7 @@ int main(int argc, char *argv[]) {
 //    SOSD(100000000, "facebook", "a");
 //    SOSD(10000000, "facebook", "c");
 //    SOSD(10000000, "facebook", "e");
-    SOSD(20000000, "amazon", "a");
+//    SOSD(20000000, "amazon", "a");
 //    SOSD(20000000, "amazon", "c");
 //    SOSD(20000000, "amazon", "e");
 //    SOSD(50000000, "wiki", "a");

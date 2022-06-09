@@ -14,8 +14,16 @@
 #include <vector>
 #include <map>
 #include <immintrin.h>
+#include <sys/time.h>
 #include "nodeprof.h"
 #include "../fastalloc/fastalloc.h"
+
+#define HT_PROFILE_TIME 1
+
+#ifdef HT_PROFILE_TIME
+extern timeval start_time, end_time;
+extern uint64_t _grow, _update, _travelsal;
+#endif
 
 #ifndef KB
 #define KB      (1024)
