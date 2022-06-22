@@ -794,11 +794,7 @@ typename ROART::OperationResults ROART::put(uint64_t key, uint64_t value) {
             case CheckPrefixPessimisticResult::SkippedLevel:
                 goto restart;
             case CheckPrefixPessimisticResult::NoMatch: {
-#ifdef ROART_PROFILE_TIME
-                gettimeofday(&end_time, NULL);
-        _travelsal += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
-        gettimeofday(&start_time, NULL);
-#endif
+
 //                assert(nextLevel < k->getKeyLen()); // prevent duplicate key
                 assert(nextLevel < key_len); // prevent duplicate key
                 node->lockVersionOrRestart(v, needRestart);
@@ -809,7 +805,11 @@ typename ROART::OperationResults ROART::put(uint64_t key, uint64_t value) {
                 // prefix, level to this node
                 Prefix prefi = node->getPrefi();
                 prefi.prefixCount = nextLevel - level;
-
+#ifdef ROART_PROFILE_TIME
+                gettimeofday(&end_time, NULL);
+                _travelsal += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+                gettimeofday(&start_time, NULL);
+#endif
 #ifdef ARTPMDK
                 N4 *newNode = new (allocate_size(sizeof(N4))) N4(nextLevel, prefi);
 #else
