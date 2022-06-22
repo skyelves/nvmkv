@@ -142,7 +142,7 @@ ofstream out;
 
 #define MULTITHREAD true
 
-int testNum = 10000000;
+int testNum = 1000000;
 
 int numThread = 1;
 
@@ -621,7 +621,7 @@ void correctnessTest() {
 }
 
 void profile() {
-    out.open("lb_profile.csv");
+    out.open("roart_profile.csv");
     mykey = new uint64_t[testNum];
     rng r;
     rng_init(&r, 1, 2);
@@ -643,7 +643,8 @@ void profile() {
 //        l64ht->crash_consistent_put(NULL, mykey[i], i + 1, 0);
 //        if(i % (testNum/10) == 0)
 //            cout << l64ht->memory_profile(NULL) << endl;
-        lbt->insert(mykey[i], &value);
+//        lbt->insert(mykey[i], &value);
+        roart->put(mykey[i],i+1);
 //        if (i % 10000 == 0) {
 //            out << i << ", " << cceh->dir_size << ", "
 //                << (double) i / (cceh_seg_num * CCEH_BUCKET_SIZE * CCEH_MAX_BUCKET_NUM) << endl;
@@ -653,7 +654,7 @@ void profile() {
     }
     gettimeofday(&ends, NULL);
     double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
-    out << _grow << endl << _update << endl << _travelsal << endl;
+    out << _grow << endl << _update << endl << _travelsal <<endl << _decompression << endl;
     out << timeCost << endl;
 //    out.close();
 //    cout << concurrency_fastalloc_profile() / testNum << endl;

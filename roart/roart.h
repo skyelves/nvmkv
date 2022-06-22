@@ -8,8 +8,16 @@
 #include <set>
 #include "roart_key.h"
 #include "roart_node.h"
+#include <sys/time.h>
 
 //#define LEAF_ARRAY
+
+#define ROART_PROFILE_TIME 1
+
+#ifdef ROART_PROFILE_TIME
+extern timeval start_time, end_time;
+extern uint64_t _grow, _update, _travelsal, _decompression;
+#endif
 
 class ROART {
 public:

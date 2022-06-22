@@ -4,6 +4,12 @@
 
 #include "roart.h"
 
+#ifdef ROART_PROFILE_TIME
+timeval start_time, end_time;
+uint64_t _grow = 0, _update = 0, _travelsal = 0, _decompression = 0;
+#endif
+
+
 inline void mfence(void) {
     asm volatile("mfence":: :"memory");
 }
@@ -748,6 +754,10 @@ typename ROART::OperationResults ROART::put(uint64_t key, uint64_t value) {
 //    ROART_KEY *k;
 //    k = new ROART_KEY(key, sizeof(uint64_t), value);
 //    uint8_t *fkey = (uint8_t *) &key;
+
+#ifdef ROART_PROFILE_TIME
+    gettimeofday(&start_time, NULL);
+#endif
     uint8_t fkey[8];
     for (int i = 0; i < 8; ++i) {
         fkey[i] = (key >> ((7 - i) * 8)) & 255;
@@ -784,6 +794,11 @@ typename ROART::OperationResults ROART::put(uint64_t key, uint64_t value) {
             case CheckPrefixPessimisticResult::SkippedLevel:
                 goto restart;
             case CheckPrefixPessimisticResult::NoMatch: {
+#ifdef ROART_PROFILE_TIME
+                gettimeofday(&end_time, NULL);
+        _travelsal += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+        gettimeofday(&start_time, NULL);
+#endif
 //                assert(nextLevel < k->getKeyLen()); // prevent duplicate key
                 assert(nextLevel < key_len); // prevent duplicate key
                 node->lockVersionOrRestart(v, needRestart);
@@ -837,12 +852,22 @@ typename ROART::OperationResults ROART::put(uint64_t key, uint64_t value) {
                 parentNode->writeUnlock();
 
                 // 4) update prefix of node, unlock
+#ifdef ROART_PROFILE_TIME
+                gettimeofday(&end_time, NULL);
+                _grow += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+                gettimeofday(&start_time, NULL);
+#endif
                 node->setPrefix(
                         remainingPrefix.prefix,
                         node->getPrefi().prefixCount - ((nextLevel - level) + 1), true);
                 //            std::cout<<"insert success\n";
 
                 node->writeUnlock();
+#ifdef ROART_PROFILE_TIME
+                gettimeofday(&end_time, NULL);
+                _decompression += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+                gettimeofday(&start_time, NULL);
+#endif
                 return OperationResults::Success;
 
             } // end case  NoMatch
@@ -865,6 +890,11 @@ typename ROART::OperationResults ROART::put(uint64_t key, uint64_t value) {
             if (needRestart)
                 goto restart;
 //            ROART_Leaf *newLeaf = allocLeaf(k);
+#ifdef ROART_PROFILE_TIME
+            gettimeofday(&end_time, NULL);
+            _travelsal += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+            gettimeofday(&start_time, NULL);
+#endif
             ROART_Leaf *newLeaf = allocLeaf(key, value, fkey);
 #ifdef LEAF_ARRAY
             auto newLeafArray =
@@ -878,7 +908,11 @@ typename ROART::OperationResults ROART::put(uint64_t key, uint64_t value) {
 #endif
             if (needRestart)
                 goto restart;
-
+#ifdef ROART_PROFILE_TIME
+            gettimeofday(&end_time, NULL);
+            _update += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+            gettimeofday(&start_time, NULL);
+#endif
             return OperationResults::Success;
         }
 #ifdef LEAF_ARRAY
@@ -944,6 +978,11 @@ typename ROART::OperationResults ROART::put(uint64_t key, uint64_t value) {
                 prefixLength++;
             }
 #endif
+#ifdef ROART_PROFILE_TIME
+            gettimeofday(&end_time, NULL);
+            _travelsal += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+            gettimeofday(&start_time, NULL);
+#endif
             // equal
             if (key_len == leaf->getKeyLen() &&
                 level + prefixLength == key_len) {
@@ -952,6 +991,11 @@ typename ROART::OperationResults ROART::put(uint64_t key, uint64_t value) {
                 clflush(leaf->value, val_len);
                 node->writeUnlock();
                 //                std::cout<<"ohfinish\n";
+#ifdef ROART_PROFILE_TIME
+                gettimeofday(&end_time, NULL);
+                _update += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+                gettimeofday(&start_time, NULL);
+#endif
                 return OperationResults::Existed;
             }
             // substring
@@ -961,6 +1005,11 @@ typename ROART::OperationResults ROART::put(uint64_t key, uint64_t value) {
                 N4(level + prefixLength, &k->fkey[level],
                    prefixLength); // not persist
 #else
+#ifdef ROART_PROFILE_TIME
+            gettimeofday(&end_time, NULL);
+            _travelsal += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+            gettimeofday(&start_time, NULL);
+#endif
             auto n4 = new (fast_alloc(get_node_size(NTypes::N4)))
                     N4(level + prefixLength, &fkey[level],
                        prefixLength); // not persist
@@ -986,6 +1035,11 @@ typename ROART::OperationResults ROART::put(uint64_t key, uint64_t value) {
 //            N::change(node, k->fkey[level - 1], n4);
             N::change(node, fkey[level - 1], n4);
             node->writeUnlock();
+#ifdef ROART_PROFILE_TIME
+            gettimeofday(&end_time, NULL);
+            _grow += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+            gettimeofday(&start_time, NULL);
+#endif
             return OperationResults::Success;
         }
 #endif
