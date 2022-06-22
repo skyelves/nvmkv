@@ -852,11 +852,6 @@ typename ROART::OperationResults ROART::put(uint64_t key, uint64_t value) {
                 parentNode->writeUnlock();
 
                 // 4) update prefix of node, unlock
-#ifdef ROART_PROFILE_TIME
-                gettimeofday(&end_time, NULL);
-                _grow += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
-                gettimeofday(&start_time, NULL);
-#endif
                 node->setPrefix(
                         remainingPrefix.prefix,
                         node->getPrefi().prefixCount - ((nextLevel - level) + 1), true);
@@ -884,17 +879,17 @@ typename ROART::OperationResults ROART::put(uint64_t key, uint64_t value) {
 //        nodeKey = k->fkey[level];
 
         nextNode = N::getChild(nodeKey, node);
-
+#ifdef ROART_PROFILE_TIME
+        gettimeofday(&end_time, NULL);
+        _travelsal += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+        gettimeofday(&start_time, NULL);
+#endif
         if (nextNode == nullptr) {
             node->lockVersionOrRestart(v, needRestart);
             if (needRestart)
                 goto restart;
 //            ROART_Leaf *newLeaf = allocLeaf(k);
-#ifdef ROART_PROFILE_TIME
-            gettimeofday(&end_time, NULL);
-            _travelsal += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
-            gettimeofday(&start_time, NULL);
-#endif
+
             ROART_Leaf *newLeaf = allocLeaf(key, value, fkey);
 #ifdef LEAF_ARRAY
             auto newLeafArray =
@@ -1044,6 +1039,11 @@ typename ROART::OperationResults ROART::put(uint64_t key, uint64_t value) {
         }
 #endif
         level++;
+#ifdef ROART_PROFILE_TIME
+        gettimeofday(&end_time, NULL);
+        _travelsal += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+        gettimeofday(&start_time, NULL);
+#endif
     }
     //    std::cout<<"ohfinish\n";
 }
