@@ -697,11 +697,6 @@ void Length64HashTreeNode::put(uint64_t subkey, uint64_t value, uint64_t beforeA
 
 void Length64HashTreeNode::put(uint64_t subkey, uint64_t value, Length64HashTreeSegment* tmp_seg, Length64HashTreeBucket* tmp_bucket, uint64_t dir_index, uint64_t seg_index, uint64_t beforeAddress){
     int bucket_index = tmp_bucket->find_place(subkey, HT_NODE_LENGTH, tmp_seg->depth);
-#ifdef NEW_ERT_PROFILE_TIME
-    gettimeofday(&end_time, NULL);
-    _travelsal += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
-    gettimeofday(&start_time, NULL);
-#endif
     if (bucket_index == -1) {
         //condition: full
         if (likely(tmp_seg->depth < global_depth)) {
