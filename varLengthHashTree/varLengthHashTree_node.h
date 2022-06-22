@@ -47,6 +47,13 @@ extern uint64_t split_cnt;
 extern uint64_t double_cnt;
 #endif
 
+#define NEW_ERT_PROFILE_TIME 1
+
+#ifdef NEW_ERT_PROFILE_TIME
+extern timeval start_time, end_time;
+extern uint64_t _grow, _update, _travelsal, _decompression;
+#endif
+
 // in fact, it's better to use two kv pair in internal nodes and leaf nodes
 class HashTreeKeyValue {
 public:

@@ -142,7 +142,7 @@ ofstream out;
 
 #define MULTITHREAD true
 
-int testNum = 1000000;
+int testNum = 10000000;
 
 int numThread = 1;
 
@@ -621,7 +621,7 @@ void correctnessTest() {
 }
 
 void profile() {
-    out.open("roart_profile.csv");
+    out.open("ert_profile.csv");
     mykey = new uint64_t[testNum];
     rng r;
     rng_init(&r, 1, 2);
@@ -634,17 +634,20 @@ void profile() {
     uint64_t value = 1;
     timeval start, ends;
     gettimeofday(&start, NULL);
+#ifdef NEW_ERT_PROFILE_TIME
+    gettimeofday(&start_time, NULL);
+#endif
     for (int i = 0; i < testNum; ++i) {
 //        cceh->put(mykey[i], value);
 //        ht->crash_consistent_put(NULL, mykey[i], i + 1, 0);
 //        wort_put(wort, mykey[i], 8, &value);
 //        woart_put(woart, mykey[i], 8, &value);
 //        ff->put(mykey[i], (char *) &value);
-//        l64ht->crash_consistent_put(NULL, mykey[i], i + 1, 0);
+        l64ht->crash_consistent_put(NULL, mykey[i], i + 1, 0);
 //        if(i % (testNum/10) == 0)
 //            cout << l64ht->memory_profile(NULL) << endl;
 //        lbt->insert(mykey[i], &value);
-        roart->put(mykey[i],i+1);
+//        roart->put(mykey[i],i+1);
 //        if (i % 10000 == 0) {
 //            out << i << ", " << cceh->dir_size << ", "
 //                << (double) i / (cceh_seg_num * CCEH_BUCKET_SIZE * CCEH_MAX_BUCKET_NUM) << endl;

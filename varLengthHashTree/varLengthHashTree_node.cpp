@@ -562,6 +562,11 @@ void VarLengthHashTreeNode::free_write_lock(){
    lock_meta = 0;
 }
 
+#ifdef NEW_ERT_PROFILE_TIME
+timeval start_time, end_time;
+uint64_t _grow = 0, _update = 0, _travelsal = 0, _decompression = 0;
+#endif
+
 Length64HashTreeKeyValue *new_l64ht_key_value(uint64_t key ,uint64_t value ){
     Length64HashTreeKeyValue *_new_key_value = static_cast<Length64HashTreeKeyValue *>(concurrency_fast_alloc(sizeof(Length64HashTreeKeyValue)));
     _new_key_value->key = key;
@@ -692,6 +697,11 @@ void Length64HashTreeNode::put(uint64_t subkey, uint64_t value, uint64_t beforeA
 
 void Length64HashTreeNode::put(uint64_t subkey, uint64_t value, Length64HashTreeSegment* tmp_seg, Length64HashTreeBucket* tmp_bucket, uint64_t dir_index, uint64_t seg_index, uint64_t beforeAddress){
     int bucket_index = tmp_bucket->find_place(subkey, HT_NODE_LENGTH, tmp_seg->depth);
+#ifdef NEW_ERT_PROFILE_TIME
+    gettimeofday(&end_time, NULL);
+    _travelsal += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+    gettimeofday(&start_time, NULL);
+#endif
     if (bucket_index == -1) {
         //condition: full
         if (likely(tmp_seg->depth < global_depth)) {
@@ -730,8 +740,14 @@ void Length64HashTreeNode::put(uint64_t subkey, uint64_t value, Length64HashTree
             tmp_seg->depth = tmp_seg->depth + 1;
             clflush((char *) &(tmp_seg->depth), sizeof(tmp_seg->depth));
             this->put(subkey, value, beforeAddress);
+#ifdef NEW_ERT_PROFILE_TIME
+            gettimeofday(&end_time, NULL);
+            _grow += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+            gettimeofday(&start_time, NULL);
+#endif
             return;
         } else {
+
             //condition: tmp_bucket->depth == global_depth
             Length64HashTreeNode *newNode = static_cast<Length64HashTreeNode *>(concurrency_fast_alloc(sizeof(Length64HashTreeNode)+sizeof(HashTreeSegment *)*dir_size*2));
             newNode->global_depth = global_depth+1;
@@ -745,6 +761,11 @@ void Length64HashTreeNode::put(uint64_t subkey, uint64_t value, Length64HashTree
             *(Length64HashTreeNode**)beforeAddress = newNode;
             clflush((char *) beforeAddress, sizeof(Length64HashTreeNode*));
             newNode->put(subkey, value, beforeAddress);
+#ifdef NEW_ERT_PROFILE_TIME
+            gettimeofday(&end_time, NULL);
+            _grow += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+            gettimeofday(&start_time, NULL);
+#endif
             return;
         }
     } else {
@@ -761,6 +782,11 @@ void Length64HashTreeNode::put(uint64_t subkey, uint64_t value, Length64HashTree
             // If crash after key flushed, then the value is 0. When we return the value, we would find that the key is not inserted.
             clflush((char *) &(tmp_bucket->counter[bucket_index].subkey), 16);
         }
+#ifdef NEW_ERT_PROFILE_TIME
+        gettimeofday(&end_time, NULL);
+        _update += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+        gettimeofday(&start_time, NULL);
+#endif
     }
     return;
 }

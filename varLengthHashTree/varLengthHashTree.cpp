@@ -27,6 +27,10 @@
 
 #define MEMORY_PROFILE
 
+#ifdef NEW_ERT_PROFILE_TIME
+extern timeval start_time, end_time;
+extern uint64_t _grow, _update, _travelsal, _decompression;
+#endif
 
 bool keyIsSame(unsigned char* key1, unsigned int length1, unsigned char* key2, unsigned int length2){
     if(length1!=length2){
@@ -673,9 +677,19 @@ void Length64HashTree:: crash_consistent_put(Length64HashTreeNode *_node, uint64
             matchedPrefixLen = currentNode->header.computePrefix(key,len*SIZE_OF_CHAR);
         }
         if(len + matchedPrefixLen == (HT_KEY_LENGTH / SIZE_OF_CHAR)){
+#ifdef NEW_ERT_PROFILE_TIME
+            gettimeofday(&end_time, NULL);
+            _travelsal += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+            gettimeofday(&start_time, NULL);
+#endif
             Length64HashTreeKeyValue *kv = new_l64ht_key_value(key, value);
             clflush((char *) kv, sizeof(Length64HashTreeKeyValue));
             currentNode->node_put(matchedPrefixLen,kv);
+#ifdef NEW_ERT_PROFILE_TIME
+            gettimeofday(&end_time, NULL);
+            _update += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+            gettimeofday(&start_time, NULL);
+#endif
             return;
         }
         if(matchedPrefixLen == currentNode->header.len){
@@ -706,6 +720,11 @@ void Length64HashTree:: crash_consistent_put(Length64HashTreeNode *_node, uint64
                 }
             }
             len += HT_NODE_LENGTH / SIZE_OF_CHAR;
+#ifdef NEW_ERT_PROFILE_TIME
+            gettimeofday(&end_time, NULL);
+            _travelsal += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+            gettimeofday(&start_time, NULL);
+#endif
             if (len == 8) {
                 if (next == 0) {
                     currentNode->put(subkey, (uint64_t) value, tmp_seg, tmp_bucket, dir_index, seg_index, beforeAddress);
@@ -713,6 +732,11 @@ void Length64HashTree:: crash_consistent_put(Length64HashTreeNode *_node, uint64
                 } else {
                     tmp_bucket->counter[i].value = value;
                     clflush((char *) &tmp_bucket->counter[i].value, 8);
+#ifdef NEW_ERT_PROFILE_TIME
+                    gettimeofday(&end_time, NULL);
+                    _update += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+                    gettimeofday(&start_time, NULL);
+#endif
                     return;
                 }
             } else {
@@ -721,6 +745,11 @@ void Length64HashTree:: crash_consistent_put(Length64HashTreeNode *_node, uint64
                     Length64HashTreeKeyValue *kv = new_l64ht_key_value(key, value);
                     clflush((char *) kv, sizeof(Length64HashTreeKeyValue));
                     currentNode->put(subkey, (uint64_t) kv, tmp_seg, tmp_bucket, dir_index, seg_index, beforeAddress);
+#ifdef NEW_ERT_PROFILE_TIME
+                    gettimeofday(&end_time, NULL);
+                    _update += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+                    gettimeofday(&start_time, NULL);
+#endif
                     return;
                 } else {
                     if (keyValueFlag) {
@@ -748,6 +777,11 @@ void Length64HashTree:: crash_consistent_put(Length64HashTreeNode *_node, uint64
                             tmp_bucket->counter[i].subkey = REMOVE_NODE_FLAG(tmp_bucket->counter[i].subkey);
                             tmp_bucket->counter[i].value = (uint64_t) newNode;
                             clflush((char *) &tmp_bucket->counter[i].value, 8);
+#ifdef NEW_ERT_PROFILE_TIME
+                            gettimeofday(&end_time, NULL);
+                            _grow += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+                            gettimeofday(&start_time, NULL);
+#endif
                             return;
                         }
                     } else {
@@ -761,7 +795,11 @@ void Length64HashTree:: crash_consistent_put(Length64HashTreeNode *_node, uint64
         }else{
             // if prefix is not match (shorter)
             // split a new tree node and insert 
-
+#ifdef NEW_ERT_PROFILE_TIME
+            gettimeofday(&end_time, NULL);
+            _travelsal += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+            gettimeofday(&start_time, NULL);
+#endif
             // build new tree node
             Length64HashTreeNode *newNode = new_length64hashtree_node(HT_NODE_LENGTH,headerDepth);
             newNode->header.init(&currentNode->header,matchedPrefixLen,currentNode->header.depth);
@@ -790,6 +828,11 @@ void Length64HashTree:: crash_consistent_put(Length64HashTreeNode *_node, uint64
 
             // modify the successor 
             *(Length64HashTreeNode**)beforeAddress = newNode;
+#ifdef NEW_ERT_PROFILE_TIME
+            gettimeofday(&end_time, NULL);
+            _decompression += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+            gettimeofday(&start_time, NULL);
+#endif
             return;
         }
     }
