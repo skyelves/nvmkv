@@ -4,6 +4,11 @@
 
 #include "roart_node.h"
 
+#ifdef ROART_PROFILE_TIME
+timeval start_time, end_time;
+uint64_t _grow = 0, _update = 0, _travelsal = 0, _decompression = 0;
+#endif
+
 uint64_t roart_memory_usage = 0;
 
 inline void mfence(void) {
@@ -2297,6 +2302,9 @@ void LeafArray::splitAndUnlock(N *parentNode, uint8_t parentKey,
     uint8_t *prefix_start = reinterpret_cast<uint8_t *>(common_prefix.data());
     auto prefix_len = common_prefix.size();
     auto leaf_array_count = split_array.size();
+#ifdef ROART_PROFILE_TIME
+    gettimeofday(&start_time, NULL);
+#endif
     if (leaf_array_count <= 4) {
         n = new(alloc_new_node_from_type(NTypes::N4))
                 N4(level, prefix_start, prefix_len);
@@ -2319,7 +2327,10 @@ void LeafArray::splitAndUnlock(N *parentNode, uint8_t parentKey,
 
     N::change(parentNode, parentKey, n);
     parentNode->writeUnlock();
-
+#ifdef ROART_PROFILE_TIME
+    gettimeofday(&end_time, NULL);
+    _grow += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
     this->writeUnlockObsolete();
 //        EpochGuard::DeleteNode(this);
 }

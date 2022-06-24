@@ -20,10 +20,18 @@
 #include <vector>
 #include <map>
 #include <strings.h>
+#include <sys/time.h>
 
 using namespace std;
 
 //#define ZENTRY
+
+#define ROART_PROFILE_TIME 1
+
+#ifdef ROART_PROFILE_TIME
+extern timeval start_time, end_time;
+extern uint64_t _grow, _update, _travelsal, _decompression;
+#endif
 
 const size_t LeafArrayLength = 64;
 const size_t FingerPrintShift = 48;

@@ -621,7 +621,7 @@ void correctnessTest() {
 }
 
 void profile() {
-    out.open("ert_profile.csv");
+//    out.open("ert_profile.csv");
     mykey = new uint64_t[testNum];
     rng r;
     rng_init(&r, 1, 2);
@@ -657,8 +657,9 @@ void profile() {
     }
     gettimeofday(&ends, NULL);
     double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
-    out << _grow << endl << _update << endl << _travelsal <<endl << _decompression << endl;
-    out << timeCost << endl;
+    _travelsal = timeCost - _update - _decompression - _grow;
+    cout << _grow << endl << _update << endl << _travelsal <<endl << _decompression << endl;
+    cout << timeCost << endl;
 //    out.close();
 //    cout << concurrency_fastalloc_profile() / testNum << endl;
 //    cout << wort_memory_profile(wort->root) << endl;
