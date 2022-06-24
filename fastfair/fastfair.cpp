@@ -53,7 +53,7 @@ char *fastfair::get(uint64_t key) {
     }
 
     if (!t) {
-        printf("NOT FOUND %lu, t = %x\n", key, t);
+//        printf("NOT FOUND %lu, t = %x\n", key, t);
         return NULL;
     }
 
@@ -179,6 +179,26 @@ vector<ff_key_value> fastfair::scan(uint64_t min, uint64_t max) {
     _scan(min, max, res);
     return res;
 }
+
+uint64_t fastfair::memory_profile(page *p){
+    uint64_t res = 0;
+    if (p == NULL)
+        p = (page *) root;
+
+    res += sizeof(page);
+    if (p->hdr.leftmost_ptr != NULL) {
+        // The current page is internal
+        uint8_t previous_switch_counter = p->hdr.switch_counter;
+        for (int i = 0; i < cardinality; ++i) {
+            if (p->records[i].ptr != NULL) {
+                res += memory_profile((page *)p->records[i].ptr);
+            }
+
+        }
+    }
+    return res;
+}
+
 
 void fastfair::printAll() {
     int total_keys = 0;

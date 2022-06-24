@@ -1,9 +1,9 @@
 //
-// Created by 王柯 on 2021-04-01.
+// Created by 杨冠群 on 2021-07-28.
 //
 
-#ifndef NVMKV_WOwoart_H
-#define NVMKV_WOwoart_H
+#ifndef NVMKV_VARLENGTHWOART_H
+#define NVMKV_VARLENGTHWOART_H
 
 
 #include <stdint.h>
@@ -23,6 +23,7 @@
 #define WOART_BITS_PER_LONG        64
 #define CACHE_LINE_SIZE    64
 
+#define SIZE_OF_CHAR 8
 /* If you want to change the number of entries,
  * change the values of WOART_NODE_BITS & WOART_MAX_DEPTH */
 #define WOART_NODE_BITS            8
@@ -44,25 +45,12 @@
 # endif
 #endif
 
-static inline unsigned long __ffs(unsigned long word) {
-    asm("rep; bsf %1,%0"
-    : "=r" (word)
-    : "rm" (word));
-    return word;
-}
 
-static inline unsigned long ffz(unsigned long word) {
-    asm("rep; bsf %1,%0"
-    : "=r" (word)
-    : "r" (~word));
-    return word;
-}
 
 typedef int(*woart_callback)(void *data, const unsigned char *key, uint32_t key_len, void *value);
 
-extern uint64_t woart_memory_usage;
 
-struct woart_key_value {
+struct var_length_woart_key_value {
     uint64_t key;
     uint64_t value;
 };
@@ -76,7 +64,7 @@ typedef struct {
     unsigned char depth;
     unsigned char pwoartial_len;
     unsigned char pwoartial[WOART_MAX_PREFIX_LEN];
-} path_comp;
+} var_length_path_comp;
 
 /**
  * This struct is included as pwoart
@@ -84,51 +72,51 @@ typedef struct {
  */
 typedef struct {
     uint8_t type;
-    path_comp path;
-} woart_node;
+    var_length_path_comp path;
+} var_length_woart_node;
 
 typedef struct {
     unsigned char key;
     char i_ptr;
-} slot_array;
+} var_length_slot_array;
 
 /**
  * Small node with only 4 children, but
  * 8byte slot array field.
  */
 typedef struct {
-    woart_node n;
-    slot_array slot[4];
-    woart_node *children[4];
-} woart_node4;
+    var_length_woart_node n;
+    var_length_slot_array slot[4];
+    var_length_woart_node *children[4];
+} var_length_woart_node4;
 
 /**
  * Node with 16 keys and 16 children, and
  * a 8byte bitmap field
  */
 typedef struct {
-    woart_node n;
+    var_length_woart_node n;
     unsigned long bitmap;
     unsigned char keys[16];
-    woart_node *children[16];
-} woart_node16;
+    var_length_woart_node *children[16];
+} var_length_woart_node16;
 
 /**
  * Node with 48 children and a full 256 byte field,
  */
 typedef struct {
-    woart_node n;
+    var_length_woart_node n;
     unsigned char keys[256];
-    woart_node *children[48];
-} woart_node48;
+    var_length_woart_node *children[48];
+} var_length_woart_node48;
 
 /**
  * Full node with 256 children
  */
 typedef struct {
-    woart_node n;
-    woart_node *children[256];
-} woart_node256;
+    var_length_woart_node n;
+    var_length_woart_node *children[256];
+} var_length_woart_node256;
 
 /**
  * Represents a leaf. These are
@@ -136,40 +124,40 @@ typedef struct {
  */
 typedef struct {
     void *value;
+    unsigned char* key;
     uint32_t key_len;
-    unsigned long key;
-} woart_leaf;
+} var_length_woart_leaf;
 
 /**
  * Main struct, points to root.
  */
 typedef struct {
-    woart_node *root;
+    var_length_woart_node *root;
     uint64_t size;
-} woart_tree;
+} var_length_woart_tree;
 
 /*
  * For range lookup in NODE16
  */
 typedef struct {
     unsigned char key;
-    woart_node *child;
-} key_pos;
+    var_length_woart_node *child;
+} var_length_key_pos;
 
 /**
  * Initializes an woart tree
  * @return 0 on success.
  */
-int woart_tree_init(woart_tree *t);
+int var_length_woart_tree_init(var_length_woart_tree *t);
 
-woart_tree *new_woart_tree();
+var_length_woart_tree *new_var_length_woart_tree();
 
 /**
  * DEPRECATED
  * Initializes an woart tree
  * @return 0 on success.
  */
-#define init_woart_tree(...) woart_tree_init(__VA_ARGS__)
+#define init_var_length_woart_tree(...) var_length_woart_tree_init(__VA_ARGS__)
 
 /**
  * Inserts a new value into the woart tree
@@ -180,7 +168,7 @@ woart_tree *new_woart_tree();
  * @return NULL if the item was newly inserted, otherwise
  * the old value pointer is returned.
  */
-void *woart_put(woart_tree *t, const unsigned long key, int key_len, void *value, int value_len = 8);
+void *var_length_woart_put(var_length_woart_tree *t, unsigned char* key, int key_len, void *value, int value_len = 8);
 
 /**
  * Searches for a value in the woart tree
@@ -190,17 +178,15 @@ void *woart_put(woart_tree *t, const unsigned long key, int key_len, void *value
  * @return NULL if the item was not found, otherwise
  * the value pointer is returned.
  */
-uint64_t woart_get(const woart_tree *t, const unsigned long key, int key_len);
+void *var_length_woart_get(const var_length_woart_tree *t, unsigned char* key, int key_len);
 
-void woart_all_subtree_kv(woart_node *n, vector<woart_key_value> &res);
+void var_length_woart_all_subtree_kv(var_length_woart_node *n, vector<var_length_woart_key_value> &res);
 
-void woart_node_scan(woart_node *n, uint64_t left, uint64_t right, uint64_t depth, vector<woart_key_value> &res,
+void var_length_woart_node_scan(var_length_woart_node *n, uint64_t left, uint64_t right, uint64_t depth, vector<var_length_woart_key_value> &res,
                      int key_len = 8);
 
 
-vector<woart_key_value> woart_scan(const woart_tree *t, uint64_t left, uint64_t right, int key_len = 8);
-
-uint64_t woart_memory_profile(woart_node *n);
+vector<var_length_woart_key_value> var_length_woart_scan(const var_length_woart_tree *t, uint64_t left, uint64_t right, int key_len = 8);
 
 
-#endif //NVMKV_WOwoart_H
+#endif //NVMKV_VARLENGTHWOART_H

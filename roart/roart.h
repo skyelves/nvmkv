@@ -8,6 +8,7 @@
 #include <set>
 #include "roart_key.h"
 #include "roart_node.h"
+#include <sys/time.h>
 
 #define LEAF_ARRAY
 
@@ -44,9 +45,13 @@ public:
         UnSuccess
     };
     static CheckPrefixResult checkPrefix(N *n, const ROART_KEY *k, uint32_t &level);
+    static CheckPrefixResult mycheckPrefix(N *n, uint64_t key_len, uint8_t *fkey, uint32_t &level);
 
     static CheckPrefixPessimisticResult
     checkPrefixPessimistic(N *n, const ROART_KEY *k, uint32_t &level,
+                           uint8_t &nonMatchingKey, Prefix &nonMatchingPrefix);
+    static CheckPrefixPessimisticResult
+    mycheckPrefixPessimistic(N *n, uint8_t *fkey, uint32_t &level,
                            uint8_t &nonMatchingKey, Prefix &nonMatchingPrefix);
 
     static PCCompareResults checkPrefixCompare(const N *n, const ROART_KEY *k,
@@ -73,13 +78,17 @@ public:
                      ROART_Leaf *result[], std::size_t resultLen,
                      std::size_t &resultCount) const;
 
-    vector<ROART_KEY> scan(uint64_t min, uint64_t max);
+    vector<ROART_KEY> scan(uint64_t min, uint64_t max, uint64_t size = 0);
 
     OperationResults put(uint64_t key, uint64_t value);
 
     OperationResults remove(const ROART_KEY *k);
 
     ROART_Leaf *allocLeaf(const ROART_KEY *k) const;
+
+    ROART_Leaf *allocLeaf(uint64_t _key, uint64_t _value, uint8_t *_fkey) const;
+
+    uint64_t memory_profile(N *tmp = nullptr);
 
     void graphviz_debug();
 } __attribute__((aligned(64)));

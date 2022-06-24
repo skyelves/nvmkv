@@ -17,6 +17,8 @@
 
 #define CACHE_LINE_SIZE 64
 
+uint64_t wort_memory_usage = 0;
+
 static inline void mfence() {
     asm volatile("mfence":: : "memory");
 }
@@ -52,6 +54,7 @@ static wort_node *alloc_node() {
     wort_node *n;
     void *ret;
     ret = fast_alloc(sizeof(wort_node16));
+    wort_memory_usage += sizeof(wort_node16);
 //    posix_memalign(&ret, 64, sizeof(wort_node16));
     n = static_cast<wort_node *>(ret);
     memset(n, 0, sizeof(wort_node16));
@@ -70,6 +73,7 @@ int wort_tree_init(wort_tree *t) {
 
 wort_tree *new_wort_tree() {
     wort_tree *_new_wort_tree = static_cast<wort_tree *>(fast_alloc(sizeof(wort_tree)));
+    wort_memory_usage += sizeof(wort_tree);
     wort_tree_init(_new_wort_tree);
     return _new_wort_tree;
 }
@@ -149,7 +153,7 @@ static int longest_common_prefix(wort_leaf *l1, wort_leaf *l2, int depth) {
  * @return NULL if the item was not found, otherwise
  * the value pointer is returned.
  */
-void *wort_get(const wort_tree *t, const unsigned long key, int key_len) {
+uint64_t wort_get(const wort_tree *t, const unsigned long key, int key_len) {
     wort_node **child;
     wort_node *n = t->root;
     int prefix_len, depth = 0;
@@ -160,7 +164,7 @@ void *wort_get(const wort_tree *t, const unsigned long key, int key_len) {
             n = (wort_node *) LEAF_RAW(n);
             // Check if the expanded path matches
             if (!leaf_matches((wort_leaf *) n, key, key_len, depth)) {
-                return ((wort_leaf *) n)->value;
+                return *(uint64_t *) ((wort_leaf *) n)->value;
             }
             return NULL;
         }
@@ -211,6 +215,7 @@ static wort_leaf *make_leaf(const unsigned long key, int key_len, void *value, b
     wort_leaf *l;
     void *ret;
     ret = fast_alloc(sizeof(wort_leaf));
+    wort_memory_usage += sizeof(wort_leaf);
 //    posix_memalign(&ret, 64, sizeof(wort_leaf));
     l = static_cast<wort_leaf *>(ret);
     l->value = value;
@@ -410,6 +415,7 @@ static void *recursive_insert(wort_node *n, wort_node **ref, const unsigned long
 void *wort_put(wort_tree *t, const unsigned long key, int key_len, void *value, int value_len) {
     int old_val = 0;
     void *value_allocated = fast_alloc(value_len);
+    wort_memory_usage += value_len;
     memcpy(value_allocated, value, value_len);
     flush_buffer(value_allocated, value_len, true);
     void *old = recursive_insert(t->root, &t->root, key, key_len, value_allocated, 0, &old_val);
@@ -504,3 +510,26 @@ vector<wort_key_value> wort_scan(const wort_tree *t, uint64_t left, uint64_t rig
     wort_node_scan(t->root, left, right, 0, res);
     return res;
 }
+
+uint64_t wort_memory_profile(wort_node *n) {
+    return wort_memory_usage;
+//    if (n == NULL) {
+//        return 0;
+//    }
+//    uint64_t res = 0;
+//    wort_node *tmp = n;
+//    wort_node **child;
+//    if (IS_LEAF(tmp)) {
+//        res += sizeof(wort_leaf);
+//    } else {
+//        // Recursively search
+//        res += sizeof(wort_node16);
+//        for (int i = 0; i < 16; ++i) {
+//            child = find_child(tmp, i);
+//            wort_node *next = (child) ? *child : NULL;
+//            res += wort_memory_profile(next);
+//        }
+//    }
+//    return res;
+}
+

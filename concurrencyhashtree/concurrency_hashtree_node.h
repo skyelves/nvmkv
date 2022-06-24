@@ -1,5 +1,5 @@
 //
-// Created by 王柯 on 2021-03-04.
+// Created by 杨冠群 on 2021-06-20.
 //
 
 #ifndef NVMKV_CONCURRENCY_HASHTREE_NODE_H
@@ -12,6 +12,7 @@
 #include <math.h>
 #include <cstdint>
 #include <thread>
+#include <atomic>
 #include "../fastalloc/fastalloc.h"
 
 #define likely(x)   (__builtin_expect(!!(x), 1))
@@ -74,6 +75,7 @@ public:
     int64_t depth = 0;
     concurrency_ht_bucket *bucket;
     int64_t lock_meta = 0;
+
 //    ht_bucket bucket[HT_MAX_BUCKET_NUM];
 
     concurrency_ht_segment();
@@ -107,6 +109,7 @@ public:
     concurrency_ht_segment **dir = NULL;
     int64_t lock_meta = 0;
 
+
     concurrency_hashtree_node();
 
     ~concurrency_hashtree_node();
@@ -115,6 +118,8 @@ public:
 
     void put(uint64_t key,
              uint64_t value);//value is limited to non-zero number, zero is used to define empty counter in bucket
+
+    bool put_with_read_lock(uint64_t key, uint64_t value, concurrency_ht_segment *tmp_seg, concurrency_ht_bucket *tmp_bucket);
 
     uint64_t get(uint64_t key);
 

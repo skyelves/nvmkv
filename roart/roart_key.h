@@ -10,19 +10,22 @@
 #include <memory>
 #include "../fastalloc/fastalloc.h"
 
-class ROART_KEY {
-public:
+struct ROART_KEY {
     uint64_t value;
     size_t key_len;
     size_t val_len;
     uint64_t key;
-    uint8_t *fkey;
+    uint8_t fkey[8];
 
     ROART_KEY();
 
     ROART_KEY(uint64_t key_, size_t key_len_, uint64_t value_);
 
+    void Init(uint64_t key_, size_t key_len_, uint64_t value_);
+
     void Init(char *key_, size_t key_len_, char *value_, size_t val_len_);
+
+    ROART_KEY *make_leaf(char *key, size_t key_len, uint64_t value);
 
     ROART_KEY *make_leaf(uint64_t key, size_t key_len, uint64_t value);
 

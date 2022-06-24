@@ -1,5 +1,5 @@
 //
-// Created by 王柯 on 2021-03-04.
+// Created by 杨冠群 on 2021-06-20.
 //
 
 #include <stdio.h>
@@ -61,7 +61,7 @@ void concurrencyhashtree::init(int _span, int _init_depth) {
 
 concurrencyhashtree *new_concurrency_hashtree(int _span, int _init_depth) {
 //    hashtree *_new_hash_tree = new hashtree(_span, _init_depth);
-    concurrencyhashtree *_new_hash_tree = static_cast<concurrencyhashtree *>(fast_alloc(sizeof(concurrencyhashtree)));
+    concurrencyhashtree *_new_hash_tree = static_cast<concurrencyhashtree *>(concurrency_fast_alloc(sizeof(concurrencyhashtree)));
     _new_hash_tree->init(_span, _init_depth);
     return _new_hash_tree;
 }
@@ -79,21 +79,91 @@ void concurrencyhashtree::crash_consistent_put(concurrency_hashtree_node *_node,
     
     for (; i < 64; i += span_test[j], j++) {
         sub_key = GET_SUB_KEY(k, i, span_test[j]);
-        uint64_t next = tmp->get(sub_key);
+
+        GET_RETRY:
+            while(tmp->lock_meta<0){
+                std::this_thread::yield();
+            }
+
+            uint64_t dir_index = GET_SEG_NUM(sub_key, tmp->key_len, tmp->global_depth);
+            concurrency_ht_segment *tmp_seg = tmp->dir[dir_index];
+            
+            // read lock segment
+            if(!tmp_seg->read_lock()){
+                // tmp->free_read_lock();
+                std::this_thread::yield();
+                goto GET_RETRY;
+            }
+
+            if(tmp->dir[GET_SEG_NUM(sub_key, tmp->key_len, tmp->global_depth)]!=tmp_seg){
+                tmp_seg->free_read_lock();
+                std::this_thread::yield();
+                goto GET_RETRY;
+            }
+
+
+            uint64_t seg_index = GET_BUCKET_NUM(sub_key, HT_BUCKET_MASK_LEN);
+            concurrency_ht_bucket *tmp_bucket = &(tmp_seg->bucket[seg_index]);
+            
+            if(!tmp_bucket->read_lock()){
+                tmp_seg->free_read_lock();
+                // tmp->free_read_lock();
+                std::this_thread::yield();
+                goto GET_RETRY;
+            }
+
+            uint64_t next = 0;
+            uint64_t pos = 0;
+            for (int i = 0; i < HT_BUCKET_SIZE; ++i) {
+                if (sub_key == tmp_bucket->counter[i].key) {
+                    next = tmp_bucket->counter[i].value;
+                    pos = i;
+                    break;
+                }
+            }
+
+        // uint64_t next = tmp->get(sub_key);
         if (next == 0) {
-            //not exists
+            //not exists 
             concurrency_ht_key_value *kv = new_concurrency_ht_key_value(k, v);
             clflush((char *) kv, sizeof(concurrency_ht_key_value));
-            tmp->put(sub_key, (uint64_t) kv);//crash consistency operations
+            // tmp->put(sub_key, (uint64_t) kv);//crash consistency operations
+
+            if(!tmp->put_with_read_lock(sub_key,(uint64_t)kv, tmp_seg, tmp_bucket)){
+                goto GET_RETRY;
+            }
+
             return;
         } else {
             if (((bool *) next)[0]) {
                 // next is key value pair, which means collides
                 uint64_t pre_k = ((concurrency_ht_key_value *) next)->key;
+
+                tmp_bucket->free_read_lock();
+
+                if(!tmp_bucket->write_lock()){
+                    tmp_seg->free_read_lock();
+                    // tmp->free_read_lock();
+                    std::this_thread::yield();
+                    goto GET_RETRY;
+                }
+
+
+                if(tmp_bucket->counter[pos].value!=next){
+                    tmp_bucket->free_write_lock();
+                    tmp_seg->free_read_lock();
+                    // tmp->free_read_lock();  
+                    std::this_thread::yield();
+                    goto GET_RETRY;
+                }   
+
                 if (unlikely(k == pre_k)) {
                     //same key, update the value
                     ((concurrency_ht_key_value *) next)->value = v;
                     clflush((char *) &(((concurrency_ht_key_value *) next)->value), 8);
+                    tmp_bucket->free_write_lock();
+                    tmp_seg->free_read_lock();
+                    // tmp->free_read_lock();
                     return;
                 } else {
                     //not same key: needs to create a new eh
@@ -101,12 +171,19 @@ void concurrencyhashtree::crash_consistent_put(concurrency_hashtree_node *_node,
                     uint64_t pre_k_next_sub_key = GET_SUB_KEY(pre_k, i + span_test[j], span_test[j + 1]);
                     new_node->put(pre_k_next_sub_key, (uint64_t) next);
                     crash_consistent_put(new_node, k, v, j + 1);
-                    tmp->put(sub_key, (uint64_t) new_node);
+                    // tmp->put(sub_key, (uint64_t) new_node);
+                    tmp_bucket->counter[pos].value =  (uint64_t) new_node;
+                    tmp_bucket->free_write_lock();
+                    tmp_seg->free_read_lock();
+                    // tmp->free_read_lock();
 //                    node_cnt++;
                     return;
                 }
             } else {
                 // next is next extendible hash
+                tmp_bucket->free_read_lock();
+                tmp_seg->free_read_lock();
+                // tmp->free_read_lock();
                 tmp = (concurrency_hashtree_node *) next;
             }
         }
@@ -122,35 +199,127 @@ void concurrencyhashtree::put(uint64_t k, uint64_t v) {
     uint64_t sub_key;
     for (int i = 0, j = 0; i < 64; i += span_test[j], j++) {
         sub_key = GET_SUB_KEY(k, i, span_test[j]);
-        uint64_t next = tmp->get(sub_key);
+
+        GET_RETRY:
+            if(!tmp->read_lock()){
+                std::this_thread::yield();
+                goto GET_RETRY;
+            }
+
+            uint64_t dir_index = GET_SEG_NUM(sub_key, tmp->key_len, tmp->global_depth);
+            concurrency_ht_segment *tmp_seg = tmp->dir[dir_index];
+            
+            // read lock segment
+            if(!tmp_seg->read_lock()){
+                tmp->free_read_lock();
+                std::this_thread::yield();
+                goto GET_RETRY;
+            }
+
+            // double check 
+            uint64_t check_dir_index = GET_SEG_NUM(sub_key, tmp->key_len, tmp->global_depth);
+            if(tmp_seg!=tmp->dir[check_dir_index]){
+                tmp_seg->free_read_lock();
+                tmp->free_read_lock();
+                std::this_thread::yield();
+                goto GET_RETRY;
+            }
+
+            uint64_t seg_index = GET_BUCKET_NUM(sub_key, HT_BUCKET_MASK_LEN);
+            concurrency_ht_bucket *tmp_bucket = &(tmp_seg->bucket[seg_index]);
+            tmp_bucket->read_lock();
+
+            uint64_t next = 0;
+            uint64_t pos = 0;
+            for (int i = 0; i < HT_BUCKET_SIZE; ++i) {
+                if (sub_key == tmp_bucket->counter[i].key) {
+                    next = tmp_bucket->counter[i].value;
+                    pos = i;
+                    break;
+                }
+            }
+
+            // tmp_bucket->free_read_lock();
+            // tmp_seg->free_read_lock();
+
         if (next == 0) {
             //not exists
-            tmp->put(sub_key, (uint64_t) kv);//crash consistency operations
+
+            tmp_bucket->free_read_lock();
+            if(!tmp_bucket->write_lock()){
+                tmp_seg->free_read_lock();
+                tmp->free_read_lock();
+                std::this_thread::yield();
+                goto GET_RETRY;
+            }
+
+            if(tmp_bucket->counter[pos].value!=0){
+                tmp_bucket->free_write_lock();
+                tmp_seg->free_read_lock();
+                tmp->free_read_lock();
+                std::this_thread::yield();
+                goto GET_RETRY;
+            }
+            
+            // there is a place to insert
+            tmp_bucket->counter[pos].value = v;
+            mfence();
+            tmp_bucket->counter[pos].key = k;
+
+            // Here we clflush 16bytes rather than two 8 bytes because all counter are set to 0.
+            // If crash after key flushed, then the value is 0. When we return the value, we would find that the key is not inserted.
+            clflush((char *) &(tmp_bucket->counter[pos].key), 16);
+            
+            tmp_bucket->free_write_lock();
+            tmp_seg->free_read_lock();
+            tmp->free_read_lock();
+
+        
             return;
         } else {
             if (((bool *) next)[0]) {
                 // next is key value pair, which means collides
                 uint64_t pre_k = ((concurrency_ht_key_value *) next)->key;
+
+                tmp_bucket->free_read_lock();
+                if(!tmp_bucket->write_lock()){
+                    tmp_seg->free_read_lock();
+                    tmp->free_read_lock();  
+                    std::this_thread::yield();
+                    goto GET_RETRY;
+                }
+
+                if(tmp_bucket->counter[pos].value!=next){
+                    tmp_bucket->free_write_lock();
+                    tmp_seg->free_read_lock();
+                    tmp->free_read_lock();  
+                    std::this_thread::yield();
+                    goto GET_RETRY;
+                }   
+            
                 if (unlikely(k == pre_k)) {
                     //same key, update the value
                     ((concurrency_ht_key_value *) next)->value = v;
                     clflush((char *) &(((concurrency_ht_key_value *) next)->value), 8);
+                    tmp_bucket->free_write_lock();
+                    tmp_seg->free_read_lock();
+                    tmp->free_read_lock();
                     return;
                 } else {
                     //not same key: needs to create a new eh
                     concurrency_hashtree_node *new_node = new_concurrency_hashtree_node(init_depth, span_test[j + 1]);
                     uint64_t pre_k_next_sub_key = GET_SUB_KEY(pre_k, i + span_test[j], span_test[j + 1]);
                     new_node->put(pre_k_next_sub_key, (uint64_t) next);
-                    tmp->put(sub_key, (uint64_t) new_node);
+                    tmp_bucket->counter[pos].value =  (uint64_t) new_node;
+                    tmp_bucket->free_write_lock();
+                    tmp_seg->free_read_lock();
                     tmp = new_node;
-//                    node_cnt++;
-                    /* todo: for crash consistency,
-                     * tmp->put(sub_key, (uint64_t) new_eh);
-                     * should be the last operation
-                     */
                 }
             } else {
                 // next is next extendible hash
+                tmp_bucket->free_read_lock();
+                tmp_seg->free_read_lock();
+
                 tmp = (concurrency_hashtree_node *) next;
             }
         }
@@ -162,6 +331,7 @@ uint64_t concurrencyhashtree::get(uint64_t k) {
     int64_t next;
     for (int i = 0, j = 0; i < 64; i += span_test[j], j++) {
         uint64_t sub_key = GET_SUB_KEY(k, i, span_test[j]);
+        
         next = tmp->get(sub_key);
 //        get_access++;
         if (next == 0) {

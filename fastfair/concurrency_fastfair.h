@@ -2,11 +2,10 @@
 // Created by 王柯 on 5/12/21.
 //
 
-#ifndef NVMKV_FASTFAIR_H
-#define NVMKV_FASTFAIR_H
+#ifndef NVMKV_CONCURRENCY_FASTFAIR_H
+#define NVMKV_CONCURRENCY_FASTFAIR_H
 
 #include "../fastalloc/fastalloc.h"
-
 #include <cassert>
 #include <climits>
 #include <fstream>
@@ -14,6 +13,7 @@
 #include <iostream>
 #include <math.h>
 #include <mutex>
+#include <shared_mutex>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,6 +21,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <vector>
+
 
 #define PAGESIZE 512
 
@@ -30,39 +31,37 @@
 
 using namespace std;
 
-inline void mfence() { asm volatile("mfence":: : "memory"); }
+inline void concurrency_mfence() { asm volatile("mfence":: : "memory"); }
 
-inline void clflush(char *data, int len) {
+inline void concurrency_clflush(char *data, int len) {
     volatile char *ptr = (char *) ((unsigned long) data & ~(CACHE_LINE_SIZE - 1));
-    mfence();
+    concurrency_mfence();
     for (; ptr < data + len; ptr += CACHE_LINE_SIZE) {
         asm volatile("clflush %0" : "+m"(*(volatile char *) ptr));
         //++clflush_cnt;
     }
-    mfence();
+    concurrency_mfence();
 }
 
-class ff_key_value {
+class concurrency_ff_key_value {
 public:
     uint64_t key;
     uint64_t value;
 
-    ff_key_value();
+    concurrency_ff_key_value();
 
-    ff_key_value(uint64_t _key, uint64_t _value);
+    concurrency_ff_key_value(uint64_t _key, uint64_t _value);
 };
 
-class page;
+class concurrency_page;
 
-class fastfair {
+class concurrency_fastfair {
 private:
     int height;
     char *root;
 
 public:
-    uint64_t memory_usage = 0;
-
-    fastfair();
+    concurrency_fastfair();
 
     void init();
 
@@ -70,89 +69,93 @@ public:
 
     void put(uint64_t key, char *value, int value_len = 8);
 
-    void fastfair_insert_internal(char *left, uint64_t key, char *value,
+    void concurrency_fastfair_insert_internal(char *left, uint64_t key, char *value,
                                   uint32_t level);
 
-    void fastfair_delete(uint64_t key);
+    void concurrency_fastfair_delete(uint64_t key);
 
-    void fastfair_delete_internal(uint64_t key, char *ptr, uint32_t level,
+    void concurrency_fastfair_delete_internal(uint64_t key, char *ptr, uint32_t level,
                                   uint64_t *deleted_key,
-                                  bool *is_leftmost_node, page **left_sibling);
+                                  bool *is_leftmost_node, concurrency_page **left_sibling);
 
     char *get(uint64_t key);
 
-    void _scan(uint64_t min, uint64_t max, vector<ff_key_value> &buf);
+    void _scan(uint64_t min, uint64_t max, vector<concurrency_ff_key_value> &buf);
 
-    vector<ff_key_value> scan(uint64_t min, uint64_t max);
-
-    uint64_t memory_profile(page *p);
+    vector<concurrency_ff_key_value> scan(uint64_t min, uint64_t max);
 
     void printAll();
 
-    friend class page;
+    friend class concurrency_page;
 };
 
-fastfair *new_fastfair();
+concurrency_fastfair *new_concurrency_fastfair();
 
-class header {
+class concurrency_header {
 private:
-    page *leftmost_ptr;     // 8 bytes
-    page *sibling_ptr;      // 8 bytes
+    concurrency_page *leftmost_ptr;     // 8 bytes
+    concurrency_page *sibling_ptr;      // 8 bytes
     uint32_t level;         // 4 bytes
     uint8_t switch_counter; // 1 bytes
     uint8_t is_deleted;     // 1 bytes
     int16_t last_index;     // 2 bytes
     char dummy[8];          // 8 bytes
+    shared_mutex *mtx;
 
-    friend class page;
+    friend class concurrency_page;
 
-    friend class fastfair;
+    friend class concurrency_fastfair;
 
 public:
-    header() {
+    concurrency_header() {
         leftmost_ptr = NULL;
         sibling_ptr = NULL;
         switch_counter = 0;
         last_index = -1;
         is_deleted = false;
+        mtx = new shared_mutex();
     }
 
-    ~header() {}
+    void *operator new(size_t size) {
+        return concurrency_fast_alloc(size);
+    }
+
+    ~concurrency_header() {}
 };
 
-class entry {
+class concurrency_entry {
 private:
     uint64_t key; // 8 bytes
     char *ptr;       // 8 bytes
 public:
-    entry() {
+    concurrency_entry() {
         key = LONG_MAX;
         ptr = NULL;
     }
 
-    friend class page;
+    friend class concurrency_page;
 
-    friend class fastfair;
+    friend class concurrency_fastfair;
 };
 
-const int cardinality = (PAGESIZE - sizeof(header)) / sizeof(entry);
-const int count_in_line = CACHE_LINE_SIZE / sizeof(entry);
+const int concurrency_cardinality = (PAGESIZE - sizeof(concurrency_header)) / sizeof(concurrency_entry);
+const int concurrency_count_in_line = CACHE_LINE_SIZE / sizeof(concurrency_entry);
 
-class page {
+class concurrency_page {
 private:
-    header hdr;                 // header in persistent memory, 16 bytes
-    entry records[cardinality]; // slots in persistent memory, 16 bytes * n
+    concurrency_header hdr;                 // header in persistent memory, 16 bytes
+    concurrency_entry records[concurrency_cardinality]; // slots in persistent memory, 16 bytes * n
 
 public:
-    friend class fastfair;
+    friend class concurrency_fastfair;
 
-    page(uint32_t level = 0) {
+    concurrency_page(uint32_t level = 0) {
         hdr.level = level;
         records[0].ptr = NULL;
     }
 
     // this is called when tree grows
-    page(page *left, uint64_t key, page *right, uint32_t level = 0) {
+    concurrency_page(concurrency_page *left, uint64_t key, concurrency_page *right, uint32_t level = 0) {
         hdr.leftmost_ptr = left;
         hdr.level = level;
         records[0].key = key;
@@ -161,11 +164,11 @@ public:
 
         hdr.last_index = 0;
 
-        clflush((char *) this, sizeof(page));
+        concurrency_clflush((char *) this, sizeof(concurrency_page));
     }
 
     void *operator new(size_t size) {
-        void *ret = fast_alloc(size);
+        void *ret = concurrency_fast_alloc(size);
 //        posix_memalign(&ret, 64, size);
         return ret;
     }
@@ -219,10 +222,10 @@ public:
                 int remainder = records_ptr % CACHE_LINE_SIZE;
                 bool do_flush =
                         (remainder == 0) ||
-                        ((((int) (remainder + sizeof(entry)) / CACHE_LINE_SIZE) == 1) &&
-                         ((remainder + sizeof(entry)) % CACHE_LINE_SIZE) != 0);
+                        ((((int) (remainder + sizeof(concurrency_entry)) / CACHE_LINE_SIZE) == 1) &&
+                         ((remainder + sizeof(concurrency_entry)) % CACHE_LINE_SIZE) != 0);
                 if (do_flush) {
-                    clflush((char *) records_ptr, CACHE_LINE_SIZE);
+                    concurrency_clflush((char *) records_ptr, CACHE_LINE_SIZE);
                 }
             }
         }
@@ -233,17 +236,17 @@ public:
         return shift;
     }
 
-    bool remove(fastfair *bt, uint64_t key, bool only_rebalance = false,
+    bool remove(concurrency_fastfair *bt, uint64_t key, bool only_rebalance = false,
                 bool with_lock = true) {
         if (!only_rebalance) {
             int num_entries_before = count();
 
             // This node is root
-            if (this == (page *) bt->root) {
+            if (this == (concurrency_page *) bt->root) {
                 if (hdr.level > 0) {
                     if (num_entries_before == 1 && !hdr.sibling_ptr) {
                         bt->root = (char *) hdr.leftmost_ptr;
-                        clflush((char *) &(bt->root), sizeof(char *));
+                        concurrency_clflush((char *) &(bt->root), sizeof(char *));
 
                         hdr.is_deleted = 1;
                     }
@@ -256,7 +259,7 @@ public:
 
             bool should_rebalance = true;
             // check the node utilization
-            if (num_entries_before - 1 >= (int) ((cardinality - 1) * 0.5)) {
+            if (num_entries_before - 1 >= (int) ((concurrency_cardinality - 1) * 0.5)) {
                 should_rebalance = false;
             }
 
@@ -271,8 +274,8 @@ public:
         // Remove a key from the parent node
         uint64_t deleted_key_from_parent = 0;
         bool is_leftmost_node = false;
-        page *left_sibling;
-        bt->fastfair_delete_internal(key, (char *) this, hdr.level + 1,
+        concurrency_page *left_sibling;
+        bt->concurrency_fastfair_delete_internal(key, (char *) this, hdr.level + 1,
                                      &deleted_key_from_parent, &is_leftmost_node,
                                      &left_sibling);
 
@@ -292,7 +295,7 @@ public:
 
         uint64_t parent_key;
 
-        if (total_num_entries > cardinality - 1) { // Redistribution
+        if (total_num_entries > concurrency_cardinality - 1) { // Redistribution
             int m = (int) ceil(total_num_entries / 2);
 
             if (num_entries < left_num_entries) { // left -> right
@@ -303,10 +306,10 @@ public:
                     }
 
                     left_sibling->records[m].ptr = nullptr;
-                    clflush((char *) &(left_sibling->records[m].ptr), sizeof(char *));
+                    concurrency_clflush((char *) &(left_sibling->records[m].ptr), sizeof(char *));
 
                     left_sibling->hdr.last_index = m - 1;
-                    clflush((char *) &(left_sibling->hdr.last_index), sizeof(int16_t));
+                    concurrency_clflush((char *) &(left_sibling->hdr.last_index), sizeof(int16_t));
 
                     parent_key = records[0].key;
                 } else {
@@ -320,29 +323,29 @@ public:
 
                     parent_key = left_sibling->records[m].key;
 
-                    hdr.leftmost_ptr = (page *) left_sibling->records[m].ptr;
-                    clflush((char *) &(hdr.leftmost_ptr), sizeof(page *));
+                    hdr.leftmost_ptr = (concurrency_page *) left_sibling->records[m].ptr;
+                    concurrency_clflush((char *) &(hdr.leftmost_ptr), sizeof(concurrency_page *));
 
                     left_sibling->records[m].ptr = nullptr;
-                    clflush((char *) &(left_sibling->records[m].ptr), sizeof(char *));
+                    concurrency_clflush((char *) &(left_sibling->records[m].ptr), sizeof(char *));
 
                     left_sibling->hdr.last_index = m - 1;
-                    clflush((char *) &(left_sibling->hdr.last_index), sizeof(int16_t));
+                    concurrency_clflush((char *) &(left_sibling->hdr.last_index), sizeof(int16_t));
                 }
 
-                if (left_sibling == ((page *) bt->root)) {
-                    page *new_root =
-                            new page(left_sibling, parent_key, this, hdr.level + 1);
+                if (left_sibling == ((concurrency_page *) bt->root)) {
+                    concurrency_page *new_root =
+                            new concurrency_page(left_sibling, parent_key, this, hdr.level + 1);
                     bt->setNewRoot((char *) new_root);
                 } else {
-                    bt->fastfair_insert_internal((char *) left_sibling, parent_key,
+                    bt->concurrency_fastfair_insert_internal((char *) left_sibling, parent_key,
                                                  (char *) this, hdr.level + 1);
                 }
             } else { // from leftmost case
                 hdr.is_deleted = 1;
-                clflush((char *) &(hdr.is_deleted), sizeof(uint8_t));
+                concurrency_clflush((char *) &(hdr.is_deleted), sizeof(uint8_t));
 
-                page *new_sibling = new page(hdr.level);
+                concurrency_page *new_sibling = new concurrency_page(hdr.level);
                 new_sibling->hdr.sibling_ptr = hdr.sibling_ptr;
 
                 int num_dist_entries = num_entries - m;
@@ -359,10 +362,10 @@ public:
                                                 &new_sibling_cnt, false);
                     }
 
-                    clflush((char *) (new_sibling), sizeof(page));
+                    concurrency_clflush((char *) (new_sibling), sizeof(concurrency_page));
 
                     left_sibling->hdr.sibling_ptr = new_sibling;
-                    clflush((char *) &(left_sibling->hdr.sibling_ptr), sizeof(page *));
+                    concurrency_clflush((char *) &(left_sibling->hdr.sibling_ptr), sizeof(concurrency_page *));
 
                     parent_key = new_sibling->records[0].key;
                 } else {
@@ -377,29 +380,29 @@ public:
                     parent_key = records[num_dist_entries - 1].key;
 
                     new_sibling->hdr.leftmost_ptr =
-                            (page *) records[num_dist_entries - 1].ptr;
+                            (concurrency_page *) records[num_dist_entries - 1].ptr;
                     for (int i = num_dist_entries; records[i].ptr != NULL; i++) {
                         new_sibling->insert_key(records[i].key, records[i].ptr,
                                                 &new_sibling_cnt, false);
                     }
-                    clflush((char *) (new_sibling), sizeof(page));
+                    concurrency_clflush((char *) (new_sibling), sizeof(concurrency_page));
 
                     left_sibling->hdr.sibling_ptr = new_sibling;
-                    clflush((char *) &(left_sibling->hdr.sibling_ptr), sizeof(page *));
+                    concurrency_clflush((char *) &(left_sibling->hdr.sibling_ptr), sizeof(concurrency_page *));
                 }
 
-                if (left_sibling == ((page *) bt->root)) {
-                    page *new_root =
-                            new page(left_sibling, parent_key, new_sibling, hdr.level + 1);
+                if (left_sibling == ((concurrency_page *) bt->root)) {
+                    concurrency_page *new_root =
+                            new concurrency_page(left_sibling, parent_key, new_sibling, hdr.level + 1);
                     bt->setNewRoot((char *) new_root);
                 } else {
-                    bt->fastfair_insert_internal((char *) left_sibling, parent_key,
+                    bt->concurrency_fastfair_insert_internal((char *) left_sibling, parent_key,
                                                  (char *) new_sibling, hdr.level + 1);
                 }
             }
         } else {
             hdr.is_deleted = 1;
-            clflush((char *) &(hdr.is_deleted), sizeof(uint8_t));
+            concurrency_clflush((char *) &(hdr.is_deleted), sizeof(uint8_t));
             if (hdr.leftmost_ptr)
                 left_sibling->insert_key(deleted_key_from_parent,
                                          (char *) hdr.leftmost_ptr, &left_num_entries);
@@ -410,7 +413,7 @@ public:
             }
 
             left_sibling->hdr.sibling_ptr = hdr.sibling_ptr;
-            clflush((char *) &(left_sibling->hdr.sibling_ptr), sizeof(page *));
+            concurrency_clflush((char *) &(left_sibling->hdr.sibling_ptr), sizeof(concurrency_page *));
         }
 
         return true;
@@ -424,22 +427,22 @@ public:
 
         // FAST
         if (*num_entries == 0) { // this page is empty
-            entry *new_entry = (entry *) &records[0];
-            entry *array_end = (entry *) &records[1];
-            new_entry->key = (uint64_t) key;
-            new_entry->ptr = (char *) ptr;
+            concurrency_entry *new_concurrency_entry = (concurrency_entry *) &records[0];
+            concurrency_entry *array_end = (concurrency_entry *) &records[1];
+            new_concurrency_entry->key = (uint64_t) key;
+            new_concurrency_entry->ptr = (char *) ptr;
 
             array_end->ptr = (char *) NULL;
 
             if (flush) {
-                clflush((char *) this, CACHE_LINE_SIZE);
+                concurrency_clflush((char *) this, CACHE_LINE_SIZE);
             }
         } else {
             int i = *num_entries - 1, inserted = 0, to_flush_cnt = 0;
             records[*num_entries + 1].ptr = records[*num_entries].ptr;
             if (flush) {
                 if ((uint64_t) &(records[*num_entries + 1].ptr) % CACHE_LINE_SIZE == 0)
-                    clflush((char *) &(records[*num_entries + 1].ptr), sizeof(char *));
+                    concurrency_clflush((char *) &(records[*num_entries + 1].ptr), sizeof(char *));
             }
 
             // FAST
@@ -454,10 +457,10 @@ public:
                         int remainder = records_ptr % CACHE_LINE_SIZE;
                         bool do_flush =
                                 (remainder == 0) ||
-                                ((((int) (remainder + sizeof(entry)) / CACHE_LINE_SIZE) == 1) &&
-                                 ((remainder + sizeof(entry)) % CACHE_LINE_SIZE) != 0);
+                                ((((int) (remainder + sizeof(concurrency_entry)) / CACHE_LINE_SIZE) == 1) &&
+                                 ((remainder + sizeof(concurrency_entry)) % CACHE_LINE_SIZE) != 0);
                         if (do_flush) {
-                            clflush((char *) records_ptr, CACHE_LINE_SIZE);
+                            concurrency_clflush((char *) records_ptr, CACHE_LINE_SIZE);
                             to_flush_cnt = 0;
                         } else
                             ++to_flush_cnt;
@@ -468,7 +471,7 @@ public:
                     records[i + 1].ptr = ptr;
 
                     if (flush)
-                        clflush((char *) &records[i + 1], sizeof(entry));
+                        concurrency_clflush((char *) &records[i + 1], sizeof(concurrency_entry));
                     inserted = 1;
                     break;
                 }
@@ -478,7 +481,7 @@ public:
                 records[0].key = key;
                 records[0].ptr = ptr;
                 if (flush)
-                    clflush((char *) &records[0], sizeof(entry));
+                    concurrency_clflush((char *) &records[0], sizeof(concurrency_entry));
             }
         }
 
@@ -489,12 +492,20 @@ public:
     }
 
     // Insert a new key - FAST and FAIR
-    page *store(fastfair *bt, char *left, uint64_t key, char *value, bool flush,
-                page *invalid_sibling = NULL) {
+    concurrency_page *store(concurrency_fastfair *bt, char *left, uint64_t key, char *value, bool flush,
+                concurrency_page *invalid_sibling = NULL) {
+
+        hdr.mtx->lock();
+        if(hdr.is_deleted){
+            hdr.mtx->unlock();
+            return NULL;
+        }
+        
         // If this node has a sibling node,
         if (hdr.sibling_ptr && (hdr.sibling_ptr != invalid_sibling)) {
             // Compare this key with the first key of the sibling
             if (key > hdr.sibling_ptr->records[0].key) {
+                hdr.mtx->unlock();
                 return hdr.sibling_ptr->store(bt, NULL, key, value, true,
                                               invalid_sibling);
             }
@@ -503,13 +514,14 @@ public:
         int num_entries = count();
 
         // FAST
-        if (num_entries < cardinality - 1) {
+        if (num_entries < concurrency_cardinality - 1) {
             insert_key(key, value, &num_entries, flush);
+            hdr.mtx->unlock();
             return this;
         } else { // FAIR
             // overflow
             // create a new node
-            page *sibling = new page(hdr.level);
+            concurrency_page *sibling = new concurrency_page(hdr.level);
             int m = (int) ceil(num_entries / 2);
             uint64_t split_key = records[m].key;
 
@@ -525,14 +537,17 @@ public:
                     sibling->insert_key(records[i].key, records[i].ptr, &sibling_cnt,
                                         false);
                 }
-                sibling->hdr.leftmost_ptr = (page *) records[m].ptr;
+                sibling->hdr.leftmost_ptr = (concurrency_page *) records[m].ptr;
             }
 
             sibling->hdr.sibling_ptr = hdr.sibling_ptr;
-            clflush((char *) sibling, sizeof(page));
+            concurrency_clflush((char *) sibling, sizeof(concurrency_page));
 
+            // if(hdr.leftmost_ptr == nullptr){
+            //     sibling->hdr.mtx->lock();
+            // }
             hdr.sibling_ptr = sibling;
-            clflush((char *) &hdr, sizeof(hdr));
+            concurrency_clflush((char *) &hdr, sizeof(hdr));
 
             // set to NULL
             if (IS_FORWARD(hdr.switch_counter))
@@ -540,14 +555,14 @@ public:
             else
                 ++hdr.switch_counter;
             records[m].ptr = NULL;
-            clflush((char *) &records[m], sizeof(entry));
+            concurrency_clflush((char *) &records[m], sizeof(concurrency_entry));
 
             hdr.last_index = m - 1;
-            clflush((char *) &(hdr.last_index), sizeof(int16_t));
+            concurrency_clflush((char *) &(hdr.last_index), sizeof(int16_t));
 
             num_entries = hdr.last_index + 1;
 
-            page *ret;
+            concurrency_page *ret;
 
             // insert the key
             if (key < split_key) {
@@ -560,24 +575,33 @@ public:
 
             // Set a new root or insert the split key to the parent
             if (bt->root == (char *) this) { // only one node can update the root ptr
-                page *new_root =
-                        new page((page *) this, split_key, sibling, hdr.level + 1);
+                concurrency_page *new_root =
+                        new concurrency_page((concurrency_page *) this, split_key, sibling, hdr.level + 1);
                 bt->setNewRoot((char *) new_root);
+
+                // if(hdr.leftmost_ptr!=nullptr){
+                //     hdr.mtx->unlock();
+                // }
             } else {
-                bt->fastfair_insert_internal(NULL, split_key, (char *) sibling,
+                // if(hdr.leftmost_ptr!=nullptr){
+                //     hdr.mtx->unlock();
+                // }
+                bt->concurrency_fastfair_insert_internal(NULL, split_key, (char *) sibling,
                                              hdr.level + 1);
             }
 
+            hdr.mtx->unlock();
+            // sibling->hdr.mtx->unlock();
             return ret;
         }
     }
 
     // Search keys with linear search
     void linear_search_range(uint64_t min, uint64_t max,
-                             vector<ff_key_value> &buf) {
+                             vector<concurrency_ff_key_value> &buf) {
         int i, off = 0;
         uint8_t previous_switch_counter;
-        page *current = this;
+        concurrency_page *current = this;
 
         while (current) {
             int old_off = off;
@@ -595,7 +619,7 @@ public:
                                 if (tmp_key == current->records[0].key) {
                                     if (tmp_ptr) {
 //                                        buf[off++] = (unsigned long) tmp_ptr;
-                                        ff_key_value tmp(tmp_key, (uint64_t)tmp_ptr);
+                                        concurrency_ff_key_value tmp(tmp_key, *(uint64_t *) tmp_ptr);
                                         buf.push_back(tmp);
                                     }
                                 }
@@ -611,7 +635,7 @@ public:
                                     current->records[i - 1].ptr) {
                                     if (tmp_key == current->records[i].key) {
                                         if (tmp_ptr) {
-                                            ff_key_value tmp(tmp_key, (uint64_t) tmp_ptr);
+                                            concurrency_ff_key_value tmp(tmp_key, *(uint64_t *) tmp_ptr);
                                             buf.push_back(tmp);
                                         }
                                     }
@@ -628,7 +652,7 @@ public:
                                     current->records[i - 1].ptr) {
                                     if (tmp_key == current->records[i].key) {
                                         if (tmp_ptr) {
-                                            ff_key_value tmp(tmp_key, (uint64_t) tmp_ptr);
+                                            concurrency_ff_key_value tmp(tmp_key, *(uint64_t *) tmp_ptr);
                                             buf.push_back(tmp);
                                         }
                                     }
@@ -643,7 +667,7 @@ public:
                             if ((tmp_ptr = current->records[0].ptr) != NULL) {
                                 if (tmp_key == current->records[0].key) {
                                     if (tmp_ptr) {
-                                        ff_key_value tmp(tmp_key, (uint64_t) tmp_ptr);
+                                        concurrency_ff_key_value tmp(tmp_key, *(uint64_t *) tmp_ptr);
                                         buf.push_back(tmp);
                                     }
                                 }
@@ -720,7 +744,7 @@ public:
                 return ret;
             }
 
-            if ((t = (char *) hdr.sibling_ptr) && key >= ((page *) t)->records[0].key)
+            if ((t = (char *) hdr.sibling_ptr) && key >= ((concurrency_page *) t)->records[0].key)
                 return t;
 
             return NULL;
@@ -770,7 +794,7 @@ public:
             } while (hdr.switch_counter != previous_switch_counter);
 
             if ((t = (char *) hdr.sibling_ptr) != NULL) {
-                if (key >= ((page *) t)->records[0].key)
+                if (key >= ((concurrency_page *) t)->records[0].key)
                     return t;
             }
 
@@ -815,9 +839,9 @@ public:
         } else {
             printf("printing internal node: ");
             print();
-            ((page *) hdr.leftmost_ptr)->printAll();
+            ((concurrency_page *) hdr.leftmost_ptr)->printAll();
             for (int i = 0; records[i].ptr != NULL; ++i) {
-                ((page *) records[i].ptr)->printAll();
+                ((concurrency_page *) records[i].ptr)->printAll();
             }
         }
     }
