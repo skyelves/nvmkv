@@ -487,6 +487,9 @@ void N::insertAndUnlock(N *node, N *parentNode, uint8_t keyParent, uint8_t key,
 #ifdef INSTANT_RESTART
     node->check_generation();
 #endif
+#ifdef ROART_PROFILE_TIME
+    gettimeofday(&start_time, NULL);
+#endif
     switch (node->getType()) {
         case NTypes::N4: {
             auto n = static_cast<N4 *>(node);
@@ -531,6 +534,10 @@ void N::insertAndUnlock(N *node, N *parentNode, uint8_t keyParent, uint8_t key,
             assert(false);
         }
     }
+#ifdef ROART_PROFILE_TIME
+    gettimeofday(&end_time, NULL);
+    _update += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
 }
 
 N *N::getChild(const uint8_t k, N *node) {
@@ -2120,10 +2127,16 @@ bool LeafArray::insert(ROART_Leaf *l, bool flush) {
         auto s =
                 (static_cast<uintptr_t>(l->getFingerPrint()) << FingerPrintShift) |
                 (reinterpret_cast<uintptr_t>(l));
+#ifdef ROART_PROFILE_TIME
+        gettimeofday(&start_time, NULL);
+#endif
         leaf[pos].store(s);
         if (flush)
             clflush((void *) &leaf[pos], sizeof(std::atomic<uintptr_t>));
-
+#ifdef ROART_PROFILE_TIME
+        gettimeofday(&end_time, NULL);
+        _update += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
         return true;
     } else {
         return false;

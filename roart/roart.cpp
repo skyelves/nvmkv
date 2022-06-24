@@ -878,14 +878,24 @@ typename ROART::OperationResults ROART::put(uint64_t key, uint64_t value) {
             if (needRestart)
                 goto restart;
 //            ROART_Leaf *newLeaf = allocLeaf(k);
-
 #ifdef ROART_PROFILE_TIME
             gettimeofday(&start_time, NULL);
 #endif
             ROART_Leaf *newLeaf = allocLeaf(key, value, fkey);
+#ifdef ROART_PROFILE_TIME
+            gettimeofday(&end_time, NULL);
+            _update += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
 #ifdef LEAF_ARRAY
+#ifdef ROART_PROFILE_TIME
+            gettimeofday(&start_time, NULL);
+#endif
             auto newLeafArray =
                     new(fast_alloc(get_node_size(NTypes::LeafArray))) LeafArray();
+#ifdef ROART_PROFILE_TIME
+            gettimeofday(&end_time, NULL);
+            _update += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
             newLeafArray->insert(newLeaf, true);
             N::insertAndUnlock(node, parentNode, parentKey, nodeKey,
                                N::setLeafArray(newLeafArray), needRestart);
@@ -895,10 +905,6 @@ typename ROART::OperationResults ROART::put(uint64_t key, uint64_t value) {
 #endif
             if (needRestart)
                 goto restart;
-#ifdef ROART_PROFILE_TIME
-            gettimeofday(&end_time, NULL);
-            _update += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
-#endif
             return OperationResults::Success;
         }
 #ifdef LEAF_ARRAY
