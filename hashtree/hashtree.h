@@ -24,6 +24,17 @@ public:
 
     ~hashtree();
 
+    hashtree_node * getRoot(){
+        return root;
+    }
+    int getInitDepth(){
+        return this->init_depth;
+    }
+
+    int64_t getSpan(){
+        return span;
+    }
+
     void init(int _span = 8, int _init_depth = 4);
 
     //support variable values, for convenience, we set v to 8 byte
@@ -46,5 +57,7 @@ public:
 
 hashtree *new_hashtree(int _span = 8, int _init_depth = 4);
 
+
+void recovery(hashtree_node* head);
 
 #endif //NVMKV_HASHTREE_H
