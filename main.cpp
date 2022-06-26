@@ -162,12 +162,12 @@ int numThread = 1;
 int test_algorithms_num = 10;
 bool test_case[10] = {0, // ht
                       0, // art
-                      1, // wort
-                      1, // woart
+                      0, // wort
+                      0, // woart
                       0, // cacheline_concious_extendible_hash
-                      1, // fast&fair
-                      1, // roart
-                      1, // ert
+                      0, // fast&fair
+                      0, // roart
+                      0, // ert
                       1, // lb+tree
                       0};
 
@@ -181,6 +181,8 @@ bool range_query_test_case[10] = {
         0, // lb+tree
         0
 };
+
+rng r;
 
 blink_tree *bt;
 mass_tree *mt;
@@ -382,31 +384,16 @@ void *putFunc(void *arg) {
 }
 
 void speedTest() {
+//    out.open("/home/wangke/nvmkv/res.txt", ios::app);
     mykey = new uint64_t[testNum];
     rng_init(&r, 1, 2);
     for (int i = 0; i < testNum; ++i) {
-//        mykey[i] = rng_next(&r);
+        mykey[i] = rng_next(&r);
 //        mykey[i] = rng_next(&r) & 0xffffffff00000000;
-        mykey[i] = rng_next(&r) % testNum;
+//        mykey[i] = rng_next(&r) % testNum;
 //        mykey[i] = rng_next(&r) % 100000000;
 //        mykey[i] = i;
     }
-
-//    out.close();
-
-//    negative_key = new uint64_t[testNum];
-//    for (int i = 0; i < testNum; ++i) {
-//        uint64_t tmp = rng_next(&r);
-//        while (s.find(tmp) != s.end()) {
-//            tmp = rng_next(&r);
-//        }
-//        negative_key[i] = tmp;
-//    }
-}
-
-void speedTest() {
-//    out.open("/home/wangke/nvmkv/res.txt", ios::app);
-    generate_workflow(1);
     uint64_t value = 1;
     vector<Length64HashTreeKeyValue> res;
 //    timeval start, ends;
@@ -1928,30 +1915,6 @@ void test_key_len() {
 }
 
 
-void recoveryTest() {
-    mykey = new uint64_t[testNum];
-    rng r;
-    rng_init(&r, 1, 2);
-    for (int i = 0; i < testNum; ++i) {
-        mykey[i] = rng_next(&r);
-    }
-
-    for (int i = 0; i < testNum; ++i) {
-        ht->crash_consistent_put(NULL, mykey[i], 1, 0);
-    }
-
-
-    timeval start, ends;
-    gettimeofday(&start, NULL);
-    recovery(ht->getRoot());
-    gettimeofday(&ends, NULL);
-    double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
-
-    cout << "ht recovery test" << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;
-
-
-}
-
 int main(int argc, char *argv[]) {
     sscanf(argv[1], "%d", &numThread);
     sscanf(argv[2], "%d", &testNum);
@@ -1975,7 +1938,7 @@ int main(int argc, char *argv[]) {
 //    bt = new_blink_tree(numThread);
 //     correctnessTest();
 
-//     speedTest();
+     speedTest();
 
 //    varLengthTest();
 //    varLengthCorrectnessTest();
@@ -1993,7 +1956,7 @@ int main(int argc, char *argv[]) {
 //    } catch (void *) {
 //        fast_free();
 //    }
-    profile();
+//    profile();
 
 //    range_query_correctness_test();
 //    cout << ht->node_cnt << endl;
