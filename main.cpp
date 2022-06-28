@@ -69,8 +69,21 @@ ofstream out;
         gettimeofday(&ends, NULL);                                                              \
         double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;\
         double throughPut = (double) testNum / timeCost;                                        \
-        cout << name << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;        \
-        cout << name << "ThroughPut: " << throughPut << " Mops" << endl;                        \
+        cout << name << ", " << throughPut << endl;                                             \
+    }
+
+#define Time_BODY1(condition, name, func)                                                        \
+    if(condition) {                                                                             \
+        sleep(1);                                                                               \
+        timeval start, ends;                                                                    \
+        gettimeofday(&start, NULL);                                                             \
+        for (int i = 0; i < 100000; ++i) {                                                     \
+            func                                                                                \
+        }                                                                                       \
+        gettimeofday(&ends, NULL);                                                              \
+        double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;\
+        double throughPut = (double) 100000 / timeCost;                                        \
+        cout << name << ", " << throughPut << endl;                                             \
     }
 
 #define Scan_Time_BODY(condition, name, func)                                                        \
@@ -186,6 +199,7 @@ var_length_wort_tree *vlwort;
 lbtree *lbt;
 varLengthLbtree * vllbt;
 
+
 conwoart_tree *conwoart;
 concurrencyhashtree *cht;
 concurrency_cceh *con_cceh;
@@ -193,9 +207,12 @@ concurrency_fastfair *con_fastfair;
 
 
 uint64_t nLoadOp, nRunOp;
+
 thread **threads;
 
 uint64_t *mykey;
+char **mykey_str;
+//uint64_t *negative_key;
 
 std::mutex mtx;
 
@@ -366,7 +383,6 @@ void *putFunc(void *arg) {
 
 void speedTest() {
     mykey = new uint64_t[testNum];
-    rng r;
     rng_init(&r, 1, 2);
     for (int i = 0; i < testNum; ++i) {
 //        mykey[i] = rng_next(&r);
@@ -375,6 +391,22 @@ void speedTest() {
 //        mykey[i] = rng_next(&r) % 100000000;
 //        mykey[i] = i;
     }
+
+//    out.close();
+
+//    negative_key = new uint64_t[testNum];
+//    for (int i = 0; i < testNum; ++i) {
+//        uint64_t tmp = rng_next(&r);
+//        while (s.find(tmp) != s.end()) {
+//            tmp = rng_next(&r);
+//        }
+//        negative_key[i] = tmp;
+//    }
+}
+
+void speedTest() {
+//    out.open("/home/wangke/nvmkv/res.txt", ios::app);
+    generate_workflow(1);
     uint64_t value = 1;
     vector<Length64HashTreeKeyValue> res;
 //    timeval start, ends;
@@ -393,30 +425,30 @@ void speedTest() {
 //    gettimeofday(&ends, NULL);
 //    double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
 //    double throughPut = (double) testNum / timeCost;
-//    cout << "hash tree Put " << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;
+//    cout << "hash tree put" << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;
 //    cout << "hash tree Put ThroughPut: " << throughPut << " Mops" << endl;
 //    cout << throughPut << endl;
 
     // insert speed for ht
-    Time_BODY(test_case[0], "hash tree put ", { ht->crash_consistent_put(NULL, mykey[i], 1, 0); })
+    Time_BODY(test_case[0], "ET put", { ht->crash_consistent_put(NULL, mykey[i], 1, 0); })
 
     // insert speed for art
-    Time_BODY(test_case[1], "art tree put ", { art_put(art, (unsigned char *) &(mykey[i]), 8, &value); })
+    Time_BODY(test_case[1], "art tree put", { art_put(art, (unsigned char *) &(mykey[i]), 8, &value); })
 
     // insert speed for wort
-    Time_BODY(test_case[2], "wort put ", { wort_put(wort, mykey[i], 8, &value); })
+    Time_BODY(test_case[2], "wort put", { wort_put(wort, mykey[i], 8, &value); })
 
     // insert speed for woart
-    Time_BODY(test_case[3], "woart put ", { woart_put(woart, mykey[i], 8, &value); })
+    Time_BODY(test_case[3], "woart put", { woart_put(woart, mykey[i], 8, &value); })
 
     // insert speed for cceh
-    Time_BODY(test_case[4], "cceh put ", { cceh->put(mykey[i], value); })
+    Time_BODY(test_case[4], "cceh put", { cceh->put(mykey[i], value); })
 
     // insert speed for fast&fair
-    Time_BODY(test_case[5], "fast&fair put ", { ff->put(mykey[i], (char *) &value); })
+    Time_BODY(test_case[5], "fast&fair put", { ff->put(mykey[i], (char *) &value); })
 
     // insert speed for fast&fair
-    Time_BODY(test_case[6], "roart put ", { roart->put(mykey[i], value); })
+    Time_BODY(test_case[6], "roart put", { roart->put(mykey[i], value); })
 
     // insert speed for ert
     Time_BODY(test_case[7], "ert put  ", { l64ht->crash_consistent_put(NULL, mykey[i], 1); })
@@ -425,25 +457,68 @@ void speedTest() {
     Time_BODY(test_case[8], "lbtree put  ", { lbt->insert(mykey[i], &value); })
 
     // query speed for ht
-    Time_BODY(test_case[0], "hash tree get ", { ht->get(mykey[i]); })
+    Time_BODY(test_case[0], "ET positive_get", { ht->get(mykey[i]); })
 
     // query speed for art
-    Time_BODY(test_case[1], "art tree get ", { art_get(art, (unsigned char *) &(mykey[i]), 8); })
+    Time_BODY(test_case[1], "arttree positive_get", { art_get(art, (unsigned char *) &(mykey[i]), 8); })
 
     // query speed for wort
-    Time_BODY(test_case[2], "wort get ", { wort_get(wort, mykey[i], 8); })
+    Time_BODY(test_case[2], "wort positive_get", { wort_get(wort, mykey[i], 8); })
 
     // query speed for woart
-    Time_BODY(test_case[3], "woart get ", { woart_get(woart, mykey[i], 8); })
+    Time_BODY(test_case[3], "woart positive_get", { woart_get(woart, mykey[i], 8); })
 
     // query speed for cceh
-    Time_BODY(test_case[4], "cceh get ", { cceh->get(mykey[i]); })
+    Time_BODY(test_case[4], "cceh positive_get", { cceh->get(mykey[i]); })
 
     // query speed for fast&fair
-    Time_BODY(test_case[5], "fast&fair get ", { ff->get(mykey[i]); })
+    Time_BODY(test_case[5], "fast&fair positive_get", { ff->get(mykey[i]); })
 
-    // query speed for fast&fair
-    Time_BODY(test_case[6], "roart get ", { roart->get(mykey[i]); })
+    // query speed for roart
+    Time_BODY(test_case[6], "roart positive_get", { roart->get(mykey[i]); })
+
+//    // query speed for ht
+//    Time_BODY(test_case[0], "ET negative_get", { ht->get(negative_key[i]); })
+//
+//    // query speed for art
+//    Time_BODY(test_case[1], "arttree negative_get", { art_get(art, (unsigned char *) &(negative_key[i]), 8); })
+//
+//    // query speed for wort
+//    Time_BODY(test_case[2], "wort negative_get", { wort_get(wort, negative_key[i], 8); })
+//
+//    // query speed for woart
+//    Time_BODY(test_case[3], "woart negative_get", { woart_get(woart, negative_key[i], 8); })
+//
+//    // query speed for cceh
+//    Time_BODY(test_case[4], "cceh negative_get", { cceh->get(negative_key[i]); })
+//
+//    // query speed for fast&fair
+//    Time_BODY(test_case[5], "fast&fair negative_get", { ff->get(negative_key[i]); })
+//
+//    // query speed for fast&fair
+//    Time_BODY(test_case[6], "roart negative_get", { roart->get(negative_key[i]); })
+//
+//    value = 2;
+//    // insert speed for ht
+//    Time_BODY(test_case[0], "ET update", { ht->crash_consistent_put(NULL, mykey[i], 2, 0); })
+//
+//    // insert speed for art
+//    Time_BODY(test_case[1], "art tree update", { art_put(art, (unsigned char *) &(mykey[i]), 8, &value); })
+//
+//    // insert speed for wort
+//    Time_BODY(test_case[2], "wort update", { wort_put(wort, mykey[i], 8, &value); })
+//
+//    // insert speed for woart
+//    Time_BODY(test_case[3], "woart update", { woart_put(woart, mykey[i], 8, &value); })
+//
+//    // insert speed for cceh
+//    Time_BODY(test_case[4], "cceh update", { cceh->put(mykey[i], value); })
+//
+//    // insert speed for fast&fair
+//    Time_BODY(test_case[5], "fast&fair update", { ff->put(mykey[i], (char *) &value); })
+//
+//    // insert speed for fast&fair
+//    Time_BODY(test_case[6], "roart update", { roart->put(mykey[i], value); })
 
     Time_BODY(test_case[7], "ert get ", { l64ht->get(mykey[i]); })
 
@@ -565,7 +640,6 @@ void speedTest() {
 void correctnessTest() {
     map<uint64_t, uint64_t> mm;
     mykey = new uint64_t[testNum];
-    rng r;
     rng_init(&r, 1, 2);
 
     uint64_t value = 1;
@@ -623,7 +697,6 @@ void correctnessTest() {
 void profile() {
 //    out.open("ert_profile.csv");
     mykey = new uint64_t[testNum];
-    rng r;
     rng_init(&r, 1, 2);
     for (int i = 0; i < testNum; ++i) {
         if (i % 3 == 0)
@@ -673,7 +746,6 @@ void profile() {
 void range_query_correctness_test() {
     testNum = 1000000;
     mykey = new uint64_t[testNum];
-    rng r;
     rng_init(&r, 1, 2);
     uint64_t mmax = 0;
     uint64_t mmin = INT64_MAX;
@@ -1069,6 +1141,7 @@ void varLengthTest() {
     // for (int i = 0; i < testNum; ++i) {
     //     mykey[i] = rng_next(&r);
     // }
+
 
     for(auto i:LengthCount){
         cout<<i.first<<" "<<i.second<<endl;
@@ -1802,6 +1875,57 @@ void varLengthCorrectnessTest(){
     cout<< "varLengthlbtree failed "<< failedCount <<endl;
 }
 
+
+void test_key_len() {
+
+    for (int key_len = 12; key_len <= 64; key_len += 2) {
+        cceh = new_cceh(0, key_len);
+        //generate skewed data set
+        mykey = new uint64_t[testNum];
+        rng_init(&r, 1, 2);
+        for (int i = 0; i < testNum; ++i) {
+            mykey[i] = (rng_next(&r) % testNum) % (0x1ull << (key_len - 1));
+//            mykey[i] = (rng_next(&r)) % (0x1ull << (key_len - 1));
+        }
+        uint64_t value = 1;
+
+        timeval start, ends;
+        gettimeofday(&start, NULL);
+        for (int i = 0; i < testNum; ++i) {
+            cceh->put(mykey[i], value);
+        }
+        gettimeofday(&ends, NULL);
+        double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
+        double throughPut = (double) testNum / timeCost;
+        cout << key_len << " ," << throughPut << endl;
+    }
+}
+
+
+void recoveryTest() {
+    mykey = new uint64_t[testNum];
+    rng r;
+    rng_init(&r, 1, 2);
+    for (int i = 0; i < testNum; ++i) {
+        mykey[i] = rng_next(&r);
+    }
+
+    for (int i = 0; i < testNum; ++i) {
+        ht->crash_consistent_put(NULL, mykey[i], 1, 0);
+    }
+
+
+    timeval start, ends;
+    gettimeofday(&start, NULL);
+    recovery(ht->getRoot());
+    gettimeofday(&ends, NULL);
+    double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
+
+    cout << "ht recovery test" << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;
+
+
+}
+
 int main(int argc, char *argv[]) {
     sscanf(argv[1], "%d", &numThread);
     sscanf(argv[2], "%d", &testNum);
@@ -1844,6 +1968,7 @@ int main(int argc, char *argv[]) {
 //        fast_free();
 //    }
     profile();
+
 //    range_query_correctness_test();
 //    cout << ht->node_cnt << endl;
 //    cout << ht->get_access << endl;

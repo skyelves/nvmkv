@@ -1,7 +1,7 @@
 //
 // Created by 王柯 on 2021-03-04.
 //
-
+#include <vector>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -11,9 +11,9 @@
  *         begin  len
  * key [______|___________|____________]
  */
-#define GET_SUB_KEY(key, begin, len)  (((key)>>(64-(begin)-(len)))&(((uint64_t)1<<(len))-1))
-#define GET_SEG_NUM(key, key_len, depth)  ((key>>(key_len-depth))&(((uint64_t)1<<depth)-1))
-#define GET_BUCKET_NUM(key, bucket_mask_len) ((key)&(((uint64_t)1<<bucket_mask_len)-1))
+#define GET_SUB_KEY(key, begin, len)  (((key)>>(64-(begin)-(len)))&((0x1ull<<(len))-1))
+#define GET_SEG_NUM(key, key_len, depth)  ((key>>(key_len-depth))&((0x1ull<<depth)-1))
+#define GET_BUCKET_NUM(key, bucket_mask_len) ((key)&((0x1ull<<bucket_mask_len)-1))
 
 
 inline void mfence(void) {
@@ -52,7 +52,7 @@ void hashtree::init(int _span, int _init_depth) {
     span_test[0] = 32;
     span_test[1] = 16;
     span_test[2] = 16;
-    span_test[3] = 8;
+    span_test[3] = 16;
     init_depth = _init_depth;
     root = new_hashtree_node(init_depth, span_test[0]);
 //    root = new_extendible_hash(init_depth, span);
@@ -381,5 +381,54 @@ uint64_t hashtree::del(uint64_t k) {
                 tmp = (hashtree_node *) next;
             }
         }
+    }
+}
+
+void recovery(hashtree_node* root){
+    if(!root){
+        return;
+    }
+    for(int i=0;i<root->dir_size;i++){
+        ht_segment* current_seg = root->dir[i];
+        int64_t stride = pow(2, root->global_depth - current_seg->depth);
+        int64_t left = i - i % stride;
+        int64_t mid = left + stride / 2, right = left + stride;
+        for(int j =0;j<HT_MAX_BUCKET_NUM;j++){
+            for(int k=0;k<HT_BUCKET_SIZE;k++){
+                if(current_seg->bucket[j].counter[k].key!=0){
+                    if(!((bool *)current_seg->bucket[j].counter[k].value)[0]){
+                        recovery((hashtree_node*)current_seg->bucket[j].counter[k].value);
+                    }
+                }
+            }
+        }
+        int64_t before = i;
+        int64_t flag  = -1;
+        for(int j = left;j<right;j++){
+            if(root->dir[j]->depth!=root->dir[before]->depth){
+                if(root->dir[before]->depth>root->dir[j]->depth){
+                    flag = before;
+                    before = j;
+                    break;
+                }else{
+                    flag = j;
+                    break;
+                }
+            }
+        }
+        if(flag!=-1){
+            int64_t need_recovery_stride = pow(2, root->global_depth - root->dir[flag]->depth);
+            int64_t need_recovery_left = flag - flag % need_recovery_stride;
+            int64_t need_recovery_mid = need_recovery_left + need_recovery_stride / 2, need_recovery_right = need_recovery_left + need_recovery_stride;
+            for(int j = need_recovery_left;j<need_recovery_right;j++){
+                if(root->dir[j]->depth!=root->dir[flag]->depth){
+                    root->dir[j] =  root->dir[flag];
+                    clflush((char *) root->dir[j], sizeof(ht_segment *));
+                }
+                root->dir[before]->depth +=1;
+                clflush((char *) &(root->dir[before]->depth), sizeof(root->dir[before]->depth));
+            }
+        }
+        i = right-1;
     }
 }

@@ -16,7 +16,7 @@
 #include "../fastalloc/fastalloc.h"
 
 #define CAS(_p, _u, _v)  (__atomic_compare_exchange_n (_p, _u, _v, false, __ATOMIC_ACQUIRE, __ATOMIC_ACQUIRE))
-#define CCEH_BUCKET_SIZE 8
+#define CCEH_BUCKET_SIZE 4
 #define CCEH_BUCKET_MASK_LEN 8
 #define CCEH_MAX_BUCKET_NUM (1<<CCEH_BUCKET_MASK_LEN)
 
@@ -45,7 +45,7 @@ class cceh_bucket {
 public:
     cceh_key_value kv[CCEH_BUCKET_SIZE];
 
-    int find_place(Key_t key, uint64_t depth);
+    int find_place(Key_t key, uint64_t depth, uint64_t key_len = 64);
 
     Value_t get(Key_t key);
 };

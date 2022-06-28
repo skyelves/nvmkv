@@ -27,14 +27,14 @@ inline void clflush(char *data, size_t len) {
     mfence();
 }
 
-int cceh_bucket::find_place(Key_t key, uint64_t depth) {
+int cceh_bucket::find_place(Key_t key, uint64_t depth, uint64_t key_len) {
     int res = -1;
     for (int i = 0; i < CCEH_BUCKET_SIZE; ++i) {
         if (key == kv[i].key) {
             return i;
         } else if ((res == -1) && kv[i].key == 0 && kv[i].value == 0) {
             res = i;
-        } else if ((res == -1) && ((GET_SEG_NUM(key, 64, depth)) != (GET_SEG_NUM(kv[i].key, 64, depth)))) {
+        } else if ((res == -1) && ((GET_SEG_NUM(key, key_len, depth)) != (GET_SEG_NUM(kv[i].key, key_len, depth)))) {
             res = i;
         }
     }
@@ -106,7 +106,7 @@ void cacheline_concious_extendible_hash::put(Key_t key, Value_t value) {
     cceh_segment *tmp_seg = dir[dir_index];
     uint64_t seg_index = GET_BUCKET_NUM(key, CCEH_BUCKET_MASK_LEN);
     cceh_bucket *tmp_bucket = &(tmp_seg->bucket[seg_index]);
-    int bucket_index = tmp_bucket->find_place(key, tmp_seg->depth);
+    int bucket_index = tmp_bucket->find_place(key, tmp_seg->depth, key_len);
     if (bucket_index == -1) {
         //condition: full
         if (likely(tmp_seg->depth < global_depth)) {
@@ -118,26 +118,31 @@ void cacheline_concious_extendible_hash::put(Key_t key, Value_t value) {
 #endif
             cceh_segment *new_seg = new_cceh_segment(tmp_seg->depth + 1);
             //set dir [left,right)
-            int64_t left = dir_index, mid = dir_index, right = dir_index + 1;
-            for (int i = dir_index + 1; i < dir_size; ++i) {
-                if (likely(dir[i] != tmp_seg)) {
-                    right = i;
-                    break;
-                } else if (unlikely(i == (dir_size - 1))) {
-                    right = dir_size;
-                    break;
-                }
-            }
-            for (int i = dir_index - 1; i >= 0; --i) {
-                if (likely(dir[i] != tmp_seg)) {
-                    left = i + 1;
-                    break;
-                } else if (unlikely(i == 0)) {
-                    left = 0;
-                    break;
-                }
-            }
-            mid = (left + right) / 2;
+//            int64_t left = dir_index, mid = dir_index, right = dir_index + 1;
+//            for (int i = dir_index + 1; i < dir_size; ++i) {
+//                if (likely(dir[i] != tmp_seg)) {
+//                    right = i;
+//                    break;
+//                } else if (unlikely(i == (dir_size - 1))) {
+//                    right = dir_size;
+//                    break;
+//                }
+//            }
+//            for (int i = dir_index - 1; i >= 0; --i) {
+//                if (likely(dir[i] != tmp_seg)) {
+//                    left = i + 1;
+//                    break;
+//                } else if (unlikely(i == 0)) {
+//                    left = 0;
+//                    break;
+//                }
+//            }
+//            mid = (left + right) / 2;
+
+            int64_t stride = pow(2, global_depth - tmp_seg->depth);
+            int64_t left = dir_index - dir_index % stride;
+            int64_t mid = left + stride / 2, right = left + stride;
+
             //migrate previous data to the new segment
             for (int i = 0; i < CCEH_MAX_BUCKET_NUM; ++i) {
                 uint64_t bucket_cnt = 0;
@@ -161,13 +166,12 @@ void cacheline_concious_extendible_hash::put(Key_t key, Value_t value) {
             //set dir[mid, right) to the new segment
             for (int i = right - 1; i >= mid; --i) {
                 dir[i] = new_seg;
-
-                clflush((char *) dir[i], sizeof(cceh_segment *));
+//                clflush((char *) dir[i], sizeof(cceh_segment *));
 
             }
+            clflush((char *) dir[right - 1], (stride / 2) * sizeof(cceh_segment *));
 
             tmp_seg->depth = tmp_seg->depth + 1;
-
             clflush((char *) &(tmp_seg->depth), sizeof(tmp_seg->depth));
 #ifdef CCEH_PROFILE_TIME
             gettimeofday(&end_time, NULL);
