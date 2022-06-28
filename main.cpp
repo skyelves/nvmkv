@@ -643,11 +643,11 @@ void profile() {
 //        wort_put(wort, mykey[i], 8, &value);
 //        woart_put(woart, mykey[i], 8, &value);
 //        ff->put(mykey[i], (char *) &value);
-//        l64ht->crash_consistent_put(NULL, mykey[i], i + 1, 0);
+        l64ht->crash_consistent_put(NULL, mykey[i], i + 1, 0);
 //        if(i % (testNum/10) == 0)
 //            cout << l64ht->memory_profile(NULL) << endl;
 //        lbt->insert(mykey[i], &value);
-        roart->put(mykey[i],i+1);
+//        roart->put(mykey[i],i+1);
 //        if (i % 10000 == 0) {
 //            out << i << ", " << cceh->dir_size << ", "
 //                << (double) i / (cceh_seg_num * CCEH_BUCKET_SIZE * CCEH_MAX_BUCKET_NUM) << endl;
@@ -776,32 +776,6 @@ void range_query_correctness_test() {
 //    cout << "lbtree range query " << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;
 //    cout << "lbtree range query " << "ThroughPut: " << throughPut << " Mops" << endl;
 //    cout << res.size() << endl;
-}
-
-
-void *concurrency_cht_put(int threadNum) {
-    init_fast_allocator(true);
-    for (int i = threadNum * (testNum / numThread); i < (threadNum + 1) * (testNum / numThread); ++i) {
-        cht->crash_consistent_put(NULL, allLoadKeys[i], allLoadValues[i], 0);
-    }
-    // fast_free();
-}
-
-void *concurrency_cht_run(int threadNum) {
-    init_fast_allocator(true);
-    for (int i = threadNum * (testNum / numThread); i < (threadNum + 1) * (testNum / numThread); ++i) {
-        if (allRunOp[i] == YCSBRunOp::Update) {
-            {
-                cht->crash_consistent_put(NULL, allLoadKeys[i], allLoadValues[i], 0);
-            }
-        } else if (allRunOp[i] == YCSBRunOp::Get) {
-            {
-                cht->get(allLoadKeys[i]);
-            }
-        } else if (allRunOp[i] == YCSBRunOp::Scan) {
-            { ; }
-        }
-    }
 }
 
 void *concurrency_cceh_put(int threadNum) {

@@ -704,7 +704,9 @@ void Length64HashTreeNode::put(uint64_t subkey, uint64_t value, Length64HashTree
             int64_t stride = pow(2, global_depth - tmp_seg->depth);
             int64_t left = dir_index - dir_index % stride;
             int64_t mid = left + stride / 2, right = left + stride;
-
+#ifdef NEW_ERT_PROFILE_TIME
+            gettimeofday(&start_time, NULL);
+#endif
             //migrate previous data to the new bucket
             for (int i = 0; i < HT_MAX_BUCKET_NUM; ++i) {
                 uint64_t bucket_cnt = 0;
@@ -742,7 +744,9 @@ void Length64HashTreeNode::put(uint64_t subkey, uint64_t value, Length64HashTree
 #endif
             return;
         } else {
-
+#ifdef NEW_ERT_PROFILE_TIME
+            gettimeofday(&start_time, NULL);
+#endif
             //condition: tmp_bucket->depth == global_depth
             Length64HashTreeNode *newNode = static_cast<Length64HashTreeNode *>(concurrency_fast_alloc(sizeof(Length64HashTreeNode)+sizeof(HashTreeSegment *)*dir_size*2));
             newNode->global_depth = global_depth+1;
@@ -764,6 +768,9 @@ void Length64HashTreeNode::put(uint64_t subkey, uint64_t value, Length64HashTree
             return;
         }
     } else {
+#ifdef NEW_ERT_PROFILE_TIME
+        gettimeofday(&start_time, NULL);
+#endif
         if (unlikely(tmp_bucket->counter[bucket_index].subkey == subkey) && subkey != 0) {
             //key exists
             tmp_bucket->counter[bucket_index].value = value;

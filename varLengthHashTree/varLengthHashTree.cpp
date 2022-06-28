@@ -678,8 +678,6 @@ void Length64HashTree:: crash_consistent_put(Length64HashTreeNode *_node, uint64
         }
         if(len + matchedPrefixLen == (HT_KEY_LENGTH / SIZE_OF_CHAR)){
 #ifdef NEW_ERT_PROFILE_TIME
-            gettimeofday(&end_time, NULL);
-            _travelsal += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
             gettimeofday(&start_time, NULL);
 #endif
             Length64HashTreeKeyValue *kv = new_l64ht_key_value(key, value);
@@ -720,16 +718,14 @@ void Length64HashTree:: crash_consistent_put(Length64HashTreeNode *_node, uint64
                 }
             }
             len += HT_NODE_LENGTH / SIZE_OF_CHAR;
-#ifdef NEW_ERT_PROFILE_TIME
-            gettimeofday(&end_time, NULL);
-            _travelsal += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
-            gettimeofday(&start_time, NULL);
-#endif
             if (len == 8) {
                 if (next == 0) {
                     currentNode->put(subkey, (uint64_t) value, tmp_seg, tmp_bucket, dir_index, seg_index, beforeAddress);
                     return;
                 } else {
+#ifdef NEW_ERT_PROFILE_TIME
+                    gettimeofday(&start_time, NULL);
+#endif
                     tmp_bucket->counter[i].value = value;
                     clflush((char *) &tmp_bucket->counter[i].value, 8);
 #ifdef NEW_ERT_PROFILE_TIME
@@ -742,6 +738,9 @@ void Length64HashTree:: crash_consistent_put(Length64HashTreeNode *_node, uint64
             } else {
                 if (next == 0) {
                     //not exists
+#ifdef NEW_ERT_PROFILE_TIME
+                    gettimeofday(&start_time, NULL);
+#endif
                     Length64HashTreeKeyValue *kv = new_l64ht_key_value(key, value);
                     clflush((char *) kv, sizeof(Length64HashTreeKeyValue));
                     currentNode->put(subkey, (uint64_t) kv, tmp_seg, tmp_bucket, dir_index, seg_index, beforeAddress);
@@ -758,19 +757,36 @@ void Length64HashTree:: crash_consistent_put(Length64HashTreeNode *_node, uint64
                         uint64_t prevalue = ((Length64HashTreeKeyValue *) next)->value;
                         if (unlikely(key == prekey)) {
                             //same key, update the value
+#ifdef NEW_ERT_PROFILE_TIME
+                            gettimeofday(&start_time, NULL);
+#endif
                             ((Length64HashTreeKeyValue *) next)->value = value;
                             clflush((char *) &(((Length64HashTreeKeyValue *) next)->value), 8);
+#ifdef NEW_ERT_PROFILE_TIME
+                            gettimeofday(&end_time, NULL);
+                            _update += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+                            gettimeofday(&start_time, NULL);
+#endif
                             return;
                         } else {
                             //not same key: needs to create a new node
+#ifdef NEW_ERT_PROFILE_TIME
+                            gettimeofday(&start_time, NULL);
+#endif
                             Length64HashTreeNode *newNode = new_length64hashtree_node(HT_NODE_LENGTH, headerDepth + 1);
-
+#ifdef NEW_ERT_PROFILE_TIME
+                            gettimeofday(&end_time, NULL);
+                            _grow += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+                            gettimeofday(&start_time, NULL);
+#endif
                             // put pre kv
                             crash_consistent_put(newNode, prekey, prevalue, len);
 
                             // put new kv
                             crash_consistent_put(newNode, key, value, len);
-
+#ifdef NEW_ERT_PROFILE_TIME
+                            gettimeofday(&start_time, NULL);
+#endif
                             clflush((char *) newNode, sizeof(Length64HashTreeNode));
 
                             // todo: think of crash consistency
