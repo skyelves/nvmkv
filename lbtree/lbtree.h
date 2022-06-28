@@ -29,8 +29,8 @@ extern uint64_t _grow, _update, _travelsal;
 #define KB      (1024)
 #endif
 
-#define NONLEAF_SIZE    (65536)
-#define LEAF_SIZE       (65536)
+#define NONLEAF_SIZE    (256)
+#define LEAF_SIZE       (256)
 #define CACHE_LINE_SIZE    64
 
 #define NONLEAF_LINE_NUM        (NONLEAF_SIZE/CACHE_LINE_SIZE)
