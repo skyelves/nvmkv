@@ -26,7 +26,7 @@ using namespace std;
 
 //#define ZENTRY
 
-#define ROART_PROFILE_TIME 1
+//#define ROART_PROFILE_TIME 1
 
 #ifdef ROART_PROFILE_TIME
 extern timeval start_time, end_time;
