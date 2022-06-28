@@ -29,9 +29,12 @@ extern uint64_t _grow, _update, _travelsal;
 #define KB      (1024)
 #endif
 
-#define NONLEAF_LINE_NUM        4    // 256B
-#define LEAF_LINE_NUM           4    // 256B
+#define NONLEAF_SIZE    (65536)
+#define LEAF_SIZE       (65536)
 #define CACHE_LINE_SIZE    64
+
+#define NONLEAF_LINE_NUM        (NONLEAF_SIZE/CACHE_LINE_SIZE)
+#define LEAF_LINE_NUM           (LEAF_SIZE/CACHE_LINE_SIZE)
 
 #ifndef PREFETCH_NUM_AHEAD
 #define PREFETCH_NUM_AHEAD    3
@@ -39,10 +42,7 @@ extern uint64_t _grow, _update, _travelsal;
 
 #define NON_LEAF_KEY_NUM    (NONLEAF_SIZE/(KEY_SIZE+POINTER_SIZE)-1)
 
-#define NONLEAF_SIZE    (CACHE_LINE_SIZE * NONLEAF_LINE_NUM)
-#define LEAF_SIZE       (CACHE_LINE_SIZE * LEAF_LINE_NUM)
-
-#define LEAF_KEY_NUM        (14)
+#define LEAF_KEY_NUM        (LEAF_SIZE/256*14)
 
 typedef long long key_type;
 #define KEY_SIZE             8   /* size of a key in tree node */
