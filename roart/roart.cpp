@@ -884,7 +884,7 @@ typename ROART::OperationResults ROART::put(uint64_t key, uint64_t value) {
             ROART_Leaf *newLeaf = allocLeaf(key, value, fkey);
 #ifdef ROART_PROFILE_TIME
             gettimeofday(&end_time, NULL);
-            _update += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+//            _update += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
 #endif
 #ifdef LEAF_ARRAY
 #ifdef ROART_PROFILE_TIME

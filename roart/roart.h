@@ -10,7 +10,7 @@
 #include "roart_node.h"
 #include <sys/time.h>
 
-#define LEAF_ARRAY
+//#define LEAF_ARRAY
 
 class ROART {
 public:

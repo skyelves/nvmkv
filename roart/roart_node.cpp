@@ -415,12 +415,22 @@ template <typename curN, typename biggerN>
 void N::tryInsertOrGrowAndUnlock(curN *n, N *parentNode, uint8_t keyParent,
                                  uint8_t key, N *val, NTypes type,
                                  bool &needRestart) {
+#ifdef ROART_PROFILE_TIME
+    gettimeofday(&start_time, NULL);
+#endif
     if (n->insert(key, val, true)) {
         n->writeUnlock();
+#ifdef ROART_PROFILE_TIME
+        gettimeofday(&end_time, NULL);
+        _update += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
         return;
     }
 
     // grow and lock parent
+#ifdef ROART_PROFILE_TIME
+    gettimeofday(&start_time, NULL);
+#endif
     parentNode->writeLockOrRestart(needRestart);
     if (needRestart) {
         // free_node(type, nBig);
@@ -447,6 +457,10 @@ void N::tryInsertOrGrowAndUnlock(curN *n, N *parentNode, uint8_t keyParent,
 
     n->writeUnlockObsolete();
 //    EpochGuard::DeleteNode((void *)n);
+#ifdef ROART_PROFILE_TIME
+    gettimeofday(&end_time, NULL);
+    _grow += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
 }
 
 template <typename curN>
@@ -462,6 +476,9 @@ void N::compactAndInsertAndUnlock(curN *n, N *parentNode, uint8_t keyParent,
     }
 
     // allocate a new node from NVMMgr
+#ifdef ROART_PROFILE_TIME
+    gettimeofday(&start_time, NULL);
+#endif
 #ifdef ARTPMDK
     curN *nNew = new (allocate_size(sizeof(curN)))
         curN(n->getLevel(), n->getPrefi()); // not persist
@@ -474,7 +491,10 @@ void N::compactAndInsertAndUnlock(curN *n, N *parentNode, uint8_t keyParent,
     // persist the node
     clflush((void *)nNew, sizeof(curN));
     //    clflush((char *)nNew, sizeof(curN), true, true);
-
+#ifdef ROART_PROFILE_TIME
+    gettimeofday(&end_time, NULL);
+    _update += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
     N::change(parentNode, keyParent, nNew);
     parentNode->writeUnlock();
 
@@ -486,9 +506,6 @@ void N::insertAndUnlock(N *node, N *parentNode, uint8_t keyParent, uint8_t key,
                         N *val, bool &needRestart) {
 #ifdef INSTANT_RESTART
     node->check_generation();
-#endif
-#ifdef ROART_PROFILE_TIME
-    gettimeofday(&start_time, NULL);
 #endif
     switch (node->getType()) {
         case NTypes::N4: {
@@ -526,18 +543,21 @@ void N::insertAndUnlock(N *node, N *parentNode, uint8_t keyParent, uint8_t key,
         }
         case NTypes::N256: {
             auto n = static_cast<N256 *>(node);
+#ifdef ROART_PROFILE_TIME
+            gettimeofday(&start_time, NULL);
+#endif
             n->insert(key, val, true);
             node->writeUnlock();
+#ifdef ROART_PROFILE_TIME
+            gettimeofday(&end_time, NULL);
+            _update += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
             break;
         }
         default: {
             assert(false);
         }
     }
-#ifdef ROART_PROFILE_TIME
-    gettimeofday(&end_time, NULL);
-    _update += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
-#endif
 }
 
 N *N::getChild(const uint8_t k, N *node) {
