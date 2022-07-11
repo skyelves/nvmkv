@@ -18,7 +18,7 @@
 #include "nodeprof.h"
 #include "../fastalloc/fastalloc.h"
 
-#define LB_PROFILE_TIME 1
+//#define LB_PROFILE_TIME 1
 
 #ifdef LB_PROFILE_TIME
 extern timeval start_time, end_time;
