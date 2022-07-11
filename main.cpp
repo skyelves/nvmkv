@@ -718,8 +718,13 @@ void profile() {
     gettimeofday(&ends, NULL);
     double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
     _travelsal = timeCost - _update - _decompression - _grow;
-    cout << _grow << endl << _update << endl << _travelsal <<endl << _decompression << endl;
-    cout << timeCost << endl;
+    cout << "overall, " << timeCost << endl;
+    cout << "_travelsal, " << _travelsal << endl;
+    cout << "_update, " << _update << endl;
+    cout << "grow, " << _grow << endl;
+    cout << "_decompression, " << _decompression << endl;
+
+//    cout << _grow << endl << _update << endl << _travelsal <<endl << _decompression << endl;
 //    out.close();
 //    cout << concurrency_fastalloc_profile() / testNum << endl;
 //    cout << wort_memory_profile(wort->root) << endl;
