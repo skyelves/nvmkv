@@ -29,12 +29,12 @@
 
 #define IS_FORWARD(c) (c % 2 == 0)
 
-#define FF_PROFILE_TIME
-
-#ifdef FF_PROFILE_TIME
-extern timeval start_time, end_time;
-extern uint64_t _grow, _update, _travelsal, _decompression;
-#endif
+//#define FF_PROFILE_TIME
+//
+//#ifdef FF_PROFILE_TIME
+//extern timeval start_time, end_time;
+//extern uint64_t _grow, _update, _travelsal, _decompression;
+//#endif
 
 using namespace std;
 
