@@ -28,6 +28,13 @@
 
 #define IS_FORWARD(c) (c % 2 == 0)
 
+#define FF_PROFILE_TIME
+
+#ifdef FF_PROFILE_TIME
+extern timeval start_time, end_time;
+extern uint64_t _grow, _update, _travelsal;
+#endif
+
 using namespace std;
 
 inline void mfence() { asm volatile("mfence":: : "memory"); }

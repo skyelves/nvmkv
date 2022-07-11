@@ -702,12 +702,12 @@ void profile() {
 //        ht->crash_consistent_put(NULL, mykey[i], i + 1, 0);
 //        wort_put(wort, mykey[i], 8, &value);
 //        woart_put(woart, mykey[i], 8, &value);
-//        ff->put(mykey[i], (char *) &value);
+        ff->put(mykey[i], (char *) &value);
 //        l64ht->crash_consistent_put(NULL, mykey[i], i + 1, 0);
 //        if(i % (testNum/10) == 0)
 //            cout << l64ht->memory_profile(NULL) << endl;
 //        lbt->insert(mykey[i], &value);
-        roart->put(mykey[i],i+1);
+//        roart->put(mykey[i],i+1);
 //        if (i % 10000 == 0) {
 //            out << i << ", " << cceh->dir_size << ", "
 //                << (double) i / (cceh_seg_num * CCEH_BUCKET_SIZE * CCEH_MAX_BUCKET_NUM) << endl;
@@ -1938,7 +1938,7 @@ int main(int argc, char *argv[]) {
 //    bt = new_blink_tree(numThread);
 //     correctnessTest();
 
-     speedTest();
+//     speedTest();
 
 //    varLengthTest();
 //    varLengthCorrectnessTest();
@@ -1956,7 +1956,7 @@ int main(int argc, char *argv[]) {
 //    } catch (void *) {
 //        fast_free();
 //    }
-//    profile();
+    profile();
 
 //    range_query_correctness_test();
 //    cout << ht->node_cnt << endl;
