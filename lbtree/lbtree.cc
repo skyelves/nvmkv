@@ -5,7 +5,7 @@
 #include "lbtree.h"
 #include <stack>
 
-#ifdef HT_PROFILE_TIME
+#ifdef LB_PROFILE_TIME
 timeval start_time, end_time;
 uint64_t _grow = 0, _update = 0, _travelsal = 0;
 #endif
@@ -201,7 +201,7 @@ void lbtree::qsortBleaf(bleaf *p, int start, int end, int pos[]) {
 }
 
 void lbtree::insert(key_type key, void *_ptr) {
-#ifdef HT_PROFILE_TIME
+#ifdef LB_PROFILE_TIME
     gettimeofday(&start_time, NULL);
 #endif
     void *ptr = (void *)(fast_alloc(sizeof(uint64_t)));
@@ -328,7 +328,7 @@ void lbtree::insert(key_type key, void *_ptr) {
         bleafMeta meta = *((bleafMeta *) lp);
 
         /* 1. leaf is not full */
-#ifdef HT_PROFILE_TIME
+#ifdef LB_PROFILE_TIME
         gettimeofday(&end_time, NULL);
         _travelsal += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
         gettimeofday(&start_time, NULL);
@@ -358,7 +358,7 @@ void lbtree::insert(key_type key, void *_ptr) {
                 // 1.3.2 flush
                 clflush((char *) lp, 8);
                 freeLockStack(lockStack);
-#ifdef HT_PROFILE_TIME
+#ifdef LB_PROFILE_TIME
                 gettimeofday(&end_time, NULL);
                 _update += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
                 gettimeofday(&start_time, NULL);
@@ -390,7 +390,7 @@ void lbtree::insert(key_type key, void *_ptr) {
                 lp->setBothWords(&meta);
                 clflush((char *) lp, 8);
                 freeLockStack(lockStack);
-#ifdef HT_PROFILE_TIME
+#ifdef LB_PROFILE_TIME
                 gettimeofday(&end_time, NULL);
                 _update += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
                 gettimeofday(&start_time, NULL);
@@ -539,7 +539,7 @@ void lbtree::insert(key_type key, void *_ptr) {
                 // unlock after all changes are globally visible
                 p->lock() = 0;
                 freeLockStack(lockStack);
-#ifdef HT_PROFILE_TIME
+#ifdef LB_PROFILE_TIME
                 gettimeofday(&end_time, NULL);
                 _grow += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
                 gettimeofday(&start_time, NULL);
@@ -613,7 +613,7 @@ void lbtree::insert(key_type key, void *_ptr) {
         // unlock new root
         newp->lock() = 0;
         freeLockStack(lockStack);
-#ifdef HT_PROFILE_TIME
+#ifdef LB_PROFILE_TIME
         gettimeofday(&end_time, NULL);
         _grow += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
         gettimeofday(&start_time, NULL);
