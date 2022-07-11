@@ -14,6 +14,11 @@
 #define mfence() asm volatile("mfence":::"memory")
 #define BITOP_WORD(nr)    ((nr) / WOART_BITS_PER_LONG)
 
+#ifdef WOART_PROFILE_TIME
+timeval start_time, end_time;
+uint64_t _grow = 0, _update = 0, _travelsal = 0, _decompression = 0;
+#endif
+
 /**
  * Macros to manipulate pointer tags
  */
@@ -354,6 +359,9 @@ static woart_leaf *make_leaf(const unsigned long key, int key_len, void *value, 
     ret = fast_alloc(sizeof(woart_leaf));
     woart_memory_usage += sizeof(woart_leaf);
 //    posix_memalign(&ret, 64, sizeof(woart_leaf));
+#ifdef WOART_PROFILE_TIME
+    gettimeofday(&start_time, NULL);
+#endif
     l = static_cast<woart_leaf *>(ret);
     l->value = value;
     l->key_len = key_len;
@@ -361,6 +369,10 @@ static woart_leaf *make_leaf(const unsigned long key, int key_len, void *value, 
 
     if (flush == true)
         flush_buffer(l, sizeof(woart_leaf), true);
+#ifdef WOART_PROFILE_TIME
+    gettimeofday(&end_time, NULL);
+    _update += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
     return l;
 }
 
@@ -381,8 +393,15 @@ static void copy_header(woart_node *dest, woart_node *src) {
 
 static void add_child256(woart_node256 *n, woart_node **ref, unsigned char c, void *child) {
     (void) ref;
+#ifdef WOART_PROFILE_TIME
+    gettimeofday(&start_time, NULL);
+#endif
     n->children[c] = (woart_node *) child;
     flush_buffer(&n->children[c], 8, true);
+#ifdef WOART_PROFILE_TIME
+    gettimeofday(&end_time, NULL);
+    _update += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
 }
 
 static void add_child256_noflush(woart_node256 *n, woart_node **ref, unsigned char c, void *child) {
@@ -405,11 +424,21 @@ static void add_child48(woart_node48 *n, woart_node **ref, unsigned char c, void
 
     if (num < 48) {
         unsigned long pos = find_next_zero_bit(&bitmap, 48, 0);
+#ifdef WOART_PROFILE_TIME
+        gettimeofday(&start_time, NULL);
+#endif
         n->children[pos] = (woart_node *) child;
         flush_buffer(&n->children[pos], 8, true);
         n->keys[c] = pos + 1;
         flush_buffer(&n->keys[c], sizeof(unsigned char), true);
+#ifdef WOART_PROFILE_TIME
+        gettimeofday(&end_time, NULL);
+        _update += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
     } else {
+#ifdef WOART_PROFILE_TIME
+        gettimeofday(&start_time, NULL);
+#endif
         woart_node256 *new_node = (woart_node256 *) alloc_node(NODE256);
         for (i = 0; i < 256; i++) {
             if (n->keys[i]) {
@@ -425,7 +454,10 @@ static void add_child48(woart_node48 *n, woart_node **ref, unsigned char c, void
 
         *ref = (woart_node *) new_node;
         flush_buffer(ref, 8, true);
-
+#ifdef WOART_PROFILE_TIME
+        gettimeofday(&end_time, NULL);
+        _grow += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
 //        free(n);
     }
 }
@@ -439,7 +471,9 @@ static void add_child16(woart_node16 *n, woart_node **ref, unsigned char c, void
             printf("find next zero bit error add_child16\n");
             abort();
         }
-
+#ifdef WOART_PROFILE_TIME
+        gettimeofday(&start_time, NULL);
+#endif
         n->keys[empty_idx] = c;
         n->children[empty_idx] = static_cast<woart_node *>(child);
         mfence();
@@ -449,8 +483,15 @@ static void add_child16(woart_node16 *n, woart_node **ref, unsigned char c, void
 
         n->bitmap += (0x1UL << empty_idx);
         flush_buffer(&n->bitmap, sizeof(unsigned long), true);
+#ifdef WOART_PROFILE_TIME
+        gettimeofday(&end_time, NULL);
+        _update += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
     } else {
         int idx;
+#ifdef WOART_PROFILE_TIME
+        gettimeofday(&start_time, NULL);
+#endif
         woart_node48 *new_node = (woart_node48 *) alloc_node(NODE48);
 
         memcpy(new_node->children, n->children,
@@ -466,7 +507,10 @@ static void add_child16(woart_node16 *n, woart_node **ref, unsigned char c, void
 
         *ref = (woart_node *) new_node;
         flush_buffer(ref, sizeof(uintptr_t), true);
-
+#ifdef WOART_PROFILE_TIME
+        gettimeofday(&end_time, NULL);
+        _grow += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
 //        free(n);
     }
 }
@@ -491,6 +535,9 @@ static void add_child4(woart_node4 *n, woart_node **ref, unsigned char c, void *
             printf("find next zero bit error in child4\n");
             abort();
         }
+#ifdef WOART_PROFILE_TIME
+        gettimeofday(&start_time, NULL);
+#endif
         n->children[p_idx] = static_cast<woart_node *>(child);
         flush_buffer(&n->children[p_idx], sizeof(uintptr_t), true);
 
@@ -511,11 +558,17 @@ static void add_child4(woart_node4 *n, woart_node **ref, unsigned char c, void *
             temp_slot[i].key = n->slot[i].key;
             temp_slot[i].i_ptr = n->slot[i].i_ptr;
         }
-
         *((uint64_t *) n->slot) = *((uint64_t *) temp_slot);
         flush_buffer(n->slot, sizeof(uintptr_t), true);
+#ifdef WOART_PROFILE_TIME
+        gettimeofday(&end_time, NULL);
+        _update += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
     } else {
         int idx;
+#ifdef WOART_PROFILE_TIME
+        gettimeofday(&start_time, NULL);
+#endif
         woart_node16 *new_node = (woart_node16 *) alloc_node(NODE16);
 
         for (idx = 0; idx < 4; idx++) {
@@ -532,6 +585,10 @@ static void add_child4(woart_node4 *n, woart_node **ref, unsigned char c, void *
 
         *ref = (woart_node *) new_node;
         flush_buffer(ref, 8, true);
+#ifdef WOART_PROFILE_TIME
+        gettimeofday(&end_time, NULL);
+        _grow += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
 
 //        free(n);
     }
@@ -626,7 +683,14 @@ static void *recursive_insert(woart_node *n, woart_node **ref, const unsigned lo
     // If we are at a NULL node, inject a leaf
     if (!n) {
         *ref = (woart_node *) SET_LEAF(make_leaf(key, key_len, value, true));
+#ifdef WOART_PROFILE_TIME
+        gettimeofday(&start_time, NULL);
+#endif
         flush_buffer(ref, sizeof(uintptr_t), true);
+#ifdef WOART_PROFILE_TIME
+        gettimeofday(&end_time, NULL);
+        _update += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
         return NULL;
     }
 
@@ -638,15 +702,28 @@ static void *recursive_insert(woart_node *n, woart_node **ref, const unsigned lo
         if (!leaf_matches(l, key, key_len, depth)) {
             *old = 1;
             void *old_val = l->value;
+#ifdef WOART_PROFILE_TIME
+            gettimeofday(&start_time, NULL);
+#endif
             l->value = value;
             flush_buffer(&l->value, sizeof(uintptr_t), true);
+#ifdef WOART_PROFILE_TIME
+            gettimeofday(&end_time, NULL);
+            _update += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
             return old_val;
         }
 
         // New value, we must split the leaf into a node4
+#ifdef WOART_PROFILE_TIME
+        gettimeofday(&start_time, NULL);
+#endif
         woart_node4 *new_node = (woart_node4 *) alloc_node(NODE4);
         new_node->n.path.depth = depth;
-
+#ifdef WOART_PROFILE_TIME
+        gettimeofday(&end_time, NULL);
+        _grow += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
         // Create a new leaf
         woart_leaf *l2 = make_leaf(key, key_len, value, false);
 
@@ -655,7 +732,9 @@ static void *recursive_insert(woart_node *n, woart_node **ref, const unsigned lo
         new_node->n.path.pwoartial_len = longest_prefix;
         for (i = 0; i < min(WOART_MAX_PREFIX_LEN, longest_prefix); i++)
             new_node->n.path.pwoartial[i] = get_index(key, depth + i);
-
+#ifdef WOART_PROFILE_TIME
+        gettimeofday(&start_time, NULL);
+#endif
         add_child4_noflush(new_node, ref, get_index(l->key, depth + longest_prefix), SET_LEAF(l));
         add_child4_noflush(new_node, ref, get_index(l2->key, depth + longest_prefix), SET_LEAF(l2));
 
@@ -667,6 +746,10 @@ static void *recursive_insert(woart_node *n, woart_node **ref, const unsigned lo
         // Add the leafs to the new node4
         *ref = (woart_node *) new_node;
         flush_buffer(ref, sizeof(uintptr_t), true);
+#ifdef WOART_PROFILE_TIME
+        gettimeofday(&end_time, NULL);
+        _grow += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
         return NULL;
     }
 
@@ -684,7 +767,9 @@ static void *recursive_insert(woart_node *n, woart_node **ref, const unsigned lo
             depth += n->path.pwoartial_len;
             goto RECURSE_SEARCH;
         }
-
+#ifdef WOART_PROFILE_TIME
+        gettimeofday(&start_time, NULL);
+#endif
         // Create a new node
         woart_node4 *new_node = (woart_node4 *) alloc_node(NODE4);
         new_node->n.path.depth = depth;
@@ -726,7 +811,10 @@ static void *recursive_insert(woart_node *n, woart_node **ref, const unsigned lo
         flush_buffer(&n->path, sizeof(path_comp), false);
         flush_buffer(ref, sizeof(uintptr_t), false);
         mfence();
-
+#ifdef WOART_PROFILE_TIME
+        gettimeofday(&end_time, NULL);
+        _decompression += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
         return NULL;
     }
 
@@ -740,9 +828,7 @@ static void *recursive_insert(woart_node *n, woart_node **ref, const unsigned lo
 
     // No child, node goes within us
     woart_leaf *l = make_leaf(key, key_len, value, true);
-
     add_child(n, ref, get_index(key, depth), SET_LEAF(l));
-
     return NULL;
 }
 

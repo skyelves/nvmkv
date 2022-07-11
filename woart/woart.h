@@ -9,6 +9,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <vector>
+#include <sys/time.h>
 #include "../fastalloc/fastalloc.h"
 
 #ifdef __linux__
@@ -42,6 +43,13 @@
  */
 #  define BROKEN_GCC_C99_INLINE
 # endif
+#endif
+
+//#define WOART_PROFILE_TIME
+
+#ifdef WOART_PROFILE_TIME
+extern timeval start_time, end_time;
+extern uint64_t _grow, _update, _travelsal, _decompression;
 #endif
 
 static inline unsigned long __ffs(unsigned long word) {
