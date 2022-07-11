@@ -47,7 +47,7 @@ extern uint64_t split_cnt;
 extern uint64_t double_cnt;
 #endif
 
-#define NEW_ERT_PROFILE_TIME 1
+//#define NEW_ERT_PROFILE_TIME 1
 
 #ifdef NEW_ERT_PROFILE_TIME
 extern timeval start_time, end_time;
