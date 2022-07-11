@@ -22,7 +22,7 @@
 
 #ifdef LB_PROFILE_TIME
 extern timeval start_time, end_time;
-extern uint64_t _grow, _update, _travelsal;
+extern uint64_t _grow, _update, _travelsal, _decompression;
 #endif
 
 #ifndef KB
