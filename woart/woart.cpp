@@ -540,7 +540,10 @@ static void add_child4(woart_node4 *n, woart_node **ref, unsigned char c, void *
 #endif
         n->children[p_idx] = static_cast<woart_node *>(child);
         flush_buffer(&n->children[p_idx], sizeof(uintptr_t), true);
-
+#ifdef WOART_PROFILE_TIME
+        gettimeofday(&end_time, NULL);
+        _update += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
         for (i = idx - 1; i >= mid; i--) {
             temp_slot[i + 1].key = n->slot[i].key;
             temp_slot[i + 1].i_ptr = n->slot[i].i_ptr;
@@ -558,6 +561,9 @@ static void add_child4(woart_node4 *n, woart_node **ref, unsigned char c, void *
             temp_slot[i].key = n->slot[i].key;
             temp_slot[i].i_ptr = n->slot[i].i_ptr;
         }
+#ifdef WOART_PROFILE_TIME
+        gettimeofday(&start_time, NULL);
+#endif
         *((uint64_t *) n->slot) = *((uint64_t *) temp_slot);
         flush_buffer(n->slot, sizeof(uintptr_t), true);
 #ifdef WOART_PROFILE_TIME
