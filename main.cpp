@@ -358,6 +358,135 @@ void parseYCSBLoadFile(std::string wlName, bool correctCheck) {
     nLoadOp = allLoadKeys.size();
 }
 
+void parse_line(string rawStr, uint64_t &key, uint64_t &scanNum, YCSBRunOp &op) {
+    std::string opStr = rawStr.substr(0, 4);
+    uint32_t t = rawStr.find(" ");
+    uint32_t t1 = rawStr.find(" ", t + 1);
+    string keyStr = (opStr == "SCAN") ? rawStr.substr(t) : rawStr.substr(t, t1);
+    char *p;
+    key = strtoull(keyStr.c_str(), &p, 10);
+    if (opStr == "READ") {
+        op = YCSBRunOp::Get;
+    } else if (opStr == "INSE") {
+        op = YCSBRunOp::Insert;
+    } else if (opStr == "UPDA") {
+        op = YCSBRunOp::Update;
+    } else if (opStr == "SCAN") {
+        op = YCSBRunOp::Scan;
+        string scanNumStr = rawStr.substr(t1);
+        scanNum = strtoull(scanNumStr.c_str(), &p, 10);
+    }
+}
+
+void parse_line1(string rawStr, string &key, uint64_t &scanNum, YCSBRunOp &op) {
+    std::string opStr = rawStr.substr(0, 4);
+    uint32_t t = rawStr.find(" ");
+    uint32_t t1 = rawStr.find(" ", t + 1);
+    key = (opStr == "SCAN") ? rawStr.substr(t + 1) : rawStr.substr(t + 1, t1);
+    char *p;
+    if (opStr == "READ") {
+        op = YCSBRunOp::Get;
+    } else if (opStr == "INSE") {
+        op = YCSBRunOp::Insert;
+    } else if (opStr == "UPDA") {
+        op = YCSBRunOp::Update;
+    } else if (opStr == "SCAN") {
+        op = YCSBRunOp::Scan;
+        string scanNumStr = rawStr.substr(t1);
+        scanNum = strtoull(scanNumStr.c_str(), &p, 10);
+    }
+}
+
+inline uint64_t myalign(uint64_t len, uint64_t alignment) {
+    uint64_t quotient = len / alignment;
+    uint64_t remainder = len % alignment;
+    return quotient * alignment + alignment * (remainder != 0);
+}
+
+void parseLoadFile(std::string wlName, uint64_t len = 0, uint64_t type = 0) {
+    // type 0: uint64_t
+    // type 1: string
+    std::string rawStr;
+    uint64_t opCnt = 0;
+    uint64_t scanNum = 0;
+    YCSBRunOp op;
+    std::ifstream loadFile(wlName);
+    assert(loadFile.is_open());
+    cout << "ok" << endl;
+    while (opCnt < len && std::getline(loadFile, rawStr)) {
+        if (type == 0) {
+            uint64_t hashKey;
+            parse_line(rawStr, hashKey, scanNum, op);
+            if (op == YCSBRunOp::Insert || op == YCSBRunOp::Update) {
+                allLoadKeys.push_back(hashKey);
+                opCnt++;
+            }
+        } else if (type == 1) {
+            string hashKey;
+            parse_line1(rawStr, hashKey, scanNum, op);
+            if (op == YCSBRunOp::Insert || op == YCSBRunOp::Update) {
+                int tmplen = myalign(hashKey.size(), 4);
+                if(tmplen) {
+                    char *tmp = new char[tmplen];
+                    memcpy(tmp, hashKey.c_str(), hashKey.size());
+                    for (int i = hashKey.size(); i < tmplen; i++)
+                        tmp[i] = rand() % 256;
+                    allLoadKeysStr.push_back(tmp);
+                    allLoadKeysLenStr.push_back(tmplen - 1);
+
+                    opCnt++;
+                }
+            }
+        }
+    }
+    loadFile.close();
+    // info("Finish parse load file");
+    cout << "loaded" << endl;
+    nLoadOp = opCnt;
+}
+
+void parseRunFile(std::string wlName, uint64_t len = 0, uint64_t type = 0) {
+    std::string rawStr;
+    YCSBRunOp op;
+
+    std::ifstream runFile(wlName);
+    assert(runFile.is_open());
+    uint64_t opCnt = 0;
+    uint64_t scanNum = 0;
+    while (opCnt < len && std::getline(runFile, rawStr)) {
+        if (type == 0) {
+            uint64_t hashKey;
+            parse_line(rawStr, hashKey, scanNum, op);
+            allRunKeys.push_back(hashKey);
+            allRunOp.push_back(op);
+            opCnt++;
+            if (op == YCSBRunOp::Scan) {
+                allRunScanSize.push_back(scanNum);
+            }
+        } else if (type == 1) {
+            string hashKey;
+            parse_line1(rawStr, hashKey, scanNum, op);
+            int tmplen = myalign(hashKey.size(), 4) + 1;
+            char *tmp = new char[tmplen];
+            memcpy(tmp, hashKey.c_str(), hashKey.size());
+            for (int i = hashKey.size(); i < tmplen; i++)
+                tmp[i] = 1;
+            tmp[tmplen] = '\0';
+            allRunKeysStr.push_back(tmp);
+            allRunKeysLenStr.push_back(tmplen - 1);
+            allRunOp.push_back(op);
+            opCnt++;
+            if (op == YCSBRunOp::Scan) {
+                allRunScanSize.push_back(scanNum);
+            }
+        }
+    }
+    runFile.close();
+    nRunOp = opCnt;
+    // info("Finish parse run file");
+    cout << "run" << endl;
+}
+
 void *putFunc(void *arg) {
     rng r;
 #ifdef __linux__
@@ -683,13 +812,19 @@ void correctnessTest() {
 
 void profile() {
 //    out.open("ert_profile.csv");
+#ifdef __linux__
+    parseLoadFile("/home/wangke/index-microbench/workloads/SOSD/load_workloada", testNum);
+#else
+    parseLoadFile("/Users/wangke/Desktop/Heterogeneous_Memory/ERT/index-microbench/workloads/facebook/load_workloada", testNum);
+#endif
     mykey = new uint64_t[testNum];
     rng_init(&r, 1, 2);
     for (int i = 0; i < testNum; ++i) {
-        if (i % 3 == 0)
-            mykey[i] = rng_next(&r);
-        else
-            mykey[i] = rng_next(&r) % testNum;
+        mykey[i] = allLoadKeys[i];
+//        if (i % 3 == 0)
+//            mykey[i] = rng_next(&r);
+//        else
+//            mykey[i] = rng_next(&r) % testNum;
     }
     uint64_t value = 1;
     timeval start, ends;
@@ -701,8 +836,8 @@ void profile() {
 //        cceh->put(mykey[i], value);
 //        ht->crash_consistent_put(NULL, mykey[i], i + 1, 0);
 //        wort_put(wort, mykey[i], 8, &value);
-//        woart_put(woart, mykey[i], 8, &value);
-        ff->put(mykey[i], (char *) &value);
+        woart_put(woart, mykey[i], 8, &value);
+//        ff->put(mykey[i], (char *) &value);
 //        l64ht->crash_consistent_put(NULL, mykey[i], i + 1, 0);
 //        if(i % (testNum/10) == 0)
 //            cout << l64ht->memory_profile(NULL) << endl;
@@ -1447,135 +1582,6 @@ void amazon_review(const string fileName) {
         };
     })
 
-}
-
-void parse_line(string rawStr, uint64_t &key, uint64_t &scanNum, YCSBRunOp &op) {
-    std::string opStr = rawStr.substr(0, 4);
-    uint32_t t = rawStr.find(" ");
-    uint32_t t1 = rawStr.find(" ", t + 1);
-    string keyStr = (opStr == "SCAN") ? rawStr.substr(t) : rawStr.substr(t, t1);
-    char *p;
-    key = strtoull(keyStr.c_str(), &p, 10);
-    if (opStr == "READ") {
-        op = YCSBRunOp::Get;
-    } else if (opStr == "INSE") {
-        op = YCSBRunOp::Insert;
-    } else if (opStr == "UPDA") {
-        op = YCSBRunOp::Update;
-    } else if (opStr == "SCAN") {
-        op = YCSBRunOp::Scan;
-        string scanNumStr = rawStr.substr(t1);
-        scanNum = strtoull(scanNumStr.c_str(), &p, 10);
-    }
-}
-
-void parse_line1(string rawStr, string &key, uint64_t &scanNum, YCSBRunOp &op) {
-    std::string opStr = rawStr.substr(0, 4);
-    uint32_t t = rawStr.find(" ");
-    uint32_t t1 = rawStr.find(" ", t + 1);
-    key = (opStr == "SCAN") ? rawStr.substr(t + 1) : rawStr.substr(t + 1, t1);
-    char *p;
-    if (opStr == "READ") {
-        op = YCSBRunOp::Get;
-    } else if (opStr == "INSE") {
-        op = YCSBRunOp::Insert;
-    } else if (opStr == "UPDA") {
-        op = YCSBRunOp::Update;
-    } else if (opStr == "SCAN") {
-        op = YCSBRunOp::Scan;
-        string scanNumStr = rawStr.substr(t1);
-        scanNum = strtoull(scanNumStr.c_str(), &p, 10);
-    }
-}
-
-inline uint64_t myalign(uint64_t len, uint64_t alignment) {
-    uint64_t quotient = len / alignment;
-    uint64_t remainder = len % alignment;
-    return quotient * alignment + alignment * (remainder != 0);
-}
-
-void parseLoadFile(std::string wlName, uint64_t len = 0, uint64_t type = 0) {
-    // type 0: uint64_t
-    // type 1: string
-    std::string rawStr;
-    uint64_t opCnt = 0;
-    uint64_t scanNum = 0;
-    YCSBRunOp op;
-    std::ifstream loadFile(wlName);
-    assert(loadFile.is_open());
-    cout << "ok" << endl;
-    while (opCnt < len && std::getline(loadFile, rawStr)) {
-        if (type == 0) {
-            uint64_t hashKey;
-            parse_line(rawStr, hashKey, scanNum, op);
-            if (op == YCSBRunOp::Insert || op == YCSBRunOp::Update) {
-                allLoadKeys.push_back(hashKey);
-                opCnt++;
-            }
-        } else if (type == 1) {
-            string hashKey;
-            parse_line1(rawStr, hashKey, scanNum, op);
-            if (op == YCSBRunOp::Insert || op == YCSBRunOp::Update) {
-                int tmplen = myalign(hashKey.size(), 4);
-                if(tmplen) {
-                    char *tmp = new char[tmplen];
-                    memcpy(tmp, hashKey.c_str(), hashKey.size());
-                    for (int i = hashKey.size(); i < tmplen; i++)
-                        tmp[i] = rand() % 256;
-                    allLoadKeysStr.push_back(tmp);
-                    allLoadKeysLenStr.push_back(tmplen - 1);
-
-                    opCnt++;
-                }
-            }
-        }
-    }
-    loadFile.close();
-    // info("Finish parse load file");
-    cout << "loaded" << endl;
-    nLoadOp = opCnt;
-}
-
-void parseRunFile(std::string wlName, uint64_t len = 0, uint64_t type = 0) {
-    std::string rawStr;
-    YCSBRunOp op;
-
-    std::ifstream runFile(wlName);
-    assert(runFile.is_open());
-    uint64_t opCnt = 0;
-    uint64_t scanNum = 0;
-    while (opCnt < len && std::getline(runFile, rawStr)) {
-        if (type == 0) {
-            uint64_t hashKey;
-            parse_line(rawStr, hashKey, scanNum, op);
-            allRunKeys.push_back(hashKey);
-            allRunOp.push_back(op);
-            opCnt++;
-            if (op == YCSBRunOp::Scan) {
-                allRunScanSize.push_back(scanNum);
-            }
-        } else if (type == 1) {
-            string hashKey;
-            parse_line1(rawStr, hashKey, scanNum, op);
-            int tmplen = myalign(hashKey.size(), 4) + 1;
-            char *tmp = new char[tmplen];
-            memcpy(tmp, hashKey.c_str(), hashKey.size());
-            for (int i = hashKey.size(); i < tmplen; i++)
-                tmp[i] = 1;
-            tmp[tmplen] = '\0';
-            allRunKeysStr.push_back(tmp);
-            allRunKeysLenStr.push_back(tmplen - 1);
-            allRunOp.push_back(op);
-            opCnt++;
-            if (op == YCSBRunOp::Scan) {
-                allRunScanSize.push_back(scanNum);
-            }
-        }
-    }
-    runFile.close();
-    nRunOp = opCnt;
-    // info("Finish parse run file");
-    cout << "run" << endl;
 }
 
 void SOSD(uint64_t _testNum = 100000000, string dir = "facebook", string type = "a") {
