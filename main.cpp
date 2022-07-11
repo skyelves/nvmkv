@@ -1390,7 +1390,7 @@ void effect2() {
 //        };
 //    })
 
-    cout << concurrency_fastalloc_profile() << endl;
+//    cout << concurrency_fastalloc_profile() << endl;
 }
 
 

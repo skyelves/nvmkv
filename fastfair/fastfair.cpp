@@ -6,7 +6,7 @@
 
 #ifdef FF_PROFILE_TIME
 timeval start_time, end_time;
-uint64_t _grow = 0, _update = 0, _travelsal = 0;
+uint64_t _grow = 0, _update = 0, _travelsal = 0, _decompression = 0;
 #endif
 
 ff_key_value::ff_key_value() {
