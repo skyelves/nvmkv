@@ -21,6 +21,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <vector>
+#include <sys/time.h>
 
 #define PAGESIZE 512
 
@@ -433,6 +434,9 @@ public:
         if (*num_entries == 0) { // this page is empty
             entry *new_entry = (entry *) &records[0];
             entry *array_end = (entry *) &records[1];
+#ifdef FF_PROFILE_TIME
+            gettimeofday(&start_time, NULL);
+#endif
             new_entry->key = (uint64_t) key;
             new_entry->ptr = (char *) ptr;
 
@@ -441,9 +445,16 @@ public:
             if (flush) {
                 clflush((char *) this, CACHE_LINE_SIZE);
             }
+#ifdef FF_PROFILE_TIME
+            gettimeofday(&end_time, NULL);
+            _update += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
         } else {
             int i = *num_entries - 1, inserted = 0, to_flush_cnt = 0;
             records[*num_entries + 1].ptr = records[*num_entries].ptr;
+#ifdef FF_PROFILE_TIME
+            gettimeofday(&start_time, NULL);
+#endif
             if (flush) {
                 if ((uint64_t) &(records[*num_entries + 1].ptr) % CACHE_LINE_SIZE == 0)
                     clflush((char *) &(records[*num_entries + 1].ptr), sizeof(char *));
@@ -488,7 +499,10 @@ public:
                     clflush((char *) &records[0], sizeof(entry));
             }
         }
-
+#ifdef FF_PROFILE_TIME
+        gettimeofday(&end_time, NULL);
+        _update += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
         if (update_last_index) {
             hdr.last_index = *num_entries;
         }
@@ -519,7 +533,9 @@ public:
             page *sibling = new page(hdr.level);
             int m = (int) ceil(num_entries / 2);
             uint64_t split_key = records[m].key;
-
+#ifdef FF_PROFILE_TIME
+            gettimeofday(&start_time, NULL);
+#endif
             // migrate half of keys into the sibling
             int sibling_cnt = 0;
             if (hdr.leftmost_ptr == NULL) { // leaf node
@@ -551,11 +567,17 @@ public:
 
             hdr.last_index = m - 1;
             clflush((char *) &(hdr.last_index), sizeof(int16_t));
-
+#ifdef FF_PROFILE_TIME
+            gettimeofday(&end_time, NULL);
+            _grow += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
             num_entries = hdr.last_index + 1;
 
             page *ret;
 
+#ifdef FF_PROFILE_TIME
+            gettimeofday(&start_time, NULL);
+#endif
             // insert the key
             if (key < split_key) {
                 insert_key(key, value, &num_entries);
@@ -574,7 +596,10 @@ public:
                 bt->fastfair_insert_internal(NULL, split_key, (char *) sibling,
                                              hdr.level + 1);
             }
-
+#ifdef FF_PROFILE_TIME
+            gettimeofday(&end_time, NULL);
+            _grow += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
             return ret;
         }
     }

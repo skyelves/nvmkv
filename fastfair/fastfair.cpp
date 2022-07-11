@@ -37,8 +37,15 @@ void fastfair::init() {
 }
 
 void fastfair::setNewRoot(char *new_root) {
+#ifdef FF_PROFILE_TIME
+    gettimeofday(&start_time, NULL);
+#endif
     this->root = (char *) new_root;
     clflush((char *) &(this->root), sizeof(char *));
+#ifdef FF_PROFILE_TIME
+    gettimeofday(&end_time, NULL);
+    _update += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
     ++height;
 }
 
