@@ -695,7 +695,7 @@ static void *recursive_insert(woart_node *n, woart_node **ref, const unsigned lo
         flush_buffer(ref, sizeof(uintptr_t), true);
 #ifdef WOART_PROFILE_TIME
         gettimeofday(&end_time, NULL);
-        _update += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+        _grow += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
 #endif
         return NULL;
     }
@@ -715,7 +715,7 @@ static void *recursive_insert(woart_node *n, woart_node **ref, const unsigned lo
             flush_buffer(&l->value, sizeof(uintptr_t), true);
 #ifdef WOART_PROFILE_TIME
             gettimeofday(&end_time, NULL);
-            _update += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+            _grow += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
 #endif
             return old_val;
         }
