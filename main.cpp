@@ -812,17 +812,17 @@ void correctnessTest() {
 
 void profile() {
 //    out.open("ert_profile.csv");
-#ifdef __linux__
-    parseLoadFile("/home/wangke/index-microbench/workloads/SOSD/load_workloada", testNum);
-#else
-    parseLoadFile("/Users/wangke/Desktop/Heterogeneous_Memory/ERT/index-microbench/workloads/facebook/load_workloada", testNum);
-#endif
+//#ifdef __linux__
+//    parseLoadFile("/home/wangke/index-microbench/workloads/amazon/load_workloada", testNum);
+//#else
+//    parseLoadFile("/Users/wangke/Desktop/Heterogeneous_Memory/ERT/index-microbench/workloads/amazon/load_workloada", testNum);
+//#endif
     mykey = new uint64_t[testNum];
     rng_init(&r, 1, 2);
     for (int i = 0; i < testNum; ++i) {
-        mykey[i] = allLoadKeys[i];
+//        mykey[i] = allLoadKeys[i];
 //        if (i % 3 == 0)
-//            mykey[i] = rng_next(&r);
+            mykey[i] = rng_next(&r);
 //        else
 //            mykey[i] = rng_next(&r) % testNum;
     }
@@ -836,9 +836,9 @@ void profile() {
 //        cceh->put(mykey[i], value);
 //        ht->crash_consistent_put(NULL, mykey[i], i + 1, 0);
 //        wort_put(wort, mykey[i], 8, &value);
-        woart_put(woart, mykey[i], 8, &value);
+//        woart_put(woart, mykey[i], 8, &value);
 //        ff->put(mykey[i], (char *) &value);
-//        l64ht->crash_consistent_put(NULL, mykey[i], i + 1, 0);
+        l64ht->crash_consistent_put(NULL, mykey[i], i + 1, 0);
 //        if(i % (testNum/10) == 0)
 //            cout << l64ht->memory_profile(NULL) << endl;
 //        lbt->insert(mykey[i], &value);
