@@ -498,11 +498,13 @@ public:
                 if (flush)
                     clflush((char *) &records[0], sizeof(entry));
             }
-        }
 #ifdef FF_PROFILE_TIME
-        gettimeofday(&end_time, NULL);
-        _update += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+            gettimeofday(&end_time, NULL);
+            if (flush) {
+                _update += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+            }
 #endif
+        }
         if (update_last_index) {
             hdr.last_index = *num_entries;
         }
@@ -567,17 +569,12 @@ public:
 
             hdr.last_index = m - 1;
             clflush((char *) &(hdr.last_index), sizeof(int16_t));
+            num_entries = hdr.last_index + 1;
 #ifdef FF_PROFILE_TIME
             gettimeofday(&end_time, NULL);
             _grow += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
 #endif
-            num_entries = hdr.last_index + 1;
-
             page *ret;
-
-#ifdef FF_PROFILE_TIME
-            gettimeofday(&start_time, NULL);
-#endif
             // insert the key
             if (key < split_key) {
                 insert_key(key, value, &num_entries);
@@ -586,7 +583,6 @@ public:
                 sibling->insert_key(key, value, &sibling_cnt);
                 ret = sibling;
             }
-
             // Set a new root or insert the split key to the parent
             if (bt->root == (char *) this) { // only one node can update the root ptr
                 page *new_root =
@@ -596,10 +592,6 @@ public:
                 bt->fastfair_insert_internal(NULL, split_key, (char *) sibling,
                                              hdr.level + 1);
             }
-#ifdef FF_PROFILE_TIME
-            gettimeofday(&end_time, NULL);
-            _grow += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
-#endif
             return ret;
         }
     }
