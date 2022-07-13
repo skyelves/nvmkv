@@ -92,7 +92,7 @@ class HashTreeBucket {
 public:
    
     BucketKeyValue counter[HT_BUCKET_SIZE];
-    int64_t lock_meta = 0;
+//    int64_t lock_meta = 0;
 
     HashTreeBucket();
 

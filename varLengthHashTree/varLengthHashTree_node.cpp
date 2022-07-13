@@ -40,7 +40,7 @@ HashTreeKeyValue *new_vlht_key_value(unsigned char* key, unsigned int len ,uint6
 }
 
 HashTreeBucket::HashTreeBucket(){
-    lock_meta = 0;
+//    lock_meta = 0;
 }
 
 uint64_t HashTreeBucket::get(uint64_t key) {
@@ -76,46 +76,46 @@ HashTreeBucket *new_vlht_bucket(int _depth) {
 
 
 bool HashTreeBucket::read_lock(){
-    int64_t val = lock_meta;
-    while(val>-1){
-        if(cas(&lock_meta, &val, val+1)){
-            return true;
-        }
-        val = lock_meta;
-    }
+//    int64_t val = lock_meta;
+//    while(val>-1){
+//        if(cas(&lock_meta, &val, val+1)){
+//            return true;
+//        }
+//        val = lock_meta;
+//    }
     return false;
 }
 
 bool HashTreeBucket::write_lock(){
-    int64_t val = lock_meta;
-    if(val<0){
-        return false;
-    }
-
-    while(!cas(&lock_meta, &val, -1)){
-        val = lock_meta;
-        if(val<0){
-            return false;
-        }
-    }
-
-    while(val && lock_meta != 0-val-1){
-        asm("nop");
-    }
+//    int64_t val = lock_meta;
+//    if(val<0){
+//        return false;
+//    }
+//
+//    while(!cas(&lock_meta, &val, -1)){
+//        val = lock_meta;
+//        if(val<0){
+//            return false;
+//        }
+//    }
+//
+//    while(val && lock_meta != 0-val-1){
+//        asm("nop");
+//    }
 
     return true;
 
 }
 
 void HashTreeBucket::free_read_lock(){
-    int64_t val = lock_meta;
-    while(!cas(&lock_meta, &val, val-1)){
-        val = lock_meta;
-    }
+//    int64_t val = lock_meta;
+//    while(!cas(&lock_meta, &val, val-1)){
+//        val = lock_meta;
+//    }
 }
 
 void HashTreeBucket::free_write_lock(){
-    lock_meta = 0;
+//    lock_meta = 0;
 }
 
 
