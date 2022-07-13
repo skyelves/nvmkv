@@ -704,7 +704,9 @@ void Length64HashTreeNode::put(uint64_t subkey, uint64_t value, Length64HashTree
             int64_t stride = pow(2, global_depth - tmp_seg->depth);
             int64_t left = dir_index - dir_index % stride;
             int64_t mid = left + stride / 2, right = left + stride;
-
+#ifdef NEW_ERT_PROFILE_TIME
+            gettimeofday(&start_time, NULL);
+#endif
             //migrate previous data to the new bucket
             for (int i = 0; i < HT_MAX_BUCKET_NUM; ++i) {
                 uint64_t bucket_cnt = 0;
@@ -734,17 +736,18 @@ void Length64HashTreeNode::put(uint64_t subkey, uint64_t value, Length64HashTree
 
             tmp_seg->depth = tmp_seg->depth + 1;
             clflush((char *) &(tmp_seg->depth), sizeof(tmp_seg->depth));
-            this->put(subkey, value, beforeAddress);
 #ifdef NEW_ERT_PROFILE_TIME
             gettimeofday(&end_time, NULL);
             _grow += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
-            gettimeofday(&start_time, NULL);
 #endif
+            this->put(subkey, value, beforeAddress);
             return;
         } else {
-
             //condition: tmp_bucket->depth == global_depth
             Length64HashTreeNode *newNode = static_cast<Length64HashTreeNode *>(concurrency_fast_alloc(sizeof(Length64HashTreeNode)+sizeof(HashTreeSegment *)*dir_size*2));
+#ifdef NEW_ERT_PROFILE_TIME
+            gettimeofday(&start_time, NULL);
+#endif
             newNode->global_depth = global_depth+1;
             newNode->dir_size = dir_size*2;
             newNode->header.init(&this->header,this->header.len,this->header.depth);
@@ -755,33 +758,41 @@ void Length64HashTreeNode::put(uint64_t subkey, uint64_t value, Length64HashTree
             clflush((char *) newNode, sizeof(Length64HashTreeNode)+sizeof(Length64HashTreeSegment *)*newNode->dir_size);
             *(Length64HashTreeNode**)beforeAddress = newNode;
             clflush((char *) beforeAddress, sizeof(Length64HashTreeNode*));
-            newNode->put(subkey, value, beforeAddress);
 #ifdef NEW_ERT_PROFILE_TIME
             gettimeofday(&end_time, NULL);
             _grow += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
-            gettimeofday(&start_time, NULL);
 #endif
+            newNode->put(subkey, value, beforeAddress);
             return;
         }
     } else {
         if (unlikely(tmp_bucket->counter[bucket_index].subkey == subkey) && subkey != 0) {
             //key exists
+#ifdef NEW_ERT_PROFILE_TIME
+            gettimeofday(&start_time, NULL);
+#endif
             tmp_bucket->counter[bucket_index].value = value;
             clflush((char *) &(tmp_bucket->counter[bucket_index].value), 8);
+#ifdef NEW_ERT_PROFILE_TIME
+            gettimeofday(&end_time, NULL);
+            _update += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
         } else {
             // there is a place to insert
+#ifdef NEW_ERT_PROFILE_TIME
+            gettimeofday(&start_time, NULL);
+#endif
             tmp_bucket->counter[bucket_index].value = value;
             mfence();
             tmp_bucket->counter[bucket_index].subkey = PUT_KEY_VALUE_FLAG(subkey);
             // Here we clflush 16bytes rather than two 8 bytes because all counter are set to 0.
             // If crash after key flushed, then the value is 0. When we return the value, we would find that the key is not inserted.
             clflush((char *) &(tmp_bucket->counter[bucket_index].subkey), 16);
-        }
 #ifdef NEW_ERT_PROFILE_TIME
-        gettimeofday(&end_time, NULL);
-        _update += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
-        gettimeofday(&start_time, NULL);
+            gettimeofday(&end_time, NULL);
+            _update += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
 #endif
+        }
     }
     return;
 }
