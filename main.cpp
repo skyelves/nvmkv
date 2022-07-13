@@ -167,8 +167,8 @@ bool test_case[10] = {0, // ht
                       0, // cacheline_concious_extendible_hash
                       0, // fast&fair
                       0, // roart
-                      0, // ert
-                      1, // lb+tree
+                      1, // ert
+                      0, // lb+tree
                       0};
 
 bool range_query_test_case[10] = {
@@ -177,7 +177,7 @@ bool range_query_test_case[10] = {
         0, // woart
         0, // fast&fair
         0, // roart
-        0, // ert
+        1, // ert
         0, // lb+tree
         0
 };
@@ -821,10 +821,10 @@ void profile() {
     rng_init(&r, 1, 2);
     for (int i = 0; i < testNum; ++i) {
 //        mykey[i] = allLoadKeys[i];
-//        if (i % 3 == 0)
+        if (i % 3 == 0)
             mykey[i] = rng_next(&r);
-//        else
-//            mykey[i] = rng_next(&r) % testNum;
+        else
+            mykey[i] = rng_next(&r) % testNum;
     }
     uint64_t value = 1;
     timeval start, ends;
@@ -852,12 +852,12 @@ void profile() {
     }
     gettimeofday(&ends, NULL);
     double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
-    _travelsal = timeCost - _update - _decompression - _grow;
-    cout << "overall, " << timeCost << endl;
-    cout << "_travelsal, " << _travelsal << endl;
-    cout << "_update, " << _update << endl;
-    cout << "grow, " << _grow << endl;
-    cout << "_decompression, " << _decompression << endl;
+//    _travelsal = timeCost - _update - _decompression - _grow;
+//    cout << "overall, " << timeCost << endl;
+//    cout << "_travelsal, " << _travelsal << endl;
+//    cout << "_update, " << _update << endl;
+//    cout << "grow, " << _grow << endl;
+//    cout << "_decompression, " << _decompression << endl;
 
 //    cout << _grow << endl << _update << endl << _travelsal <<endl << _decompression << endl;
 //    out.close();
@@ -1949,7 +1949,7 @@ int main(int argc, char *argv[]) {
 //    bt = new_blink_tree(numThread);
 //     correctnessTest();
 
-//     speedTest();
+     speedTest();
 
 //    varLengthTest();
 //    varLengthCorrectnessTest();
@@ -1967,7 +1967,7 @@ int main(int argc, char *argv[]) {
 //    } catch (void *) {
 //        fast_free();
 //    }
-    profile();
+//    profile();
 
 //    range_query_correctness_test();
 //    cout << ht->node_cnt << endl;
