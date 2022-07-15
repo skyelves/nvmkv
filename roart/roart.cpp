@@ -9,6 +9,10 @@ extern timeval start_time, end_time;
 extern uint64_t _grow, _update, _travelsal, _decompression;
 #endif
 
+#ifdef ROART_SCAN_PROFILE_TIME
+timeval start_time, end_time;
+uint64_t _random, _sequential;
+#endif
 
 inline void mfence(void) {
     asm volatile("mfence":: :"memory");
@@ -687,6 +691,9 @@ restart:
                 uint32_t childrenCount = 0;
                 N::getChildren(node, startLevel, endLevel, children,
                                childrenCount);
+#ifdef ROART_SCAN_PROFILE_TIME
+                gettimeofday(&start_time, NULL);
+#endif
                 for (uint32_t i = 0; i < childrenCount; ++i) {
                     const uint8_t k = std::get<0>(children[i]);
                     N *n = std::get<1>(children[i]);
@@ -704,6 +711,10 @@ restart:
                         break;
                     }
                 }
+#ifdef ROART_SCAN_PROFILE_TIME
+                gettimeofday(&end_time, NULL);
+                _sequential += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
             } else {
 
                 nextNode = N::getChild(startLevel, node);

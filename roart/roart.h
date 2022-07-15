@@ -12,6 +12,13 @@
 
 //#define LEAF_ARRAY
 
+//#define ROART_SCAN_PROFILE_TIME
+
+#ifdef ROART_SCAN_PROFILE_TIME
+extern timeval start_time, end_time;
+extern uint64_t _random, _sequential;
+#endif
+
 class ROART {
 public:
     N *root;
