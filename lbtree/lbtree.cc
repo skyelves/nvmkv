@@ -1020,6 +1020,9 @@ int lbtree::bulkloadSubtree(key_type input, int start_key, int num_key, float bf
 }
 
 vector<lbtree::kv> lbtree::rangeQuery(key_type start , key_type end){
+    if (end < start) {
+        end = 1ull << 63;
+    }
     vector<lbtree::kv> res;
     int pos;
     auto startPointer = (bleaf*)lookup(start,&pos);

@@ -44,7 +44,7 @@ extern uint64_t _grow, _update, _travelsal, _decompression;
 
 #define LEAF_KEY_NUM        (LEAF_SIZE/256*14)
 
-typedef long long key_type;
+typedef uint64_t key_type;
 #define KEY_SIZE             8   /* size of a key in tree node */
 #define POINTER_SIZE         8   /* size of a pointer/value in node */
 
