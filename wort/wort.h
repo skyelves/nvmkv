@@ -32,7 +32,7 @@
 # endif
 #endif
 
-#define WORT_PROFILE_TIME
+//#define WORT_PROFILE_TIME
 
 #ifdef WORT_PROFILE_TIME
 extern timeval start_time, end_time;
