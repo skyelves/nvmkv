@@ -40,7 +40,7 @@
 #define HT_NODE_PREFIX_MAX_BITS 48
 #define HT_KEY_LENGTH 64
 
-//#define VLHT_PROFILE
+#define VLHT_PROFILE
 
 #ifdef VLHT_PROFILE
 extern uint64_t split_cnt;

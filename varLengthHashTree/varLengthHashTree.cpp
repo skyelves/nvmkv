@@ -33,8 +33,8 @@ extern uint64_t _grow, _update, _travelsal, _decompression;
 #endif
 
 #ifdef ERT_SCAN_PROFILE_TIME
-extern timeval start_time, end_time;
-extern uint64_t _random, _sequential;
+timeval start_time, end_time;
+uint64_t _random, _sequential;
 #endif
 
 bool keyIsSame(unsigned char* key1, unsigned int length1, unsigned char* key2, unsigned int length2){
@@ -1005,6 +1005,9 @@ void Length64HashTree::node_scan(Length64HashTreeNode *tmp, uint64_t left, uint6
             continue;
         else
             last_seg = tmp_seg;
+#ifdef ERT_SCAN_PROFILE_TIME
+        gettimeofday(&start_time, NULL);
+#endif
         //todo if leftsubkey == rightsubkey, there is no need to scan all the segment.
         for(auto j=0;j<HT_MAX_BUCKET_NUM;j++){
             for(auto k=0;k<HT_BUCKET_SIZE;k++){
@@ -1046,6 +1049,10 @@ void Length64HashTree::node_scan(Length64HashTreeNode *tmp, uint64_t left, uint6
                 }
             }
         }
+#ifdef ERT_SCAN_PROFILE_TIME
+        gettimeofday(&end_time, NULL);
+        _sequential += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
     }
 
 
