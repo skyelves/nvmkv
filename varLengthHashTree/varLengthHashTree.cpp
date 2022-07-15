@@ -32,6 +32,11 @@ extern timeval start_time, end_time;
 extern uint64_t _grow, _update, _travelsal, _decompression;
 #endif
 
+#ifdef ERT_SCAN_PROFILE_TIME
+extern timeval start_time, end_time;
+extern uint64_t _random, _sequential;
+#endif
+
 bool keyIsSame(unsigned char* key1, unsigned int length1, unsigned char* key2, unsigned int length2){
     if(length1!=length2){
         return false;
@@ -892,6 +897,9 @@ uint64_t Length64HashTree::get(uint64_t key){
 
 void Length64HashTree::scan(uint64_t left, uint64_t right){
     vector<Length64HashTreeKeyValue> res;
+    if (left > right) {
+        right = 1ull << 63;
+    }
     node_scan(root,left,right,res,0);
 //    cout << res.size() << endl;
 }
@@ -961,15 +969,25 @@ void Length64HashTree::node_scan(Length64HashTreeNode *tmp, uint64_t left, uint6
         Length64HashTreeBucket *tmp_bucket = &(tmp_seg->bucket[seg_index]);
         uint64_t value = tmp_bucket->get(leftSubkey, keyValueFlag);
         if(value==0 || (tmp_seg != *(Length64HashTreeSegment **)GET_SEG_POS(tmp, GET_SEG_NUM(leftSubkey, HT_NODE_LENGTH, tmp_seg->depth)))){
+//        if(value==0){
+#ifdef ERT_PROFILE
+            not_found++;
+#endif
             return;
         }
         if (pos == 64) {
+#ifdef ERT_PROFILE
+            point_query_num++;
+#endif
             Length64HashTreeKeyValue tmp;
             tmp.key = leftSubkey + prefix;
             tmp.value = value;
             res.push_back(tmp);
         } else {
             if (keyValueFlag) {
+#ifdef ERT_PROFILE
+                point_query_num++;
+#endif
                 res.push_back(*(Length64HashTreeKeyValue *) value);
             } else {
                 node_scan((Length64HashTreeNode *) value, left, right, res, pos, prefix + leftSubkey);
@@ -990,6 +1008,9 @@ void Length64HashTree::node_scan(Length64HashTreeNode *tmp, uint64_t left, uint6
         //todo if leftsubkey == rightsubkey, there is no need to scan all the segment.
         for(auto j=0;j<HT_MAX_BUCKET_NUM;j++){
             for(auto k=0;k<HT_BUCKET_SIZE;k++){
+#ifdef ERT_PROFILE
+                scan_bucket_num++;
+#endif
                 bool keyValueFlag = GET_NODE_FLAG(tmp_seg->bucket[j].counter[k].subkey);
                 uint64_t curSubkey = REMOVE_NODE_FLAG(tmp_seg->bucket[j].counter[k].subkey);
                 uint64_t value = tmp_seg->bucket[j].counter[k].value;

@@ -700,6 +700,9 @@ void Length64HashTreeNode::put(uint64_t subkey, uint64_t value, Length64HashTree
     if (bucket_index == -1) {
         //condition: full
         if (likely(tmp_seg->depth < global_depth)) {
+#ifdef VLHT_PROFILE
+            split_cnt++;
+#endif
             Length64HashTreeSegment *new_seg = new_l64ht_segment(tmp_seg->depth + 1);
             int64_t stride = pow(2, global_depth - tmp_seg->depth);
             int64_t left = dir_index - dir_index % stride;
@@ -744,6 +747,9 @@ void Length64HashTreeNode::put(uint64_t subkey, uint64_t value, Length64HashTree
             return;
         } else {
             //condition: tmp_bucket->depth == global_depth
+#ifdef VLHT_PROFILE
+            double_cnt++;
+#endif
             Length64HashTreeNode *newNode = static_cast<Length64HashTreeNode *>(concurrency_fast_alloc(sizeof(Length64HashTreeNode)+sizeof(HashTreeSegment *)*dir_size*2));
 #ifdef NEW_ERT_PROFILE_TIME
             gettimeofday(&start_time, NULL);

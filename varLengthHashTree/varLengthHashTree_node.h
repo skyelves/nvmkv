@@ -31,7 +31,7 @@
 
 #define HT_INIT_GLOBAL_DEPTH 0
 #define HT_BUCKET_SIZE 4
-#define HT_BUCKET_MASK_LEN 8
+#define HT_BUCKET_MASK_LEN 2
 #define HT_MAX_BUCKET_NUM (1<<HT_BUCKET_MASK_LEN)
 
 #define SIZE_OF_CHAR 8
@@ -40,7 +40,7 @@
 #define HT_NODE_PREFIX_MAX_BITS 48
 #define HT_KEY_LENGTH 64
 
-#define VLHT_PROFILE
+//#define VLHT_PROFILE
 
 #ifdef VLHT_PROFILE
 extern uint64_t split_cnt;
@@ -52,6 +52,13 @@ extern uint64_t double_cnt;
 #ifdef NEW_ERT_PROFILE_TIME
 extern timeval start_time, end_time;
 extern uint64_t _grow, _update, _travelsal, _decompression;
+#endif
+
+//#define ERT_SCAN_PROFILE_TIME 1
+
+#ifdef ERT_SCAN_PROFILE_TIME
+extern timeval start_time, end_time;
+extern uint64_t _random, _sequential;
 #endif
 
 // in fact, it's better to use two kv pair in internal nodes and leaf nodes

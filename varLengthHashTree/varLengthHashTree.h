@@ -66,6 +66,9 @@ public:
 //    double memory_seg = 0;
 //    double memory_kv = 0;
 #ifdef ERT_PROFILE
+    int not_found = 0;
+    int point_query_num = 0;
+    int scan_bucket_num = 0;
     int scan_node_num = 0;
     int scan_cnt = 0;
 #endif
