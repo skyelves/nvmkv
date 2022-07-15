@@ -8,6 +8,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <vector>
+#include <sys/time.h>
 #include "../fastalloc/fastalloc.h"
 
 /* If you want to change the number of entries,
@@ -30,6 +31,14 @@
 #  define BROKEN_GCC_C99_INLINE
 # endif
 #endif
+
+#define WORT_PROFILE_TIME
+
+#ifdef WORT_PROFILE_TIME
+extern timeval start_time, end_time;
+extern uint64_t _grow, _update, _travelsal, _decompression;
+#endif
+
 
 typedef int(*wort_callback)(void *data, const unsigned char *key, uint32_t key_len, void *value);
 

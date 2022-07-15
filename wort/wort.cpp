@@ -19,6 +19,11 @@
 
 uint64_t wort_memory_usage = 0;
 
+#ifdef WORT_PROFILE_TIME
+timeval start_time, end_time;
+uint64_t _grow = 0, _update = 0, _travelsal = 0, _decompression = 0;
+#endif
+
 static inline void mfence() {
     asm volatile("mfence":: : "memory");
 }
@@ -283,8 +288,15 @@ static void *recursive_insert(wort_node *n, wort_node **ref, const unsigned long
                               int key_len, void *value, int depth, int *old) {
     // If we are at a NULL node, inject a leaf
     if (!n) {
+#ifdef WORT_PROFILE_TIME
+        gettimeofday(&start_time, NULL);
+#endif
         *ref = (wort_node *) SET_LEAF(make_leaf(key, key_len, value, true));
         flush_buffer(ref, sizeof(uintptr_t), true);
+#ifdef WORT_PROFILE_TIME
+        gettimeofday(&end_time, NULL);
+        _update += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
         return NULL;
     }
 
@@ -296,24 +308,37 @@ static void *recursive_insert(wort_node *n, wort_node **ref, const unsigned long
         if (!leaf_matches(l, key, key_len, depth)) {
             *old = 1;
             void *old_val = l->value;
+#ifdef WORT_PROFILE_TIME
+            gettimeofday(&start_time, NULL);
+#endif
             l->value = value;
             flush_buffer(&l->value, sizeof(uintptr_t), true);
+#ifdef WORT_PROFILE_TIME
+            gettimeofday(&end_time, NULL);
+            _update += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
             return old_val;
         }
-
+#ifdef WORT_PROFILE_TIME
+        gettimeofday(&start_time, NULL);
+#endif
         // New value, we must split the leaf into a node4
         wort_node16 *new_node = (wort_node16 *) alloc_node();
         new_node->n.depth = depth;
-
         // Create a new leaf
         wort_leaf *l2 = make_leaf(key, key_len, value, false);
-
+#ifdef WORT_PROFILE_TIME
+        gettimeofday(&end_time, NULL);
+            _update += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
         // Determine longest prefix
         int i, longest_prefix = longest_common_prefix(l, l2, depth);
         new_node->n.pwortial_len = longest_prefix;
         for (i = 0; i < min(WORT_MAX_PREFIX_LEN, longest_prefix); i++)
             new_node->n.pwortial[i] = get_index(key, depth + i);
-
+#ifdef WORT_PROFILE_TIME
+        gettimeofday(&start_time, NULL);
+#endif
         // Add the leafs to the new node4
         add_child(new_node, ref, get_index(l->key, depth + longest_prefix), SET_LEAF(l));
         add_child(new_node, ref, get_index(l2->key, depth + longest_prefix), SET_LEAF(l2));
@@ -325,6 +350,10 @@ static void *recursive_insert(wort_node *n, wort_node **ref, const unsigned long
 
         *ref = (wort_node *) new_node;
         flush_buffer(ref, 8, true);
+#ifdef WORT_PROFILE_TIME
+        gettimeofday(&end_time, NULL);
+        _update += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
         return NULL;
     }
 
@@ -341,7 +370,9 @@ static void *recursive_insert(wort_node *n, wort_node **ref, const unsigned long
             depth += n->pwortial_len;
             goto RECURSE_SEARCH;
         }
-
+#ifdef WORT_PROFILE_TIME
+        gettimeofday(&start_time, NULL);
+#endif
         // Create a new node
         wort_node16 *new_node = (wort_node16 *) alloc_node();
         new_node->n.depth = depth;
@@ -383,7 +414,10 @@ static void *recursive_insert(wort_node *n, wort_node **ref, const unsigned long
         flush_buffer(n, sizeof(wort_node), false);
         flush_buffer(ref, sizeof(uintptr_t), false);
         mfence();
-
+#ifdef WORT_PROFILE_TIME
+        gettimeofday(&end_time, NULL);
+        _decompression += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
         return NULL;
     }
 
@@ -397,9 +431,15 @@ static void *recursive_insert(wort_node *n, wort_node **ref, const unsigned long
 
     // No child, node goes within us
     wort_leaf *l = make_leaf(key, key_len, value, true);
-
+#ifdef WORT_PROFILE_TIME
+    gettimeofday(&start_time, NULL);
+#endif
     add_child((wort_node16 *) n, ref, get_index(key, depth), SET_LEAF(l));
     flush_buffer(&((wort_node16 *) n)->children[get_index(key, depth)], sizeof(uintptr_t), true);
+#ifdef WORT_PROFILE_TIME
+    gettimeofday(&end_time, NULL);
+    _update += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
     return NULL;
 }
 
