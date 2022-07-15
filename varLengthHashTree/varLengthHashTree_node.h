@@ -54,7 +54,7 @@ extern timeval start_time, end_time;
 extern uint64_t _grow, _update, _travelsal, _decompression;
 #endif
 
-//#define ERT_SCAN_PROFILE_TIME
+#define ERT_SCAN_PROFILE_TIME
 
 #ifdef ERT_SCAN_PROFILE_TIME
 extern timeval start_time, end_time;
