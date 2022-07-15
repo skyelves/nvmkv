@@ -735,6 +735,9 @@ restart:
 #endif
 
 vector<ROART_KEY> ROART::scan(uint64_t min, uint64_t max, uint64_t size) {
+    if (min > max) {
+        max = 1ull << 63;
+    }
     vector<ROART_KEY> res;
     ROART_KEY *start, *end, *continue_key;
     size_t res_cnt = 0;
