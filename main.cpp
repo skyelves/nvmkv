@@ -91,12 +91,12 @@ ofstream out;
         sleep(1);                                                                               \
         timeval start, ends;                                                                    \
         gettimeofday(&start, NULL);                                                             \
-        for (int i = 0; i < 500; i++) {                                                     \
+        for (int i = 0; i < 1000; i++) {                                                     \
             func                                                                                \
         }                                                                                       \
         gettimeofday(&ends, NULL);                                                              \
         double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;\
-        double throughPut = (double) 500 / timeCost;                                        \
+        double throughPut = (double) 1000 / timeCost;                                        \
         cout << name << testNum << " kv pais in " << timeCost / 1000000 << " s" << endl;        \
         cout << name << "ThroughPut: " << throughPut << " Mops" << endl;                        \
     }
@@ -168,7 +168,7 @@ bool test_case[10] = {0, // ht
                       0, // fast&fair
                       0, // roart
                       1, // ert
-                      0, // lb+tree
+                      1, // lb+tree
                       0};
 
 bool range_query_test_case[10] = {
@@ -178,7 +178,7 @@ bool range_query_test_case[10] = {
         0, // fast&fair
         0, // roart
         1, // ert
-        0, // lb+tree
+        1, // lb+tree
         0
 };
 
@@ -517,9 +517,9 @@ void speedTest() {
     mykey = new uint64_t[testNum];
     rng_init(&r, 1, 2);
     for (int i = 0; i < testNum; ++i) {
-        mykey[i] = rng_next(&r);
+//        mykey[i] = rng_next(&r);
 //        mykey[i] = rng_next(&r) & 0xffffffff00000000;
-//        mykey[i] = rng_next(&r) % testNum;
+        mykey[i] = rng_next(&r) % testNum;
 //        mykey[i] = rng_next(&r) % 100000000;
 //        mykey[i] = i;
     }
@@ -572,26 +572,26 @@ void speedTest() {
     // insert speed for lbt
     Time_BODY(test_case[8], "lbtree put  ", { lbt->insert(mykey[i], &value); })
 
-    // query speed for ht
-    Time_BODY(test_case[0], "ET positive_get", { ht->get(mykey[i]); })
-
-    // query speed for art
-    Time_BODY(test_case[1], "arttree positive_get", { art_get(art, (unsigned char *) &(mykey[i]), 8); })
-
-    // query speed for wort
-    Time_BODY(test_case[2], "wort positive_get", { wort_get(wort, mykey[i], 8); })
-
-    // query speed for woart
-    Time_BODY(test_case[3], "woart positive_get", { woart_get(woart, mykey[i], 8); })
-
-    // query speed for cceh
-    Time_BODY(test_case[4], "cceh positive_get", { cceh->get(mykey[i]); })
-
-    // query speed for fast&fair
-    Time_BODY(test_case[5], "fast&fair positive_get", { ff->get(mykey[i]); })
-
-    // query speed for roart
-    Time_BODY(test_case[6], "roart positive_get", { roart->get(mykey[i]); })
+//    // query speed for ht
+//    Time_BODY(test_case[0], "ET positive_get", { ht->get(mykey[i]); })
+//
+//    // query speed for art
+//    Time_BODY(test_case[1], "arttree positive_get", { art_get(art, (unsigned char *) &(mykey[i]), 8); })
+//
+//    // query speed for wort
+//    Time_BODY(test_case[2], "wort positive_get", { wort_get(wort, mykey[i], 8); })
+//
+//    // query speed for woart
+//    Time_BODY(test_case[3], "woart positive_get", { woart_get(woart, mykey[i], 8); })
+//
+//    // query speed for cceh
+//    Time_BODY(test_case[4], "cceh positive_get", { cceh->get(mykey[i]); })
+//
+//    // query speed for fast&fair
+//    Time_BODY(test_case[5], "fast&fair positive_get", { ff->get(mykey[i]); })
+//
+//    // query speed for roart
+//    Time_BODY(test_case[6], "roart positive_get", { roart->get(mykey[i]); })
 
 //    // query speed for ht
 //    Time_BODY(test_case[0], "ET negative_get", { ht->get(negative_key[i]); })
@@ -635,95 +635,97 @@ void speedTest() {
 //
 //    // insert speed for fast&fair
 //    Time_BODY(test_case[6], "roart update", { roart->put(mykey[i], value); })
+//
+//    Time_BODY(test_case[7], "ert get ", { l64ht->get(mykey[i]); })
+//
+//    int pos;
+//    Time_BODY(test_case[8], "lbt get ", { lbt->lookup(mykey[i], &pos); })
 
-    Time_BODY(test_case[7], "ert get ", { l64ht->get(mykey[i]); })
 
-    int pos;
-    Time_BODY(test_case[8], "lbt get ", { lbt->lookup(mykey[i], &pos); })
-
+    uint64_t scan_size = testNum;
     //range query speed for ht
     Scan_Time_BODY(range_query_test_case[0], "hash tree range query ",
-                   { ht->scan(mykey[i], mykey[i] + testNum * 0.001); })
+                   { ht->scan(mykey[i], mykey[i] + scan_size * 0.001); })
 
     //range query speed for wort
     Scan_Time_BODY(range_query_test_case[1], "wort range query ",
-                   { wort_scan(wort, mykey[i], mykey[i] + testNum * 0.001); })
+                   { wort_scan(wort, mykey[i], mykey[i] + scan_size * 0.001); })
 
     //range query speed for woart
     Scan_Time_BODY(range_query_test_case[2], "woart tree range query ",
-                   { woart_scan(woart, mykey[i], mykey[i] + testNum * 0.001); })
+                   { woart_scan(woart, mykey[i], mykey[i] + scan_size * 0.001); })
 
     //range query speed for fast&fair
     Scan_Time_BODY(range_query_test_case[3], "fast&fair range query ",
-                   { ff->scan(mykey[i], mykey[i] + testNum * 0.001); })
+                   { ff->scan(mykey[i], mykey[i] + scan_size * 0.001); })
 
     //range query speed for roart
     Scan_Time_BODY(range_query_test_case[4], "roart tree range query ",
-                   { roart->scan(mykey[i], mykey[i] + testNum * 0.001); })
+                   { roart->scan(mykey[i], mykey[i] + scan_size * 0.001); })
 
     //range query speed for ert
     Scan_Time_BODY(range_query_test_case[5], "ert range query ",
-                   { l64ht->scan(mykey[i], mykey[i] + testNum * 0.001); })
+                   { l64ht->scan(mykey[i], mykey[i] + scan_size * 0.001); })
 
     //range query speed for lb+tree
     Scan_Time_BODY(range_query_test_case[6], "lb+tree range query ",
-                   { lbt->rangeQuery(mykey[i], mykey[i] + testNum * 0.001); })
+                   { lbt->rangeQuery(mykey[i], mykey[i] + scan_size * 0.001); })
 
     //range query speed for ht
     Scan_Time_BODY(range_query_test_case[0], "hash tree range query ",
-                   { ht->scan(mykey[i], mykey[i] + testNum * 0.005); })
+                   { ht->scan(mykey[i], mykey[i] + scan_size * 0.005); })
 
     //range query speed for wort
     Scan_Time_BODY(range_query_test_case[1], "wort range query ",
-                   { wort_scan(wort, mykey[i], mykey[i] + testNum * 0.005); })
+                   { wort_scan(wort, mykey[i], mykey[i] + scan_size * 0.005); })
 
     //range query speed for woart
     Scan_Time_BODY(range_query_test_case[2], "woart tree range query ",
-                   { woart_scan(woart, mykey[i], mykey[i] + testNum * 0.005); })
+                   { woart_scan(woart, mykey[i], mykey[i] + scan_size * 0.005); })
 
     //range query speed for fast&fair
     Scan_Time_BODY(range_query_test_case[3], "fast&fair range query ",
-                   { ff->scan(mykey[i], mykey[i] + testNum * 0.005); })
+                   { ff->scan(mykey[i], mykey[i] + scan_size * 0.005); })
 
     //range query speed for roart
     Scan_Time_BODY(range_query_test_case[4], "roart tree range query ",
-                   { roart->scan(mykey[i], mykey[i] + testNum * 0.005); })
+                   { roart->scan(mykey[i], mykey[i] + scan_size * 0.005); })
 
     //range query speed for ert
     Scan_Time_BODY(range_query_test_case[5], "ert range query ",
-                   { l64ht->scan(mykey[i], mykey[i] + testNum * 0.005); })
+                   { l64ht->scan(mykey[i], mykey[i] + scan_size * 0.005); })
 
     //range query speed for lb+tree
     Scan_Time_BODY(range_query_test_case[6], "lb+tree range query ",
-                   { lbt->rangeQuery(mykey[i], mykey[i] + testNum * 0.005); })
+                   { lbt->rangeQuery(mykey[i], mykey[i] + scan_size * 0.005); })
 
     //range query speed for ht
     Scan_Time_BODY(range_query_test_case[0], "hash tree range query ",
-                   { ht->scan(mykey[i], mykey[i] + testNum * 0.01); })
+                   { ht->scan(mykey[i], mykey[i] + scan_size * 0.01); })
 
     //range query speed for wort
     Scan_Time_BODY(range_query_test_case[1], "wort range query ",
-                   { wort_scan(wort, mykey[i], mykey[i] + testNum * 0.01); })
+                   { wort_scan(wort, mykey[i], mykey[i] + scan_size * 0.01); })
 
     //range query speed for woart
     Scan_Time_BODY(range_query_test_case[2], "woart tree range query ",
-                   { woart_scan(woart, mykey[i], mykey[i] + testNum * 0.01); })
+                   { woart_scan(woart, mykey[i], mykey[i] + scan_size * 0.01); })
 
     //range query speed for fast&fair
     Scan_Time_BODY(range_query_test_case[3], "fast&fair range query ",
-                   { ff->scan(mykey[i], mykey[i] + testNum * 0.01); })
+                   { ff->scan(mykey[i], mykey[i] + scan_size * 0.01); })
 
     //range query speed for roart
     Scan_Time_BODY(range_query_test_case[4], "roart tree range query ",
-                   { roart->scan(mykey[i], mykey[i] + testNum * 0.01); })
+                   { roart->scan(mykey[i], mykey[i] + scan_size * 0.01); })
 
     //range query speed for ert
     Scan_Time_BODY(range_query_test_case[5], "ert range query ",
-                   { l64ht->scan(mykey[i], mykey[i] + testNum * 0.01); })
+                   { l64ht->scan(mykey[i], mykey[i] + scan_size * 0.01); })
 
     //range query speed for lb+tree
     Scan_Time_BODY(range_query_test_case[6], "lb+tree range query ",
-                   { lbt->rangeQuery(mykey[i], mykey[i] + testNum * 0.01); })
+                   { lbt->rangeQuery(mykey[i], mykey[i] + scan_size * 0.01); })
 
     //range query speed for ht
     Scan_Time_BODY(range_query_test_case[0], "hash tree range query ", { ht->scan(mykey[i], mykey[i] + 31); })
@@ -750,7 +752,7 @@ void speedTest() {
                    { lbt->rangeQuery(mykey[i], mykey[i] + 31); })
 
 //    cout << concurrency_fastalloc_profile()<<endl;
-    out.close();
+//    out.close();
 }
 
 void correctnessTest() {
@@ -821,27 +823,24 @@ void profile() {
     rng_init(&r, 1, 2);
     for (int i = 0; i < testNum; ++i) {
 //        mykey[i] = allLoadKeys[i];
-        if (i % 3 == 0)
-            mykey[i] = rng_next(&r);
-        else
+//        if (i % 3 == 0)
+//            mykey[i] = rng_next(&r);
+//        else
             mykey[i] = rng_next(&r) % testNum;
     }
     uint64_t value = 1;
     timeval start, ends;
     gettimeofday(&start, NULL);
-#ifdef NEW_ERT_PROFILE_TIME
-    gettimeofday(&start_time, NULL);
-#endif
     for (int i = 0; i < testNum; ++i) {
 //        cceh->put(mykey[i], value);
 //        ht->crash_consistent_put(NULL, mykey[i], i + 1, 0);
 //        wort_put(wort, mykey[i], 8, &value);
 //        woart_put(woart, mykey[i], 8, &value);
 //        ff->put(mykey[i], (char *) &value);
-        l64ht->crash_consistent_put(NULL, mykey[i], i + 1, 0);
+//        l64ht->crash_consistent_put(NULL, mykey[i], i + 1, 0);
 //        if(i % (testNum/10) == 0)
 //            cout << l64ht->memory_profile(NULL) << endl;
-//        lbt->insert(mykey[i], &value);
+        lbt->insert(mykey[i], &value);
 //        roart->put(mykey[i],i+1);
 //        if (i % 10000 == 0) {
 //            out << i << ", " << cceh->dir_size << ", "
@@ -852,14 +851,29 @@ void profile() {
     }
     gettimeofday(&ends, NULL);
     double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
+    double throughPut = (double) testNum / timeCost;
+    cout << "insert, " << throughPut << endl;
+//    cout << split_cnt << ", " << double_cnt << endl;
 //    _travelsal = timeCost - _update - _decompression - _grow;
 //    cout << "overall, " << timeCost << endl;
 //    cout << "_travelsal, " << _travelsal << endl;
 //    cout << "_update, " << _update << endl;
 //    cout << "grow, " << _grow << endl;
 //    cout << "_decompression, " << _decompression << endl;
+    int scan_num = 500;
+    gettimeofday(&start, NULL);
+    for (int i = 0; i < scan_num; ++i) {
+//        l64ht->scan(mykey[i], mykey[i] + 31);
+        lbt->rangeQuery(mykey[i], mykey[i] + 10000);
+    }
+    gettimeofday(&ends, NULL);
+    timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
+    throughPut = (double) scan_num / timeCost;
+    cout << "scan, " << throughPut << endl;
+    _random = timeCost - _sequential;
+    cout << _random << ", " << _sequential << endl;
+//    cout << l64ht->not_found << " " << l64ht->point_query_num << " " << l64ht->scan_bucket_num << " " << l64ht->scan_node_num << " " << l64ht->scan_cnt << endl;
 
-//    cout << _grow << endl << _update << endl << _travelsal <<endl << _decompression << endl;
 //    out.close();
 //    cout << concurrency_fastalloc_profile() / testNum << endl;
 //    cout << wort_memory_profile(wort->root) << endl;
