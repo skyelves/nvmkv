@@ -10,6 +10,12 @@ timeval start_time, end_time;
 uint64_t _grow = 0, _update = 0, _travelsal = 0, _decompression = 0;
 #endif
 
+#ifdef LB_SCAN_PROFILE_TIME
+timeval start_time, end_time;
+uint64_t _random, _sequential;
+#endif
+
+
 inline static void mfence() {
     asm volatile("mfence":: :"memory");
 }
@@ -1025,6 +1031,9 @@ vector<lbtree::kv> lbtree::rangeQuery(key_type start , key_type end){
     auto startPointer = (bleaf*)lookup(start,&pos);
     auto endPointer = (bleaf*)lookup(end,&pos);
     for(auto i = startPointer; ;){
+#ifdef LB_SCAN_PROFILE_TIME
+        gettimeofday(&start_time, NULL);
+#endif
         for(int j=0;j<LEAF_KEY_NUM;j++){
             if(i->bitmap&(1<<j) && i->ent[j].k>=start && i->ent[j].k<=end){
                 kv tmp;
@@ -1037,6 +1046,10 @@ vector<lbtree::kv> lbtree::rangeQuery(key_type start , key_type end){
                 res.push_back(tmp);
             }
         }
+#ifdef LB_SCAN_PROFILE_TIME
+        gettimeofday(&end_time, NULL);
+        _sequential += (end_time.tv_sec - start_time.tv_sec) * 1000000 + end_time.tv_usec - start_time.tv_usec;
+#endif
         if(i==endPointer){
             break;
         }else{

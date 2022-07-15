@@ -25,6 +25,13 @@ extern timeval start_time, end_time;
 extern uint64_t _grow, _update, _travelsal, _decompression;
 #endif
 
+#define LB_SCAN_PROFILE_TIME 1
+
+#ifdef LB_SCAN_PROFILE_TIME
+extern timeval start_time, end_time;
+extern uint64_t _random, _sequential;
+#endif
+
 #ifndef KB
 #define KB      (1024)
 #endif
