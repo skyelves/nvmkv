@@ -162,13 +162,13 @@ int numThread = 1;
 int test_algorithms_num = 10;
 bool test_case[10] = {0, // ht
                       0, // art
-                      1, // wort
-                      1, // woart
+                      0, // wort
+                      0, // woart
                       0, // cacheline_concious_extendible_hash
-                      1, // fast&fair
+                      0, // fast&fair
                       1, // roart
                       1, // ert
-                      1, // lb+tree
+                      0, // lb+tree
                       0};
 
 bool range_query_test_case[10] = {
@@ -176,8 +176,8 @@ bool range_query_test_case[10] = {
         0, // wort
         0, // woart
         0, // fast&fair
-        0, // roart
-        0, // ert
+        1, // roart
+        1, // ert
         0, // lb+tree
         0
 };
@@ -388,9 +388,9 @@ void speedTest() {
     mykey = new uint64_t[testNum];
     rng_init(&r, 1, 2);
     for (int i = 0; i < testNum; ++i) {
-        mykey[i] = rng_next(&r);
+//        mykey[i] = rng_next(&r);
 //        mykey[i] = rng_next(&r) & 0xffffffff00000000;
-//        mykey[i] = rng_next(&r) % testNum;
+        mykey[i] = rng_next(&r) % testNum;
 //        mykey[i] = rng_next(&r) % 100000000;
 //        mykey[i] = i;
     }
@@ -686,9 +686,9 @@ void profile() {
     mykey = new uint64_t[testNum];
     rng_init(&r, 1, 2);
     for (int i = 0; i < testNum; ++i) {
-        if (i % 3 == 0)
-            mykey[i] = rng_next(&r);
-        else
+//        if (i % 3 == 0)
+//            mykey[i] = rng_next(&r);
+//        else
             mykey[i] = rng_next(&r) % testNum;
     }
     uint64_t value = 1;
@@ -703,11 +703,11 @@ void profile() {
 //        wort_put(wort, mykey[i], 8, &value);
 //        woart_put(woart, mykey[i], 8, &value);
 //        ff->put(mykey[i], (char *) &value);
-//        l64ht->crash_consistent_put(NULL, mykey[i], 1, 0);
+        l64ht->crash_consistent_put(NULL, mykey[i], 1, 0);
 //        if(i % (testNum/10) == 0)
 //            cout << l64ht->memory_profile(NULL) << endl;
 //        lbt->insert(mykey[i], &value);
-        roart->put(mykey[i],i+1);
+//        roart->put(mykey[i], value);
 //        if (i % 10000 == 0) {
 //            out << i << ", " << cceh->dir_size << ", "
 //                << (double) i / (cceh_seg_num * CCEH_BUCKET_SIZE * CCEH_MAX_BUCKET_NUM) << endl;
@@ -717,9 +717,9 @@ void profile() {
     }
     gettimeofday(&ends, NULL);
     double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
-    _travelsal = timeCost - _update - _decompression - _grow;
-    cout << _grow << endl << _update << endl << _travelsal <<endl << _decompression << endl;
-    cout << timeCost << endl;
+//    _travelsal = timeCost - _update - _decompression - _grow;
+//    cout << _grow << endl << _update << endl << _travelsal <<endl << _decompression << endl;
+//    cout << timeCost << endl;
 //    out.close();
 //    cout << concurrency_fastalloc_profile() / testNum << endl;
 //    cout << wort_memory_profile(wort->root) << endl;
@@ -728,6 +728,19 @@ void profile() {
 //    cout << l64ht->memory_profile(NULL) << endl;
 //    cout << l64ht->memory_header / testNum << endl << l64ht->memory_seg / testNum << endl << l64ht->memory_kv / testNum << endl;
 //    cout << lbt->memory_profile() << endl;
+    int scan_num = 500;
+    gettimeofday(&start, NULL);
+    for (int i = 0; i < scan_num; ++i) {
+        l64ht->scan(mykey[i], mykey[i] + 31);
+//        lbt->rangeQuery(mykey[i], mykey[i] + 10000);
+//        roart->scan(mykey[i], mykey[i] + 10000);
+    }
+    gettimeofday(&ends, NULL);
+    timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
+    double throughPut = (double) scan_num / timeCost;
+    cout << "scan, " << throughPut << endl;
+    _random = timeCost - _sequential;
+    cout << _random << ", " << _sequential << endl;
 }
 
 void range_query_correctness_test() {
