@@ -16,6 +16,10 @@ uint64_t split_cnt = 0;
 uint64_t double_cnt = 0;
 #endif
 
+#ifdef NEW_ERT_PROFILE_TIME
+uint64_t sum_global_depth = 0, node_cnt = 0;
+#endif
+
 inline void mfence(void) {
     asm volatile("mfence":: :"memory");
 }
@@ -677,6 +681,10 @@ Length64HashTreeNode::Length64HashTreeNode(){
 Length64HashTreeNode::~Length64HashTreeNode(){}
 
 void Length64HashTreeNode::init(unsigned char headerDepth, unsigned char global_depth){
+#ifdef NEW_ERT_PROFILE_TIME
+    ++node_cnt;
+    sum_global_depth += global_depth;
+#endif
     this->global_depth = global_depth;
     this->dir_size = pow(2, global_depth);
     header.depth = headerDepth;
@@ -746,6 +754,7 @@ void Length64HashTreeNode::put(uint64_t subkey, uint64_t value, Length64HashTree
         } else {
 #ifdef NEW_ERT_PROFILE_TIME
             gettimeofday(&start_time, NULL);
+            ++sum_global_depth;
 #endif
             //condition: tmp_bucket->depth == global_depth
             Length64HashTreeNode *newNode = static_cast<Length64HashTreeNode *>(concurrency_fast_alloc(sizeof(Length64HashTreeNode)+sizeof(HashTreeSegment *)*dir_size*2));

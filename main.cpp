@@ -166,7 +166,7 @@ bool test_case[10] = {0, // ht
                       0, // woart
                       0, // cacheline_concious_extendible_hash
                       0, // fast&fair
-                      1, // roart
+                      0, // roart
                       1, // ert
                       0, // lb+tree
                       0};
@@ -176,7 +176,7 @@ bool range_query_test_case[10] = {
         0, // wort
         0, // woart
         0, // fast&fair
-        1, // roart
+        0, // roart
         1, // ert
         0, // lb+tree
         0
@@ -199,7 +199,7 @@ varlength_fastfair *vlff;
 var_length_woart_tree *vlwoart;
 var_length_wort_tree *vlwort;
 lbtree *lbt;
-varLengthLbtree * vllbt;
+varLengthLbtree *vllbt;
 
 
 conwoart_tree *conwoart;
@@ -506,11 +506,11 @@ void speedTest() {
 //
 //    // insert speed for fast&fair
 //    Time_BODY(test_case[6], "roart update", { roart->put(mykey[i], value); })
-
-    Time_BODY(test_case[7], "ert get ", { l64ht->get(mykey[i]); })
-
-    int pos;
-    Time_BODY(test_case[8], "lbt get ", { lbt->lookup(mykey[i], &pos); })
+//
+//    Time_BODY(test_case[7], "ert get ", { l64ht->get(mykey[i]); })
+//
+//    int pos;
+//    Time_BODY(test_case[8], "lbt get ", { lbt->lookup(mykey[i], &pos); })
 
     //range query speed for ht
     Scan_Time_BODY(range_query_test_case[0], "hash tree range query ",
@@ -687,15 +687,15 @@ void profile() {
     rng_init(&r, 1, 2);
     for (int i = 0; i < testNum; ++i) {
 //        if (i % 3 == 0)
-//            mykey[i] = rng_next(&r);
+        mykey[i] = rng_next(&r);
 //        else
-            mykey[i] = rng_next(&r) % testNum;
+//            mykey[i] = rng_next(&r) % testNum;
     }
     uint64_t value = 1;
     timeval start, ends;
     gettimeofday(&start, NULL);
 #ifdef NEW_ERT_PROFILE_TIME
-    gettimeofday(&start_time, NULL);
+    gettimeofday(&start, NULL);
 #endif
     for (int i = 0; i < testNum; ++i) {
 //        cceh->put(mykey[i], value);
@@ -715,8 +715,12 @@ void profile() {
 //                << (double) i / (ht_seg_num * HT_MAX_BUCKET_NUM * HT_BUCKET_SIZE) << endl;
 //        }
     }
+#ifdef NEW_ERT_PROFILE_TIME
     gettimeofday(&ends, NULL);
-    double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
+    cout << node_cnt << " " << sum_global_depth << endl << sum_global_depth / node_cnt << endl;
+#endif
+//    gettimeofday(&ends, NULL);
+//    double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
 //    _travelsal = timeCost - _update - _decompression - _grow;
 //    cout << _grow << endl << _update << endl << _travelsal <<endl << _decompression << endl;
 //    cout << timeCost << endl;
@@ -728,19 +732,20 @@ void profile() {
 //    cout << l64ht->memory_profile(NULL) << endl;
 //    cout << l64ht->memory_header / testNum << endl << l64ht->memory_seg / testNum << endl << l64ht->memory_kv / testNum << endl;
 //    cout << lbt->memory_profile() << endl;
-    int scan_num = 500;
-    gettimeofday(&start, NULL);
-    for (int i = 0; i < scan_num; ++i) {
-        l64ht->scan(mykey[i], mykey[i] + 31);
+//    int scan_num = 500;
+//    uint64_t scan_range = (1ull << 63) / testNum * 10;
+//    gettimeofday(&start, NULL);
+//    for (int i = 0; i < scan_num; ++i) {
+//        l64ht->scan(mykey[i], mykey[i] + scan_range);
 //        lbt->rangeQuery(mykey[i], mykey[i] + 10000);
 //        roart->scan(mykey[i], mykey[i] + 10000);
-    }
-    gettimeofday(&ends, NULL);
-    timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
-    double throughPut = (double) scan_num / timeCost;
-    cout << "scan, " << throughPut << endl;
-    _random = timeCost - _sequential;
-    cout << _random << ", " << _sequential << endl;
+//    }
+//    gettimeofday(&ends, NULL);
+//    timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
+//    double throughPut = (double) scan_num / timeCost;
+//    cout << "scan, " << throughPut << endl;
+//    _random = timeCost - _sequential;
+//    cout << _random << ", " << _sequential << endl;
 }
 
 void range_query_correctness_test() {
@@ -1122,7 +1127,7 @@ void varLengthTest() {
     int *lengths = new int[testNum];
     rng r;
     rng_init(&r, 1, 2);
-    unordered_map<int,int> LengthCount;
+    unordered_map<int, int> LengthCount;
     for (int i = 0; i < testNum; i++) {
 //        lengths[i] = span[6];
         lengths[i] = span[rng_next(&r) % 7];
@@ -1143,8 +1148,8 @@ void varLengthTest() {
     // }
 
 
-    for(auto i:LengthCount){
-        cout<<i.first<<" "<<i.second<<endl;
+    for (auto i:LengthCount) {
+        cout << i.first << " " << i.second << endl;
     }
 
     Time_BODY(1, "varLengthHashTree put ", { vlht->crash_consistent_put(NULL, lengths[i], keys[i], value); })
@@ -1176,9 +1181,9 @@ void varLengthTest() {
 //    })
 
 
-    Time_BODY(1, "varLengthLbtree put ", {  vllbt->insert((unsigned char *) keys[i], lengths[i] , (void*) &value); })
+    Time_BODY(1, "varLengthLbtree put ", { vllbt->insert((unsigned char *) keys[i], lengths[i], (void *) &value); })
     Time_BODY(1, "varLengthLbtree get ", {
-        if(value != * (int *) vllbt->lookup((unsigned char*)keys[i],lengths[i])){
+        if (value != *(int *) vllbt->lookup((unsigned char *) keys[i], lengths[i])) {
             cout << *(uint64_t *) &mykey[i] << endl;
         }
     })
@@ -1499,7 +1504,7 @@ void parseLoadFile(std::string wlName, uint64_t len = 0, uint64_t type = 0) {
             parse_line1(rawStr, hashKey, scanNum, op);
             if (op == YCSBRunOp::Insert || op == YCSBRunOp::Update) {
                 int tmplen = myalign(hashKey.size(), 4);
-                if(tmplen) {
+                if (tmplen) {
                     char *tmp = new char[tmplen];
                     memcpy(tmp, hashKey.c_str(), hashKey.size());
                     for (int i = hashKey.size(); i < tmplen; i++)
@@ -1570,10 +1575,12 @@ void SOSD(uint64_t _testNum = 100000000, string dir = "facebook", string type = 
     parseRunFile("/home/wangke/index-microbench/workloads/" + dir + "/txn_workload" + type, _testNum / 5);
 #else
     if (first_load)
-        parseLoadFile("/Users/wangke/Desktop/Heterogeneous_Memory/ERT/index-microbench/workloads/" + dir + "/load_workloada",
-                      _testNum);
-    parseRunFile("/Users/wangke/Desktop/Heterogeneous_Memory/ERT/index-microbench/workloads/" + dir + "/txn_workload" + type,
-                 _testNum / 5);
+        parseLoadFile(
+                "/Users/wangke/Desktop/Heterogeneous_Memory/ERT/index-microbench/workloads/" + dir + "/load_workloada",
+                _testNum);
+    parseRunFile(
+            "/Users/wangke/Desktop/Heterogeneous_Memory/ERT/index-microbench/workloads/" + dir + "/txn_workload" + type,
+            _testNum / 5);
 #endif
     if (first_load) {
         testNum = _testNum;
@@ -1598,7 +1605,7 @@ void SOSD(uint64_t _testNum = 100000000, string dir = "facebook", string type = 
 //    cout << roart->memory_profile() << endl;
 //    cout << l64ht->memory_profile(NULL) << endl;
 
-    if(type == "e")
+    if (type == "e")
         testNum = 10000;
     else
         testNum = _testNum / 5;
@@ -1703,10 +1710,12 @@ void string_test(uint64_t _testNum = 100000000, string dir = "wiki", string type
     parseRunFile("/home/wangke/index-microbench/workloads/" + dir + "/txn_workload" + type, _testNum / 5, 1);
 #else
     if (first_load)
-        parseLoadFile("/Users/wangke/Desktop/Heterogeneous_Memory/ERT/index-microbench/workloads/" + dir + "/load_workloada",
-                      _testNum, 1);
-        parseRunFile("/Users/wangke/Desktop/Heterogeneous_Memory/ERT/index-microbench/workloads/" + dir + "/txn_workload" + type,
-                     _testNum / 5, 1);
+        parseLoadFile(
+                "/Users/wangke/Desktop/Heterogeneous_Memory/ERT/index-microbench/workloads/" + dir + "/load_workloada",
+                _testNum, 1);
+    parseRunFile(
+            "/Users/wangke/Desktop/Heterogeneous_Memory/ERT/index-microbench/workloads/" + dir + "/txn_workload" + type,
+            _testNum / 5, 1);
 #endif
 
     if (first_load) {
@@ -1719,7 +1728,7 @@ void string_test(uint64_t _testNum = 100000000, string dir = "wiki", string type
 
         sort(vlht->bucket_cnt, vlht->bucket_cnt + 1024);
         for (int i = 0; i < 30; ++i) {
-            cout << vlht->bucket_cnt[1023-i] << " ";
+            cout << vlht->bucket_cnt[1023 - i] << " ";
         }
         int ave = 0;
         for (int i = 0; i < 1024; ++i) {
@@ -1732,11 +1741,12 @@ void string_test(uint64_t _testNum = 100000000, string dir = "wiki", string type
         Time_BODY(1, "varLengthWort load ",
                   { var_length_wort_put(vlwort, (char *) allLoadKeysStr[i], allLoadKeysLenStr[i], (char *) &value); })
 
-                  cout << wort_decompression_cnt << endl;
+        cout << wort_decompression_cnt << endl;
 
         Time_BODY(1, "varLengthWoart load ",
                   {
-                      var_length_woart_put(vlwoart, (unsigned char *) allLoadKeysStr[i], allLoadKeysLenStr[i] * 8, (char *) &value);
+                      var_length_woart_put(vlwoart, (unsigned char *) allLoadKeysStr[i], allLoadKeysLenStr[i] * 8,
+                                           (char *) &value);
                   })
 
 //        Time_BODY(1, "varLengthFast&Fair load ",
@@ -1748,7 +1758,7 @@ void string_test(uint64_t _testNum = 100000000, string dir = "wiki", string type
 
     }
 
-    if(type == "e")
+    if (type == "e")
         testNum = 1000;
     else
         testNum = _testNum / 5;
@@ -1792,7 +1802,7 @@ void string_test(uint64_t _testNum = 100000000, string dir = "wiki", string type
 
 }
 
-void varLengthCorrectnessTest(){
+void varLengthCorrectnessTest() {
     int span[] = {4, 8, 16, 32, 64, 128, 1024};
     testNum = 1000000;
     unsigned char **keys = new unsigned char *[testNum];
@@ -1860,19 +1870,19 @@ void varLengthCorrectnessTest(){
 //
 
 
-    failedCount = 0 ;
+    failedCount = 0;
     for (int i = 0; i < testNum; ++i) {
-        vllbt->insert((unsigned char *) keys[i], lengths[i] , (void*) &value);
-        if(value != * (int *) vllbt->lookup((unsigned char*)keys[i],lengths[i])){
-            failedCount ++;
+        vllbt->insert((unsigned char *) keys[i], lengths[i], (void *) &value);
+        if (value != *(int *) vllbt->lookup((unsigned char *) keys[i], lengths[i])) {
+            failedCount++;
         }
     }
     for (int i = 0; i < testNum; ++i) {
-        if(value != * (int *) vllbt->lookup((unsigned char*)keys[i],lengths[i])){
-            failedCount ++;
+        if (value != *(int *) vllbt->lookup((unsigned char *) keys[i], lengths[i])) {
+            failedCount++;
         }
     }
-    cout<< "varLengthlbtree failed "<< failedCount <<endl;
+    cout << "varLengthlbtree failed " << failedCount << endl;
 }
 
 
