@@ -43,6 +43,7 @@
 #define VLHT_PROFILE
 
 #ifdef VLHT_PROFILE
+extern uint64_t node_cnt_VLHT;
 extern uint64_t split_cnt;
 extern uint64_t double_cnt;
 #endif
@@ -50,7 +51,7 @@ extern uint64_t double_cnt;
 #define NEW_ERT_PROFILE_TIME 1
 
 #ifdef NEW_ERT_PROFILE_TIME
-extern uint64_t sum_global_depth, node_cnt;
+extern uint64_t sum_global_depth, node_cnt_ERT;
 extern timeval start_time, end_time;
 extern uint64_t _grow, _update, _travelsal, _decompression;
 #endif

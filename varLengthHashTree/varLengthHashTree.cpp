@@ -434,6 +434,9 @@ void VarLengthHashTree:: crash_consistent_put_without_lock(VarLengthHashTreeNode
                         ((HashTreeKeyValue *) next)->value = value;
                         clflush((char *) &(((HashTreeKeyValue *) next)->value), 8);
                     } else {
+#ifdef VLHT_PROFILE
+                        ++node_cnt_VLHT;
+#endif
                         //not same key: needs to create a new node
                         VarLengthHashTreeNode *newNode = new_varlengthhashtree_node(HT_NODE_PREFIX_MAX_BYTES+1,currentNode->header.depth+matchedPrefixLen*SIZE_OF_CHAR/HT_NODE_LENGTH+1);
 

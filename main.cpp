@@ -717,7 +717,7 @@ void profile() {
     }
 #ifdef NEW_ERT_PROFILE_TIME
     gettimeofday(&ends, NULL);
-    cout << node_cnt << " " << sum_global_depth << endl << sum_global_depth / node_cnt << endl;
+    cout << node_cnt_ERT << " " << sum_global_depth << endl << sum_global_depth / node_cnt_ERT << endl;
 #endif
 //    gettimeofday(&ends, NULL);
 //    double timeCost = (ends.tv_sec - start.tv_sec) * 1000000 + ends.tv_usec - start.tv_usec;
@@ -1154,6 +1154,10 @@ void varLengthTest() {
 
     Time_BODY(1, "varLengthHashTree put ", { vlht->crash_consistent_put(NULL, lengths[i], keys[i], value); })
     Time_BODY(1, "varLengthHashTree get ", { vlht->get(lengths[i], keys[i]); })
+
+#ifdef VLHT_PROFILE
+    cout << double_cnt << " " << node_cnt_VLHT << " " << double_cnt / node_cnt_VLHT << endl;
+#endif
 
 
 //    Time_BODY(1, "varLengthFast&Fair put ", { vlff->put((char *) keys[i], lengths[i], (char *) &value); })
@@ -1936,7 +1940,7 @@ int main(int argc, char *argv[]) {
 
 //     speedTest();
 
-//    varLengthTest();
+    varLengthTest();
 //    varLengthCorrectnessTest();
 //    effect2();
 
@@ -1952,7 +1956,7 @@ int main(int argc, char *argv[]) {
 //    } catch (void *) {
 //        fast_free();
 //    }
-    profile();
+//    profile();
 
 //    range_query_correctness_test();
 //    cout << ht->node_cnt << endl;

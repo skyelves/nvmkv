@@ -12,12 +12,13 @@
 #define GET_BUCKET_NUM(key, bucket_mask_len) ((key)&(((uint64_t)1<<bucket_mask_len)-1))
 
 #ifdef VLHT_PROFILE
+uint64_t node_cnt_VLHT = 0;
 uint64_t split_cnt = 0;
 uint64_t double_cnt = 0;
 #endif
 
 #ifdef NEW_ERT_PROFILE_TIME
-uint64_t sum_global_depth = 0, node_cnt = 0;
+uint64_t sum_global_depth = 0, node_cnt_ERT = 0;
 #endif
 
 inline void mfence(void) {
@@ -682,7 +683,7 @@ Length64HashTreeNode::~Length64HashTreeNode(){}
 
 void Length64HashTreeNode::init(unsigned char headerDepth, unsigned char global_depth){
 #ifdef NEW_ERT_PROFILE_TIME
-    ++node_cnt;
+    ++node_cnt_ERT;
     sum_global_depth += global_depth;
 #endif
     this->global_depth = global_depth;
