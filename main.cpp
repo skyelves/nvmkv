@@ -28,7 +28,7 @@
 #include "wort/varLengthWort.h"
 #include "lbtree/lbtree.h"
 #include "lbtree/varLengthLbtree.h"
-
+#include "linearhashing/linearhashing.h"
 
 using namespace std;
 
@@ -155,7 +155,7 @@ ofstream out;
 
 #define MULTITHREAD true
 
-int testNum = 10000000;
+int testNum = 10000;
 
 int numThread = 1;
 
@@ -169,7 +169,8 @@ bool test_case[10] = {0, // ht
                       0, // roart
                       1, // ert
                       0, // lb+tree
-                      0};
+                      1 // linearhashing
+};
 
 bool range_query_test_case[10] = {
         0, // ht
@@ -177,7 +178,7 @@ bool range_query_test_case[10] = {
         0, // woart
         0, // fast&fair
         0, // roart
-        1, // ert
+        0, // ert
         0, // lb+tree
         0
 };
@@ -200,13 +201,13 @@ var_length_woart_tree *vlwoart;
 var_length_wort_tree *vlwort;
 lbtree *lbt;
 varLengthLbtree *vllbt;
+linearHashing* lHashing;
 
 
 conwoart_tree *conwoart;
 concurrencyhashtree *cht;
 concurrency_cceh *con_cceh;
 concurrency_fastfair *con_fastfair;
-
 
 uint64_t nLoadOp, nRunOp;
 
@@ -385,6 +386,7 @@ void *putFunc(void *arg) {
 
 void speedTest() {
 //    out.open("/home/wangke/nvmkv/res.txt", ios::app);
+    testNum = 1000000;
     mykey = new uint64_t[testNum];
     rng_init(&r, 1, 2);
     for (int i = 0; i < testNum; ++i) {
@@ -442,6 +444,8 @@ void speedTest() {
 
     // insert speed for lbt
     Time_BODY(test_case[8], "lbtree put  ", { lbt->insert(mykey[i], &value); })
+
+    Time_BODY(test_case[9], "linearhashing put  ", { lHashing->insert({mykey[i], value}); })
 
     // query speed for ht
     Time_BODY(test_case[0], "ET positive_get", { ht->get(mykey[i]); })
@@ -507,10 +511,14 @@ void speedTest() {
 //    // insert speed for fast&fair
 //    Time_BODY(test_case[6], "roart update", { roart->put(mykey[i], value); })
 //
-//    Time_BODY(test_case[7], "ert get ", { l64ht->get(mykey[i]); })
+    Time_BODY(test_case[7], "ert get ", { l64ht->get(mykey[i]); })
 //
 //    int pos;
 //    Time_BODY(test_case[8], "lbt get ", { lbt->lookup(mykey[i], &pos); })
+
+    Time_BODY(test_case[9], "linearhashing positive_get", { if(lHashing->get(mykey[i]).value_ != 1){
+        cout<<"wrong!"<<endl;
+    } })
 
     //range query speed for ht
     Scan_Time_BODY(range_query_test_case[0], "hash tree range query ",
@@ -1935,12 +1943,13 @@ int main(int argc, char *argv[]) {
 
     vlff = new_varlengthfastfair();
     vllbt = new_varLengthlbtree();
+    lHashing = new_linearhash();
 //    bt = new_blink_tree(numThread);
 //     correctnessTest();
 
-//     speedTest();
+     speedTest();
 
-    varLengthTest();
+//    varLengthTest();
 //    varLengthCorrectnessTest();
 //    effect2();
 
