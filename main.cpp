@@ -167,7 +167,7 @@ bool test_case[10] = {0, // ht
                       0, // cacheline_concious_extendible_hash
                       0, // fast&fair
                       0, // roart
-                      0, // ert
+                      1, // ert
                       0, // lb+tree
                       1 // linearhashing
 };
@@ -386,7 +386,7 @@ void *putFunc(void *arg) {
 
 void speedTest() {
 //    out.open("/home/wangke/nvmkv/res.txt", ios::app);
-    testNum = 1000000;
+    testNum = 10000000;
     mykey = new uint64_t[testNum];
     rng_init(&r, 1, 2);
     for (int i = 0; i < testNum; ++i) {
@@ -633,13 +633,14 @@ void speedTest() {
 }
 
 void correctnessTest() {
-    map<uint64_t, uint64_t> mm;
+    testNum = 1000000;
+    unordered_map<uint64_t, uint64_t> mm;
     mykey = new uint64_t[testNum];
     rng_init(&r, 1, 2);
 
     uint64_t value = 1;
     for (int i = 0; i < testNum; ++i) {
-        mykey[i] = rng_next(&r) % testNum;
+        mykey[i] = rng_next(&r);
 //        mykey[i] = i + 1;
         mm[mykey[i]] = i + 1;
 //        roart->put(mykey[i], i + 1);

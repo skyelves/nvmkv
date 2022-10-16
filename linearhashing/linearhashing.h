@@ -66,7 +66,7 @@ public:
     KVPair get(uint64_t x) {
         Block *node = this;
         while (node) {
-            for (uint64_t i = 0; i < records_num; i++) {
+            for (uint64_t i = 0; i < node->records_num; i++) {
                 if (node->records[i].key_ == x) {
                     return node->records[i];
                 }
@@ -112,9 +112,9 @@ public:
                 (*array)[pos] = node->records[i];
                 pos++;
             }
+            node->records_num = 0;
             node = node->overflow;
         }
-        overflow = nullptr;
         records_num = 0;
     }
 
@@ -127,6 +127,7 @@ private:
     uint64_t bucketsNum = 0;
     KVPair *newArray;
     uint64_t arraySize;
+    uint64_t capacity;
 
 public:
     linearHashing() {
@@ -141,6 +142,7 @@ public:
         buckets[1]->init();
         bucketsNum = 2;
         numRecords = 0;
+        capacity = 2;
         numBits = 1;
         newArray = static_cast<KVPair *>(fast_alloc(sizeof(KVPair) * 1024));
         arraySize = 1024;
@@ -155,7 +157,7 @@ public:
     // 2 bucket, 16 kvs/bucket => 32 kvs
     // 16 vs
     int occupancy() {
-        double ratio = 1.0 * numRecords / bucketsNum * BLOCK_SIZE;
+        double ratio = 1.0 * numRecords / (bucketsNum * BLOCK_SIZE);
         return (int) (100 * ratio);
 //        return (int) (100 * (ratio / (BUFFER_SIZE / 4)));
     }
@@ -179,16 +181,21 @@ public:
         buckets[k]->add(kvPair);
         numRecords++;
         while (occupancy() >= 75) {
-            auto newBuckets = static_cast<Block **>(fast_alloc(sizeof(Block *) * (bucketsNum + 1)));
-            memcpy(newBuckets, buckets, sizeof(Block *) * bucketsNum);
+            if(bucketsNum >= capacity){
+                capacity *= 2;
+                auto newBuckets = static_cast<Block **>(fast_alloc(sizeof(Block *) * (capacity)));
+                memcpy(newBuckets, buckets, sizeof(Block *) * bucketsNum);
+                lhCflush((char *) newBuckets, sizeof(Block *) * capacity);
+                buckets = newBuckets;
+                lhCflush((char *) (&buckets), sizeof(buckets));
+            }
 
-            newBuckets[bucketsNum] = static_cast<Block *>(fast_alloc(sizeof(Block)));
-            newBuckets[bucketsNum]->init();
 
-            buckets = newBuckets;
+            buckets[bucketsNum] = static_cast<Block *>(fast_alloc(sizeof(Block)));
+            buckets[bucketsNum]->init();
+            lhCflush((char *) (buckets[bucketsNum]), sizeof(Block));
+            lhCflush((char *) (&(buckets[bucketsNum])), sizeof(Block*));
             bucketsNum++;
-
-            lhCflush((char *) buckets, sizeof(Block *) * bucketsNum);
 
             numBits = ceil(log2((double) bucketsNum));
             k = bucketsNum - 1 - (1 << (numBits - 1));
