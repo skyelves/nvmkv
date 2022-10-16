@@ -516,9 +516,7 @@ void speedTest() {
 //    int pos;
 //    Time_BODY(test_case[8], "lbt get ", { lbt->lookup(mykey[i], &pos); })
 
-    Time_BODY(test_case[9], "lrt get", { if(lrt->get(mykey[i]).value_ != 1){
-        cout<<"wrong!"<<endl;
-    } })
+    Time_BODY(test_case[9], "lrt get", { lrt->get(mykey[i]);})
 
     //range query speed for ht
     Scan_Time_BODY(range_query_test_case[0], "hash tree range query ",
