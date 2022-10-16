@@ -50,7 +50,7 @@ public:
 
     }
 
-    KVPair get(uint64_t key) {
+    KVPair& get(uint64_t key) {
         auto &cur = head->get(key);
         if (&cur == &not_found) {
             return cur;

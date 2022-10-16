@@ -386,7 +386,7 @@ void *putFunc(void *arg) {
 
 void speedTest() {
 //    out.open("/home/wangke/nvmkv/res.txt", ios::app);
-    testNum = 10000000;
+//    testNum = 10000000;
     mykey = new uint64_t[testNum];
     rng_init(&r, 1, 2);
     for (int i = 0; i < testNum; ++i) {

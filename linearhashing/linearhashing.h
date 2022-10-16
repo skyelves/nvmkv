@@ -83,8 +83,9 @@ public:
     void add(KVPair x) {
         if (records_num < BLOCK_SIZE) {
             records[records_num] = x;
-            records_num++;
             lhCflush((char *) &records[records_num - 1], sizeof(KVPair));
+            ++records_num;
+            lhCflush((char *) &records_num, sizeof(records_num));
         } else {
             if (overflow == nullptr) {
                 overflow = static_cast<Block *>(fast_alloc(sizeof(Block)));
@@ -158,14 +159,9 @@ public:
         return (unsigned int) (key % mod + mod) % mod;
     }
 
-    // todo: ratio = 1.0 * numRecords / (bucketsNum * BLOCK_SIZE)?;
-    // 2 bucket, 16 kvs/bucket => 32 kvs
-    // 16 vs
     int occupancy() {
         double ratio = 1.0 * numRecords / (bucketsNum * BLOCK_SIZE);
-        return (int) (100 * ratio);
-//        return (int) (100 * (ratio / (BUFFER_SIZE / 4)));
-    }
+        return (int) (100 * ratio);}
 
     bool isPresent(uint64_t key) {
         unsigned int k = hash(GET_KEY(key, depth));
@@ -185,22 +181,23 @@ public:
         }
         buckets[k]->add(kvPair);
         numRecords++;
-        while (occupancy() >= 75) {
+        while (occupancy() > 75) {
             if (bucketsNum >= capacity) {
-                capacity *= 2;
-                auto newBuckets = static_cast<Block **>(fast_alloc(sizeof(Block *) * (capacity)));
+                auto newBuckets = static_cast<Block **>(fast_alloc(sizeof(Block *) * (capacity * 2)));
                 memcpy(newBuckets, buckets, sizeof(Block *) * bucketsNum);
                 lhCflush((char *) newBuckets, sizeof(Block *) * capacity);
                 buckets = newBuckets;
                 lhCflush((char *) (&buckets), sizeof(buckets));
+                capacity *= 2;
+                lhCflush((char *) (&capacity), sizeof(capacity));
             }
 
 
             buckets[bucketsNum] = static_cast<Block *>(fast_alloc(sizeof(Block)));
             buckets[bucketsNum]->init();
             lhCflush((char *) (buckets[bucketsNum]), sizeof(Block));
-            lhCflush((char *) (&(buckets[bucketsNum])), sizeof(Block *));
             bucketsNum++;
+            lhCflush((char *) (&bucketsNum), sizeof(bucketsNum));
 
             numBits = ceil(log2((double) bucketsNum));
             k = bucketsNum - 1 - (1 << (numBits - 1));
