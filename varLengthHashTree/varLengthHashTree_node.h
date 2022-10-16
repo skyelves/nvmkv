@@ -48,7 +48,7 @@ extern uint64_t split_cnt;
 extern uint64_t double_cnt;
 #endif
 
-#define NEW_ERT_PROFILE_TIME 1
+//#define NEW_ERT_PROFILE_TIME 1
 
 #ifdef NEW_ERT_PROFILE_TIME
 extern uint64_t sum_global_depth, node_cnt_ERT;

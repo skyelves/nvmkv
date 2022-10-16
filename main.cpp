@@ -716,6 +716,7 @@ void profile() {
 //        woart_put(woart, mykey[i], 8, &value);
 //        ff->put(mykey[i], (char *) &value);
         l64ht->crash_consistent_put(NULL, mykey[i], 1, 0);
+//        lrt->put({mykey[i], value});
 //        if(i % (testNum/10) == 0)
 //            cout << l64ht->memory_profile(NULL) << endl;
 //        lbt->insert(mykey[i], &value);
@@ -737,7 +738,7 @@ void profile() {
 //    cout << _grow << endl << _update << endl << _travelsal <<endl << _decompression << endl;
 //    cout << timeCost << endl;
 //    out.close();
-//    cout << concurrency_fastalloc_profile() / testNum << endl;
+    cout << concurrency_fastalloc_profile() / testNum << endl;
 //    cout << wort_memory_profile(wort->root) << endl;
 //    cout << woart_memory_profile(woart->root) << endl;
 //    cout << ff->memory_profile(NULL) << endl;
@@ -1951,7 +1952,7 @@ int main(int argc, char *argv[]) {
 //    bt = new_blink_tree(numThread);
 //     correctnessTest();
 
-    speedTest();
+//    speedTest();
 
 //    varLengthTest();
 //    varLengthCorrectnessTest();
@@ -1969,7 +1970,7 @@ int main(int argc, char *argv[]) {
 //    } catch (void *) {
 //        fast_free();
 //    }
-//    profile();
+    profile();
 
 //    range_query_correctness_test();
 //    cout << ht->node_cnt << endl;
