@@ -5,70 +5,72 @@
 #define NVMKV_LINEARRADIXTREE_H
 
 #include "linearhashing.h"
+
 #define NODE_LENGTH 32
 
 using namespace std;
 
-class LinearRadixTree{
+class LinearRadixTree {
 public:
-    LinearRadixTree(){
+    LinearRadixTree() {
         init();
     }
 
-    void init(){
-        head = static_cast<linearHashing*>(fast_alloc(sizeof(linearHashing)));
+    void init() {
+        head = static_cast<linearHashing *>(fast_alloc(sizeof(linearHashing)));
         head->init();
     }
 
-    void put(KVPair kvPair){
-        auto& cur = head->get(kvPair.key_);
+    void put(KVPair kvPair) {
+        auto &cur = head->get(kvPair.key_);
         auto node = head;
 
-        if(&cur == &not_found){
+        if (&cur == &not_found) {
             head->insert(kvPair);
             return;
-        }else{
-            if(!cur.flag){
-                auto next = (linearHashing*)(cur.value_);
+        } else {
+            if (!cur.flag) {
+                auto next = (linearHashing *) (cur.value_);
                 next->insert(kvPair);
                 return;
-            }else{
-                auto newLinearHashing = static_cast<linearHashing*>(fast_alloc(sizeof(linearHashing)));
+            } else {
+                auto newLinearHashing = static_cast<linearHashing *>(fast_alloc(sizeof(linearHashing)));
                 newLinearHashing->init(node->depth + 1);
-                lhCflush((char*)newLinearHashing,sizeof(linearHashing));
+                lhCflush((char *) newLinearHashing, sizeof(linearHashing));
 
                 newLinearHashing->insert(cur);
                 newLinearHashing->insert(kvPair);
 
-                cur.value_ = (uint64_t)newLinearHashing;
+                cur.value_ = (uint64_t) newLinearHashing;
                 cur.flag = false;
-                lhCflush((char*)&cur,sizeof(cur));
+                lhCflush((char *) &cur, sizeof(cur));
                 return;
             }
         }
 
     }
 
-    KVPair get(uint64_t key){
-        auto& cur = head->get(key);
-        if(&cur == &not_found){
+    KVPair get(uint64_t key) {
+        auto &cur = head->get(key);
+        if (&cur == &not_found) {
             return cur;
-        }else{
-            if(!cur.flag){
-                auto next = (linearHashing*)(cur.value_);
+        } else {
+            if (!cur.flag) {
+                auto next = (linearHashing *) (cur.value_);
                 return next->get(key);
-            }else{
+            } else {
                 return cur;
             }
         }
     }
 
 private:
-    linearHashing* head;
+    linearHashing *head;
 };
-LinearRadixTree* new_LinearRadixTree(){
-    auto pointer = static_cast<LinearRadixTree*>(fast_alloc(sizeof(LinearRadixTree)));
-    pointer ->init();
+
+LinearRadixTree *new_LinearRadixTree() {
+    auto pointer = static_cast<LinearRadixTree *>(fast_alloc(sizeof(LinearRadixTree)));
+    pointer->init();
     return pointer;
 }
 
