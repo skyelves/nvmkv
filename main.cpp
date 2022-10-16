@@ -28,7 +28,7 @@
 #include "wort/varLengthWort.h"
 #include "lbtree/lbtree.h"
 #include "lbtree/varLengthLbtree.h"
-#include "linearhashing/linearhashing.h"
+#include "linearhashing/LinearRadixTree.h"
 
 using namespace std;
 
@@ -201,7 +201,7 @@ var_length_woart_tree *vlwoart;
 var_length_wort_tree *vlwort;
 lbtree *lbt;
 varLengthLbtree *vllbt;
-linearHashing* lHashing;
+LinearRadixTree* lrt;
 
 
 conwoart_tree *conwoart;
@@ -445,7 +445,7 @@ void speedTest() {
     // insert speed for lbt
     Time_BODY(test_case[8], "lbtree put  ", { lbt->insert(mykey[i], &value); })
 
-    Time_BODY(test_case[9], "linearhashing put  ", { lHashing->insert({mykey[i], value}); })
+    Time_BODY(test_case[9], "lrt put  ", { lrt->put({mykey[i], value}); })
 
     // query speed for ht
     Time_BODY(test_case[0], "ET positive_get", { ht->get(mykey[i]); })
@@ -516,7 +516,7 @@ void speedTest() {
 //    int pos;
 //    Time_BODY(test_case[8], "lbt get ", { lbt->lookup(mykey[i], &pos); })
 
-    Time_BODY(test_case[9], "linearhashing positive_get", { if(lHashing->get(mykey[i]).value_ != 1){
+    Time_BODY(test_case[9], "lrt get", { if(lrt->get(mykey[i]).value_ != 1){
         cout<<"wrong!"<<endl;
     } })
 
@@ -651,7 +651,7 @@ void correctnessTest() {
 //        ht->crash_consistent_put(NULL, mykey[i], i + 1, 0);
 //        l64ht->crash_consistent_put(NULL, mykey[i], i + 1, 0);
 //        lbt->insert(mykey[i], &value);
-        lHashing->insert({mykey[i], (uint64_t)i + 1});
+        lrt->put({mykey[i], (uint64_t)i + 1});
 //        for (int j = 0; j < testNum; ++j) {
 //            int64_t res = cceh->get(mykey[j]);
 //            if (res != mm[mykey[j]]) {
@@ -680,7 +680,7 @@ void correctnessTest() {
 //        res = woart_get(woart, mykey[i], 8);
 //        res = ht->get(mykey[i]);
 //        res = l64ht->get(mykey[i]);
-        res = lHashing->get(mykey[i]).value_;
+        res = lrt->get(mykey[i]).value_;
 //        int pos;
 //        lbt->lookup(mykey[i], &pos);
         if (res != mm[mykey[i]]) {
@@ -1946,11 +1946,11 @@ int main(int argc, char *argv[]) {
 
     vlff = new_varlengthfastfair();
     vllbt = new_varLengthlbtree();
-    lHashing = new_linearhash();
+    lrt = new_LinearRadixTree();
 //    bt = new_blink_tree(numThread);
-     correctnessTest();
+//     correctnessTest();
 
-//     speedTest();
+     speedTest();
 
 //    varLengthTest();
 //    varLengthCorrectnessTest();

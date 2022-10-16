@@ -1,4 +1,4 @@
-set(LINEAR_HASHING_SOURCES linearhashing.h)
+set(LINEAR_HASHING_SOURCES linearhashing.h LinearRadixTree.h)
 
 add_library(nvmkv-linear-hashing STATIC ${LINEAR_HASHING_SOURCES})
 target_compile_features(nvmkv-linear-hashing PUBLIC c_std_11 cxx_std_17)

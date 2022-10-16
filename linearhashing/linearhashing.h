@@ -9,7 +9,10 @@
 #define BLOCK_SIZE 16
 #define BUFFER_SIZE 32
 
+#define NODE_LENGTH 32
 
+
+#define GET_KEY(key , depth) ((key << (depth * NODE_LENGTH)) >> (64 - NODE_LENGTH))
 inline void lhMfence() { asm volatile("mfence":: : "memory"); }
 
 inline void lhCflush(char *data, int len) {
@@ -17,7 +20,6 @@ inline void lhCflush(char *data, int len) {
     lhMfence();
     for (; ptr < data + len; ptr += CACHE_LINE_SIZE) {
         asm volatile("clflush %0" : "+m"(*(volatile char *) ptr));
-        //++clflush_cnt;
     }
     lhMfence();
 }
@@ -26,13 +28,13 @@ struct KVPair {
 public:
     KVPair() = default;
 
-    KVPair(uint64_t key, uint64_t value) : key_(key), value_(value) {
-
-    }
-
+    KVPair(uint64_t key, uint64_t value) : key_(key), value_(value) {}
+    bool flag = true;
     uint64_t key_;
     uint64_t value_;
 };
+
+static KVPair not_found(0, 0);
 
 class Block {
     KVPair *records;
@@ -50,11 +52,11 @@ public:
         records_num = 0;
     }
 
-    bool isPresent(uint64_t x) {
+    bool isPresent(uint64_t x, int depth = 0) {
         Block *node = this;
         while (node) {
             for (uint64_t i = 0; i < records_num; i++) {
-                if (node->records[i].key_ == x) {
+                if (GET_KEY(node->records[i].key_,depth) == x) {
                     return true;
                 }
             }
@@ -63,17 +65,17 @@ public:
         return false;
     }
 
-    KVPair get(uint64_t x) {
+    KVPair& get(uint64_t x, int depth = 0) {
         Block *node = this;
         while (node) {
             for (uint64_t i = 0; i < node->records_num; i++) {
-                if (node->records[i].key_ == x) {
+                if (GET_KEY(node->records[i].key_,depth) == x) {
                     return node->records[i];
                 }
             }
             node = node->overflow;
         }
-        return KVPair(0, 0);
+        return not_found;
     }
 
     void add(KVPair x) {
@@ -134,7 +136,7 @@ public:
         init();
     }
 
-    void init() {
+    void init(int depth_ = 0) {
         buckets = static_cast<Block **>(fast_alloc(sizeof(Block *) * 2));
         buckets[0] = static_cast<Block *>(fast_alloc(sizeof(Block)));
         buckets[0]->init();
@@ -146,6 +148,7 @@ public:
         numBits = 1;
         newArray = static_cast<KVPair *>(fast_alloc(sizeof(KVPair) * 1024));
         arraySize = 1024;
+        depth = depth_;
     }
 
     unsigned int hash(uint64_t key) {
@@ -163,18 +166,18 @@ public:
     }
 
     bool isPresent(uint64_t key) {
-        unsigned int k = hash(key);
+        unsigned int k = hash(GET_KEY(key,depth));
         if (k >= bucketsNum) {
             k -= (1 << (numBits - 1));
         }
-        if (buckets[k]->isPresent(key)) {
+        if (buckets[k]->isPresent(key,depth)) {
             return true;
         }
         return false;
     }
 
     void insert(KVPair kvPair) {
-        unsigned int k = hash(kvPair.key_);
+        unsigned int k = hash(GET_KEY(kvPair.key_,depth));
         if (k >= bucketsNum) {
             k -= (1 << (numBits - 1));
         }
@@ -204,19 +207,22 @@ public:
             buckets[k]->cleanAll(&newArray, arraySize, pos);
 
             for (unsigned int i = 0; i < pos; i++) {
-                auto k = hash((newArray)[i].key_);
+                auto k = hash(GET_KEY(newArray[i].key_,depth));
                 buckets[k]->add((newArray)[i]);
             }
         }
     }
 
-    KVPair get(uint64_t key) {
+    KVPair& get(uint64_t key) {
+        key = GET_KEY(key,depth);
         unsigned int k = hash(key);
         if (k >= bucketsNum) {
             k -= (1 << (numBits - 1));
         }
-        return buckets[k]->get(key);
+        return buckets[k]->get(key,depth);
     }
+
+    int depth;
 };
 
 static linearHashing *new_linearhash() {
