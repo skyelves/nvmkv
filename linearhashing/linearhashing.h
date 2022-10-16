@@ -80,7 +80,7 @@ public:
         return not_found;
     }
 
-    void add(KVPair x) {
+    void add(KVPair& x) {
         if (records_num < BLOCK_SIZE) {
             records[records_num] = x;
             lhCflush((char *) &records[records_num - 1], sizeof(KVPair));
@@ -174,7 +174,7 @@ public:
         return false;
     }
 
-    void insert(KVPair kvPair) {
+    void insert(KVPair& kvPair) {
         unsigned int k = hash(GET_KEY(kvPair.key_, depth));
         if (k >= bucketsNum) {
             k -= (1 << (numBits - 1));
