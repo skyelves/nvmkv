@@ -8,6 +8,10 @@
 
 #define NODE_LENGTH 32
 
+#ifdef LHT_PROFILE
+uint64_t overflow_cnt = 0;
+#endif
+
 using namespace std;
 
 class LinearRadixTree {

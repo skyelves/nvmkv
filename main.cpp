@@ -201,7 +201,7 @@ var_length_woart_tree *vlwoart;
 var_length_wort_tree *vlwort;
 lbtree *lbt;
 varLengthLbtree *vllbt;
-LinearRadixTree* lrt;
+LinearRadixTree *lrt;
 
 
 conwoart_tree *conwoart;
@@ -516,7 +516,10 @@ void speedTest() {
 //    int pos;
 //    Time_BODY(test_case[8], "lbt get ", { lbt->lookup(mykey[i], &pos); })
 
-    Time_BODY(test_case[9], "lrt get", { lrt->get(mykey[i]);})
+    Time_BODY(test_case[9], "lrt get", { lrt->get(mykey[i]); })
+#ifdef LHT_PROFILE
+    cout << overflow_cnt << endl;
+#endif
 
     //range query speed for ht
     Scan_Time_BODY(range_query_test_case[0], "hash tree range query ",
@@ -649,7 +652,7 @@ void correctnessTest() {
 //        ht->crash_consistent_put(NULL, mykey[i], i + 1, 0);
 //        l64ht->crash_consistent_put(NULL, mykey[i], i + 1, 0);
 //        lbt->insert(mykey[i], &value);
-        lrt->put({mykey[i], (uint64_t)i + 1});
+        lrt->put({mykey[i], (uint64_t) i + 1});
 //        for (int j = 0; j < testNum; ++j) {
 //            int64_t res = cceh->get(mykey[j]);
 //            if (res != mm[mykey[j]]) {
@@ -1948,7 +1951,7 @@ int main(int argc, char *argv[]) {
 //    bt = new_blink_tree(numThread);
 //     correctnessTest();
 
-     speedTest();
+    speedTest();
 
 //    varLengthTest();
 //    varLengthCorrectnessTest();

@@ -11,6 +11,11 @@
 
 #define NODE_LENGTH 32
 
+#define LHT_PROFILE 1
+
+#ifdef LHT_PROFILE
+extern uint64_t overflow_cnt;
+#endif
 
 #define GET_KEY(key, depth) ((key << (depth * NODE_LENGTH)) >> (64 - NODE_LENGTH))
 
@@ -75,6 +80,9 @@ public:
                     return node->records[i];
                 }
             }
+#ifdef LHT_PROFILE
+            ++overflow_cnt;
+#endif
             node = node->overflow;
         }
         return not_found;
