@@ -167,7 +167,7 @@ bool test_case[10] = {0, // ht
                       0, // cacheline_concious_extendible_hash
                       0, // fast&fair
                       0, // roart
-                      1, // ert
+                      0, // ert
                       0, // lb+tree
                       1 // linearhashing
 };
@@ -390,9 +390,9 @@ void speedTest() {
     mykey = new uint64_t[testNum];
     rng_init(&r, 1, 2);
     for (int i = 0; i < testNum; ++i) {
-//        mykey[i] = rng_next(&r);
+        mykey[i] = rng_next(&r);
 //        mykey[i] = rng_next(&r) & 0xffffffff00000000;
-        mykey[i] = rng_next(&r) % testNum;
+//        mykey[i] = rng_next(&r) % testNum;
 //        mykey[i] = rng_next(&r) % 100000000;
 //        mykey[i] = i;
     }
@@ -648,8 +648,9 @@ void correctnessTest() {
 //        woart_put(woart, mykey[i], 8, &mm[mykey[i]]);
 //        cceh->put(mykey[i], i + 1);
 //        ht->crash_consistent_put(NULL, mykey[i], i + 1, 0);
-        l64ht->crash_consistent_put(NULL, mykey[i], i + 1, 0);
+//        l64ht->crash_consistent_put(NULL, mykey[i], i + 1, 0);
 //        lbt->insert(mykey[i], &value);
+        lHashing->insert({mykey[i], (uint64_t)i + 1});
 //        for (int j = 0; j < testNum; ++j) {
 //            int64_t res = cceh->get(mykey[j]);
 //            if (res != mm[mykey[j]]) {
@@ -677,7 +678,8 @@ void correctnessTest() {
 //        res = wort_get(wort, mykey[i], 8);
 //        res = woart_get(woart, mykey[i], 8);
 //        res = ht->get(mykey[i]);
-        res = l64ht->get(mykey[i]);
+//        res = l64ht->get(mykey[i]);
+        res = lHashing->get(mykey[i]).value_;
 //        int pos;
 //        lbt->lookup(mykey[i], &pos);
         if (res != mm[mykey[i]]) {
@@ -1945,9 +1947,9 @@ int main(int argc, char *argv[]) {
     vllbt = new_varLengthlbtree();
     lHashing = new_linearhash();
 //    bt = new_blink_tree(numThread);
-//     correctnessTest();
+     correctnessTest();
 
-     speedTest();
+//     speedTest();
 
 //    varLengthTest();
 //    varLengthCorrectnessTest();

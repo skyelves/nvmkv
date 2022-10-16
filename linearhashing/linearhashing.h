@@ -151,9 +151,13 @@ public:
         return (unsigned int) (key % mod + mod) % mod;
     }
 
+    // todo: ratio = 1.0 * numRecords / (bucketsNum * BLOCK_SIZE)?;
+    // 2 bucket, 16 kvs/bucket => 32 kvs
+    // 16 vs
     int occupancy() {
-        double ratio = 1.0 * numRecords / bucketsNum;
-        return (int) (100 * (ratio / (BUFFER_SIZE / 4)));
+        double ratio = 1.0 * numRecords / bucketsNum * BLOCK_SIZE;
+        return (int) (100 * ratio);
+//        return (int) (100 * (ratio / (BUFFER_SIZE / 4)));
     }
 
     bool isPresent(uint64_t key) {
