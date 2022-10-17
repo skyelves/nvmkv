@@ -167,7 +167,7 @@ bool test_case[10] = {0, // ht
                       0, // cacheline_concious_extendible_hash
                       0, // fast&fair
                       0, // roart
-                      1, // ert
+                      0, // ert
                       0, // lb+tree
                       1 // linearhashing
 };
@@ -180,7 +180,7 @@ bool range_query_test_case[10] = {
         0, // roart
         0, // ert
         0, // lb+tree
-        0
+        1  // linear hash
 };
 
 rng r;
@@ -397,7 +397,7 @@ void speedTest() {
 //        mykey[i] = i;
     }
     uint64_t value = 1;
-    vector<Length64HashTreeKeyValue> res;
+    vector<struct KVPair> res;
 //    timeval start, ends;
 //    gettimeofday(&start, NULL);
 //    put();
@@ -518,6 +518,8 @@ void speedTest() {
 
     Time_BODY(test_case[9], "lrt get", { lrt->get(mykey[i]);})
 
+    cout<<" average get "<< (double)ref_count / testNum<<endl;
+
     //range query speed for ht
     Scan_Time_BODY(range_query_test_case[0], "hash tree range query ",
                    { ht->scan(mykey[i], mykey[i] + testNum * 0.001); })
@@ -625,6 +627,10 @@ void speedTest() {
     //range query speed for lb+tree
     Scan_Time_BODY(range_query_test_case[6], "lb+tree range query ",
                    { lbt->rangeQuery(mykey[i], mykey[i] + 31); })
+
+                   vector<KVPair> res_;
+    Scan_Time_BODY(range_query_test_case[7], "lrt range query ",
+                   { lrt->rangeQuery(mykey[i], mykey[i] + 31, res_); })
 
 //    cout << concurrency_fastalloc_profile()<<endl;
     out.close();
@@ -780,6 +786,7 @@ void range_query_correctness_test() {
     vector<lbtree::kv> res5;
 
     vector<Length64HashTreeKeyValue> res;
+    vector<KVPair> res6;
 
 //    vector<void *> res;
 
@@ -789,24 +796,26 @@ void range_query_correctness_test() {
         // roart->put(i + 1, i + 1);
 //        ff->put(mykey[i], (char *) &value);
         woart_put(woart, mykey[i], 8, &value);
-        lbt->insert(mykey[i], &value);
-//        wort_put(wort, mykey[i], 8, &value);
+//        lbt->insert(mykey[i], &value);
+        wort_put(wort, mykey[i], 8, &value);
 //        ht->crash_consistent_put(NULL, mykey[i], 1, 0);
 //        if (l64ht->get(mykey[i]) != 1) {
 //            cout << "wrong" << endl;
 //        }
+        lrt->put({mykey[i],1});
     }
 
 
     for (int i = 0; i < 10; ++i) {
 //        res1 = ht->scan(mykey[i], mykey[i] + 10000);
-//        res2 = wort_scan(wort, mykey[i], mykey[i] + 10000);
+        res2 = wort_scan(wort, mykey[i], mykey[i] + 10000);
 //        res3 = ff->scan(mykey[i], mykey[i] + 10000);
         res4 = woart_scan(woart, mykey[i], mykey[i] + 10000);
-        res5 = lbt->rangeQuery(mykey[i], mykey[i] + 10000);
+//        res5 = lbt->rangeQuery(mykey[i], mykey[i] + 10000);
         l64ht->node_scan(NULL, mykey[i], mykey[i] + 10000, res, 0);
+        lrt->rangeQuery(mykey[i],mykey[i] + 10000,res6);
         cout << res.size() << ", " << res1.size() << ", " << res2.size() << ", " << res3.size() << ", " << res4.size()
-             << ", " << res5.size() << endl;
+             << ", " << res5.size() << ", " << res6.size() << endl;
 //        map<uint64_t, int> tmp_map;
 //        for (int j = 0; j < res.size(); ++j) {
 //            if(tmp_map.find(res[j].key)!=tmp_map.end()){
@@ -822,6 +831,12 @@ void range_query_correctness_test() {
 //            }
 //        }
         res.clear();
+        res1.clear();
+        res2.clear();
+        res3.clear();
+        res4.clear();
+        res5.clear();
+        res6.clear();
     }
 //    res = wort_scan(wort, 1, 10000);
 //    res =  ht->scan(1, 10000);
@@ -1948,7 +1963,7 @@ int main(int argc, char *argv[]) {
 //    bt = new_blink_tree(numThread);
 //     correctnessTest();
 
-     speedTest();
+//     speedTest();
 
 //    varLengthTest();
 //    varLengthCorrectnessTest();
@@ -1968,7 +1983,7 @@ int main(int argc, char *argv[]) {
 //    }
 //    profile();
 
-//    range_query_correctness_test();
+    range_query_correctness_test();
 //    cout << ht->node_cnt << endl;
 //    cout << ht->get_access << endl;
 

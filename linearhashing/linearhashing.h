@@ -36,14 +36,15 @@ public:
     uint64_t value_;
 };
 
+static uint64_t ref_count = 0;
 static KVPair not_found(0, 0);
 
 class Block {
+public:
     KVPair *records;
     Block *overflow;
     uint64_t records_num;
 
-public:
     Block() {
         init();
     }
@@ -71,19 +72,20 @@ public:
         Block *node = this;
         while (node) {
             for (uint64_t i = 0; i < node->records_num; i++) {
-                if (GET_KEY(node->records[i].key_, depth) == x) {
+                if (GET_KEY((node->records[i].key_), depth) == x) {
                     return node->records[i];
                 }
             }
             node = node->overflow;
+            ref_count++;
         }
         return not_found;
     }
 
-    void add(KVPair& x) {
+    void add(KVPair x) {
         if (records_num < BLOCK_SIZE) {
             records[records_num] = x;
-            lhCflush((char *) &records[records_num - 1], sizeof(KVPair));
+            lhCflush((char *) &records[records_num], sizeof(KVPair));
             ++records_num;
             lhCflush((char *) &records_num, sizeof(records_num));
         } else {
@@ -120,13 +122,12 @@ public:
             node->records_num = 0;
             node = node->overflow;
         }
-        records_num = 0;
     }
 
 };
 
 class linearHashing {
-private:
+public:
     uint64_t numRecords, numBits;
     Block **buckets = nullptr;
     uint64_t bucketsNum = 0;
@@ -134,7 +135,7 @@ private:
     uint64_t arraySize;
     uint64_t capacity;
 
-public:
+
     linearHashing() {
         init();
     }
@@ -174,13 +175,19 @@ public:
         return false;
     }
 
-    void insert(KVPair& kvPair) {
-        unsigned int k = hash(GET_KEY(kvPair.key_, depth));
+    void insert(KVPair kvPair) {
+        unsigned int k = hash(GET_KEY((kvPair.key_), depth));
         if (k >= bucketsNum) {
             k -= (1 << (numBits - 1));
         }
-        buckets[k]->add(kvPair);
-        numRecords++;
+        auto& buc = buckets[k]->get(kvPair.key_,depth);
+        if(&buc == &not_found){
+            buckets[k]->add(kvPair);
+            numRecords++;
+        }else{
+            buc.value_ = kvPair.value_;
+            lhCflush((char*)&buc.value_,sizeof(buc.value_));
+        }
         while (occupancy() > 75) {
             if (bucketsNum >= capacity) {
                 auto newBuckets = static_cast<Block **>(fast_alloc(sizeof(Block *) * (capacity * 2)));
@@ -206,7 +213,7 @@ public:
             buckets[k]->cleanAll(&newArray, arraySize, pos);
 
             for (unsigned int i = 0; i < pos; i++) {
-                auto k = hash(GET_KEY(newArray[i].key_, depth));
+                auto k = hash(GET_KEY((newArray[i].key_), depth));
                 buckets[k]->add((newArray)[i]);
             }
         }
