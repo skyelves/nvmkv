@@ -201,7 +201,7 @@ var_length_woart_tree *vlwoart;
 var_length_wort_tree *vlwort;
 lbtree *lbt;
 varLengthLbtree *vllbt;
-LinearRadixTree* lrt;
+LinearRadixTree *lrt;
 
 
 conwoart_tree *conwoart;
@@ -397,7 +397,7 @@ void speedTest() {
 //        mykey[i] = i;
     }
     uint64_t value = 1;
-    vector<struct KVPair> res;
+    vector<Length64HashTreeKeyValue> res;
 //    timeval start, ends;
 //    gettimeofday(&start, NULL);
 //    put();
@@ -516,9 +516,10 @@ void speedTest() {
 //    int pos;
 //    Time_BODY(test_case[8], "lbt get ", { lbt->lookup(mykey[i], &pos); })
 
-    Time_BODY(test_case[9], "lrt get", { lrt->get(mykey[i]);})
-
-    cout<<" average get "<< (double)ref_count / testNum<<endl;
+    Time_BODY(test_case[9], "lrt get", { lrt->get(mykey[i]); })
+#ifdef LHT_PROFILE
+    cout << overflow_cnt << endl;
+#endif
 
     //range query speed for ht
     Scan_Time_BODY(range_query_test_case[0], "hash tree range query ",
@@ -655,7 +656,7 @@ void correctnessTest() {
 //        ht->crash_consistent_put(NULL, mykey[i], i + 1, 0);
 //        l64ht->crash_consistent_put(NULL, mykey[i], i + 1, 0);
 //        lbt->insert(mykey[i], &value);
-        lrt->put({mykey[i], (uint64_t)i + 1});
+        lrt->put({mykey[i], (uint64_t) i + 1});
 //        for (int j = 0; j < testNum; ++j) {
 //            int64_t res = cceh->get(mykey[j]);
 //            if (res != mm[mykey[j]]) {
@@ -719,6 +720,7 @@ void profile() {
 //        woart_put(woart, mykey[i], 8, &value);
 //        ff->put(mykey[i], (char *) &value);
         l64ht->crash_consistent_put(NULL, mykey[i], 1, 0);
+//        lrt->put({mykey[i], value});
 //        if(i % (testNum/10) == 0)
 //            cout << l64ht->memory_profile(NULL) << endl;
 //        lbt->insert(mykey[i], &value);
@@ -740,7 +742,7 @@ void profile() {
 //    cout << _grow << endl << _update << endl << _travelsal <<endl << _decompression << endl;
 //    cout << timeCost << endl;
 //    out.close();
-//    cout << concurrency_fastalloc_profile() / testNum << endl;
+    cout << concurrency_fastalloc_profile() / testNum << endl;
 //    cout << wort_memory_profile(wort->root) << endl;
 //    cout << woart_memory_profile(woart->root) << endl;
 //    cout << ff->memory_profile(NULL) << endl;
