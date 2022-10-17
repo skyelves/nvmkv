@@ -167,7 +167,7 @@ bool test_case[10] = {0, // ht
                       0, // cacheline_concious_extendible_hash
                       0, // fast&fair
                       0, // roart
-                      0, // ert
+                      1, // ert
                       0, // lb+tree
                       1 // linearhashing
 };
@@ -178,7 +178,7 @@ bool range_query_test_case[10] = {
         0, // woart
         0, // fast&fair
         0, // roart
-        0, // ert
+        1, // ert
         0, // lb+tree
         1  // linear hash
 };
@@ -520,6 +520,7 @@ void speedTest() {
 #ifdef LHT_PROFILE
     cout << overflow_cnt << endl;
 #endif
+    vector<KVPair> res_;
 
     //range query speed for ht
     Scan_Time_BODY(range_query_test_case[0], "hash tree range query ",
@@ -549,6 +550,9 @@ void speedTest() {
     Scan_Time_BODY(range_query_test_case[6], "lb+tree range query ",
                    { lbt->rangeQuery(mykey[i], mykey[i] + testNum * 0.001); })
 
+    Scan_Time_BODY(range_query_test_case[7], "lrt range query ",
+                   { lrt->rangeQuery(mykey[i], mykey[i] + testNum * 0.001, res_); })
+
     //range query speed for ht
     Scan_Time_BODY(range_query_test_case[0], "hash tree range query ",
                    { ht->scan(mykey[i], mykey[i] + testNum * 0.005); })
@@ -576,6 +580,10 @@ void speedTest() {
     //range query speed for lb+tree
     Scan_Time_BODY(range_query_test_case[6], "lb+tree range query ",
                    { lbt->rangeQuery(mykey[i], mykey[i] + testNum * 0.005); })
+
+    //range query speed for lrt
+    Scan_Time_BODY(range_query_test_case[7], "lrt range query ",
+                { lrt->rangeQuery(mykey[i], mykey[i] + testNum * 0.005, res_); })
 
     //range query speed for ht
     Scan_Time_BODY(range_query_test_case[0], "hash tree range query ",
@@ -605,6 +613,10 @@ void speedTest() {
     Scan_Time_BODY(range_query_test_case[6], "lb+tree range query ",
                    { lbt->rangeQuery(mykey[i], mykey[i] + testNum * 0.01); })
 
+    //range query speed for lrt
+    Scan_Time_BODY(range_query_test_case[7], "lrt range query ",
+                   { lrt->rangeQuery(mykey[i], mykey[i] + testNum * 0.01, res_); })
+
     //range query speed for ht
     Scan_Time_BODY(range_query_test_case[0], "hash tree range query ", { ht->scan(mykey[i], mykey[i] + 31); })
 
@@ -629,7 +641,7 @@ void speedTest() {
     Scan_Time_BODY(range_query_test_case[6], "lb+tree range query ",
                    { lbt->rangeQuery(mykey[i], mykey[i] + 31); })
 
-                   vector<KVPair> res_;
+                   
     Scan_Time_BODY(range_query_test_case[7], "lrt range query ",
                    { lrt->rangeQuery(mykey[i], mykey[i] + 31, res_); })
 
@@ -1965,7 +1977,7 @@ int main(int argc, char *argv[]) {
 //    bt = new_blink_tree(numThread);
 //     correctnessTest();
 
-//     speedTest();
+     speedTest();
 
 //    varLengthTest();
 //    varLengthCorrectnessTest();
@@ -1985,7 +1997,7 @@ int main(int argc, char *argv[]) {
 //    }
 //    profile();
 
-    range_query_correctness_test();
+//    range_query_correctness_test();
 //    cout << ht->node_cnt << endl;
 //    cout << ht->get_access << endl;
 

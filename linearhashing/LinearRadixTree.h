@@ -73,6 +73,15 @@ public:
     }
 
     void rangeQuery(linearHashing* head, uint64_t start, uint64_t end, vector<KVPair>& res){
+        if(end - start < head->numRecords){
+            for(uint64_t i = start; i<=end;i++){
+                auto& cur = head->get(i);
+                if(&cur != &not_found){
+                    res.push_back(cur);
+                }
+            }
+            return;
+        }
         for(uint64_t i=0;i<head->bucketsNum;i++){
             auto node = head->buckets[i];
             while(node && node->records_num > 0){
